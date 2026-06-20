@@ -72,23 +72,84 @@ MVP 必须先打通完整业务链路，而不是做大量精致但孤立的页�
 
 ## 本地开发步骤
 
-当前尚无业务代码，因此没有可运行的本地开发命令。代码框架确定后，必须在本文件补充：
+当前业务代码位于 `Code文档` 目录。代码框架为 Next.js + TypeScript + React。
 
-- 依赖安装命令。
-- 本地启动命令。
-- 构建命令。
-- 测试命令。
-- 环境变量配置方式。
-- 常见故障处理。
+进入代码目录：
+
+```powershell
+Set-Location Code文档
+```
+
+依赖安装命令：
+
+```powershell
+npm install
+```
+
+本地启动命令：
+
+```powershell
+npm run dev
+```
+
+构建命令：
+
+```powershell
+npm run build
+```
+
+测试命令：
+
+```powershell
+npm test
+```
+
+类型检查命令：
+
+```powershell
+npm run typecheck
+```
+
+代码检查命令：
+
+```powershell
+npm run lint
+```
+
+环境变量配置方式：
+
+- 当前尚未接入 CloudBase 和短信服务，暂不需要真实环境变量。
+- 后续新增 `.env.example` 说明必需变量。
+- 任何真实密钥不得提交到 Git 仓库。
+
+常见故障处理：
+
+- 如果 npm 安装提示 Node 版本警告，优先升级到 Node 20.19+ 或 22 LTS。
+- 如果 npm audit 提示 Next.js 内部依赖风险，不要直接执行会降级框架的 `npm audit fix --force`，应先确认 Next.js 是否已有兼容补丁版本。
 
 ## 改完代码后的验证要求
 
-当前尚无代码，暂不定义具体命令。未来一旦引入技术栈，开发者每次改动后至少应运行：
+当前已引入 Next.js + TypeScript 技术栈。开发者每次改动后至少应运行：
 
 - 类型检查。
 - 单元测试或组件测试。
 - 构建检查。
 - 与改动相关的端到端流程验证。
+
+当前对应命令：
+
+```powershell
+Set-Location Code文档
+npm run typecheck
+npm test
+npm run build
+```
+
+如涉及页面、样式或路由，也应运行：
+
+```powershell
+npm run lint
+```
 
 如果某项检查无法运行，必须在交付说明中写明原因和风险。
 

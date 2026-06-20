@@ -2,7 +2,7 @@
 
 用途：记录本项目业务代码产生后的代码结构、模块职责、本地开发、部署、测试、接口约定和版本管理说明。
 
-当前状态：尚未创建业务代码。本目录先作为开发侧文档工作区，用于承接后续代码开发说明；正式开发必须先读取并遵守 `规划文档/Spec文档` 中已确认的 Spec。
+当前状态：已在本目录初始化 Next.js + TypeScript 代码项目。正式开发必须先读取并遵守 `规划文档/Spec文档` 中已确认的 Spec。
 
 ## 开发边界
 
@@ -99,7 +99,31 @@
 - 提交前查看工作区变化，避免误提交规划区无关文件。
 - 提交信息说明用户可见变化或代码文档变化。
 - 推送 GitHub 前确认远程仓库地址、可见性、默认分支和权限。
-- 当前仓库未配置 GitHub remote；配置前需要业务方提供 GitHub 仓库地址或确认要新建仓库。
+- 当前 GitHub remote：`https://github.com/Vange-wang/UNGradu-EDU-Website.git`。
+
+## 本地开发命令
+
+在 `Code文档` 目录下运行：
+
+- 安装依赖：`npm install`
+- 本地启动：`npm run dev`
+- 生产构建：`npm run build`
+- 代码检查：`npm run lint`
+- 类型检查：`npm run typecheck`
+- 测试：`npm test`
+
+当前技术栈：
+
+- Next.js 15.5.19
+- React 19
+- TypeScript
+- Vitest
+- ESLint
+
+当前已知环境说明：
+
+- 本机 Node.js 为 `20.18.0`。
+- npm audit 当前报告 Next.js 内部 `postcss` 相关 moderate advisory；npm 自动修复方案会降级到旧 Next，不可直接采用。后续应持续关注 Next.js 补丁版本。
 
 ## 开发前检查清单
 

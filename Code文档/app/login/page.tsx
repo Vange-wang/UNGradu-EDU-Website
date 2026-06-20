@@ -1,3 +1,7 @@
+import { Suspense } from "react";
+
+import { LoginForm } from "@/features/auth/login-form";
+
 export default function LoginPage() {
   return (
     <div className="page">
@@ -8,19 +12,9 @@ export default function LoginPage() {
           并由后端可信机制维护登录态。
         </p>
 
-        <form className="form">
-          <div className="field">
-            <label htmlFor="phone">手机号</label>
-            <input id="phone" name="phone" inputMode="tel" placeholder="请输入手机号" />
-          </div>
-          <div className="field">
-            <label htmlFor="code">验证码</label>
-            <input id="code" name="code" inputMode="numeric" placeholder="请输入验证码" />
-          </div>
-          <button className="button primary" type="button">
-            登录并进入主页面
-          </button>
-        </form>
+        <Suspense fallback={<p>正在准备登录表单...</p>}>
+          <LoginForm />
+        </Suspense>
       </section>
     </div>
   );

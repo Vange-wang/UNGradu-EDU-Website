@@ -1,11 +1,16 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 import {
   type ContactProfileInput,
   validateContactProfileInput
 } from "@/features/profile/contact-profile";
+import {
+  readContactProfile,
+  saveContactProfile
+} from "@/features/profile/contact-profile-storage";
+import { getBrowserStorage } from "@/lib/storage";
 
 export default function ContactProfilePage() {
   const [input, setInput] = useState<ContactProfileInput>({
@@ -14,6 +19,16 @@ export default function ContactProfilePage() {
   });
   const [phoneError, setPhoneError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [storageError, setStorageError] = useState("");
+
+  useEffect(() => {
+    const storage = getBrowserStorage();
+    const storedProfile = storage ? readContactProfile(storage) : null;
+
+    if (storedProfile) {
+      setInput(storedProfile);
+    }
+  }, []);
 
   function updateField(field: keyof ContactProfileInput, value: string) {
     setInput((current) => ({ ...current, [field]: value }));
@@ -26,14 +41,28 @@ export default function ContactProfilePage() {
   function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const result = validateContactProfileInput(input);
+    const storage = getBrowserStorage();
 
     if (!result.ok) {
       setPhoneError(result.errors.phone ?? "");
       return;
     }
 
-    setInput(result.value);
+    if (!storage) {
+      setStorageError("当前浏览器无法保存联系方式。");
+      return;
+    }
+
+    const savedProfile = saveContactProfile(result.value, storage);
+
+    if (!savedProfile.ok) {
+      setPhoneError(savedProfile.errors.phone ?? "");
+      return;
+    }
+
+    setInput(savedProfile.value);
     setPhoneError("");
+    setStorageError("");
     setSaved(true);
   }
 
@@ -73,7 +102,8 @@ export default function ContactProfilePage() {
           </button>
         </form>
 
-        {saved ? <p className="success">联系方式已在本地校验通过。</p> : null}
+        {storageError ? <p className="error">{storageError}</p> : null}
+        {saved ? <p className="success">联系方式已保存到本地测试存储。</p> : null}
       </section>
     </div>
   );

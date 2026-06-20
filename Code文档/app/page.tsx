@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { GuardedEntryLink } from "@/features/auth/guarded-entry-link";
+
 const steps = [
   ["发布信息", "家长发布需求，大学生发布个人家教信息。"],
   ["筛选详情", "双方按科目、学段、价格和性别查看合适对象。"],
@@ -18,12 +20,12 @@ export default function HomePage() {
             先打通发布、筛选、聊天和双向同意交换联系方式的核心闭环。
           </p>
           <div className="action-row">
-            <Link className="button primary" href="/parent-needs/new">
+            <GuardedEntryLink className="button primary" href="/parent-needs/new">
               我要找家教
-            </Link>
-            <Link className="button secondary" href="/tutor-profiles/new">
+            </GuardedEntryLink>
+            <GuardedEntryLink className="button secondary" href="/tutor-profiles/new">
               我要做家教
-            </Link>
+            </GuardedEntryLink>
             <Link className="button secondary" href="/profile">
               个人页面
             </Link>

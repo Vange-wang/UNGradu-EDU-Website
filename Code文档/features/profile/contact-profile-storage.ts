@@ -8,9 +8,21 @@ import {
 
 const CONTACT_PROFILE_KEY = "ungradu.contactProfile";
 
+type ContactProfileStorageInput = {
+  ownerPhone: string;
+  storage: KeyValueStorage;
+};
+
+function getContactProfileKey(ownerPhone: string) {
+  return `${CONTACT_PROFILE_KEY}.${ownerPhone.trim()}`;
+}
+
 export function saveContactProfile(
-  input: ContactProfileInput,
-  storage: KeyValueStorage
+  {
+    input,
+    ownerPhone,
+    storage
+  }: ContactProfileStorageInput & { input: ContactProfileInput }
 ): ContactProfileValidation {
   const result = validateContactProfileInput(input);
 
@@ -18,14 +30,14 @@ export function saveContactProfile(
     return result;
   }
 
-  storage.setItem(CONTACT_PROFILE_KEY, JSON.stringify(result.value));
+  storage.setItem(getContactProfileKey(ownerPhone), JSON.stringify(result.value));
   return result;
 }
 
 export function readContactProfile(
-  storage: KeyValueStorage
+  { ownerPhone, storage }: ContactProfileStorageInput
 ): ContactProfileInput | null {
-  const rawProfile = storage.getItem(CONTACT_PROFILE_KEY);
+  const rawProfile = storage.getItem(getContactProfileKey(ownerPhone));
 
   if (!rawProfile) {
     return null;

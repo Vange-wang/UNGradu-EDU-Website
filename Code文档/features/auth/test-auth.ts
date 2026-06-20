@@ -38,6 +38,10 @@ export function isTestLoginAllowed({
   allowTestLogin?: string;
   nodeEnv?: string;
 }) {
+  if (nodeEnv === "production") {
+    return false;
+  }
+
   return nodeEnv === "development" || allowTestLogin === "true";
 }
 

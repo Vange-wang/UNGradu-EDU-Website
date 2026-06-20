@@ -10,13 +10,14 @@ describe("contact profile storage", () => {
   it("reads a saved contact profile across storage reads", () => {
     const storage = createMemoryStorage();
 
-    const saved = saveContactProfile(
-      { phone: " 13800138000 ", wechat: " tutor_edu " },
+    const saved = saveContactProfile({
+      input: { phone: " 13800138000 ", wechat: " tutor_edu " },
+      ownerPhone: "13800138000",
       storage
-    );
+    });
 
     expect(saved.ok).toBe(true);
-    expect(readContactProfile(storage)).toEqual({
+    expect(readContactProfile({ ownerPhone: "13800138000", storage })).toEqual({
       phone: "13800138000",
       wechat: "tutor_edu"
     });
@@ -25,9 +26,37 @@ describe("contact profile storage", () => {
   it("does not save invalid contact profiles", () => {
     const storage = createMemoryStorage();
 
-    const saved = saveContactProfile({ phone: "", wechat: "" }, storage);
+    const saved = saveContactProfile({
+      input: { phone: "", wechat: "" },
+      ownerPhone: "13800138000",
+      storage
+    });
 
     expect(saved.ok).toBe(false);
-    expect(readContactProfile(storage)).toBeNull();
+    expect(readContactProfile({ ownerPhone: "13800138000", storage })).toBeNull();
+  });
+
+  it("keeps contact profiles isolated by test account phone", () => {
+    const storage = createMemoryStorage();
+
+    saveContactProfile({
+      input: { phone: "13800138000", wechat: "parent_a" },
+      ownerPhone: "13800138000",
+      storage
+    });
+    saveContactProfile({
+      input: { phone: "13900139000", wechat: "parent_b" },
+      ownerPhone: "13900139000",
+      storage
+    });
+
+    expect(readContactProfile({ ownerPhone: "13800138000", storage })).toEqual({
+      phone: "13800138000",
+      wechat: "parent_a"
+    });
+    expect(readContactProfile({ ownerPhone: "13900139000", storage })).toEqual({
+      phone: "13900139000",
+      wechat: "parent_b"
+    });
   });
 });

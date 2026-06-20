@@ -26,9 +26,9 @@ export default function HomePage() {
             <GuardedEntryLink className="button secondary" href="/tutor-profiles/new">
               我要做家教
             </GuardedEntryLink>
-            <Link className="button secondary" href="/profile">
+            <GuardedEntryLink className="button secondary" href="/profile">
               个人页面
-            </Link>
+            </GuardedEntryLink>
           </div>
         </div>
 

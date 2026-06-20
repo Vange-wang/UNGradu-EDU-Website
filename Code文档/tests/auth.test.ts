@@ -36,13 +36,22 @@ describe("isTestLoginAllowed", () => {
     expect(isTestLoginAllowed({ nodeEnv: "development" })).toBe(true);
   });
 
-  it("requires an explicit flag outside development", () => {
+  it("allows explicit test login outside development when not in production", () => {
+    expect(
+      isTestLoginAllowed({
+        nodeEnv: "test",
+        allowTestLogin: "true"
+      })
+    ).toBe(true);
+  });
+
+  it("rejects test login in production even when explicitly enabled", () => {
     expect(isTestLoginAllowed({ nodeEnv: "production" })).toBe(false);
     expect(
       isTestLoginAllowed({
         nodeEnv: "production",
         allowTestLogin: "true"
       })
-    ).toBe(true);
+    ).toBe(false);
   });
 });

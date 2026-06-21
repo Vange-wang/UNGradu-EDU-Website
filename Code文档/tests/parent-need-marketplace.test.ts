@@ -150,5 +150,34 @@ describe("parent need marketplace", () => {
 
     expect(needs).toHaveLength(1);
     expect(needs[0].ownerPhone).toBe(ownerPhone);
+    expect(needs[0].id).not.toContain(ownerPhone);
+    expect(`/parent-needs/${needs[0].id}`).not.toContain(ownerPhone);
+  });
+
+  it("keeps the migrated parent need id stable after reading legacy local data", () => {
+    const storage = createMemoryStorage();
+    const ownerPhone = "13800138000";
+
+    storage.setItem(
+      `ungradu.parentNeeds.${ownerPhone}`,
+      JSON.stringify([
+        {
+          ...baseInput,
+          id: `${ownerPhone}-legacy-id`,
+          ownerPhone,
+          status: "published",
+          budgetMin: 80,
+          budgetMax: 120,
+          createdAt: new Date().toISOString()
+        }
+      ])
+    );
+
+    const firstRead = readAllParentNeeds({ storage });
+    const secondRead = readAllParentNeeds({ storage });
+
+    expect(firstRead).toHaveLength(1);
+    expect(secondRead).toHaveLength(1);
+    expect(secondRead[0].id).toBe(firstRead[0].id);
   });
 });

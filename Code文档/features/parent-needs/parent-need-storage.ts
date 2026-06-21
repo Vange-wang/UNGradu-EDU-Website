@@ -50,6 +50,10 @@ function createParentNeedId() {
   return createOpaqueId("parent-need");
 }
 
+function isLegacyContactBearingId(id: string, ownerPhone: string) {
+  return id.includes(ownerPhone.trim());
+}
+
 function readOwnerPhones(storage: KeyValueStorage) {
   const rawOwners = storage.getItem(PARENT_NEED_OWNERS_KEY);
 
@@ -179,8 +183,9 @@ export function readParentNeeds({
 
   try {
     const needs = JSON.parse(rawNeeds) as SavedParentNeed[];
+    let migratedLegacyId = false;
 
-    return needs.filter((need) => {
+    const validNeeds = needs.filter((need) => {
       const validation = validateParentNeedInput({
         teacherGenderPreference: need.teacherGenderPreference,
         subjects: need.subjects,
@@ -195,6 +200,25 @@ export function readParentNeeds({
 
       return validation.ok && need.ownerPhone === ownerPhone.trim();
     });
+
+    const migratedNeeds = validNeeds.map((need) => {
+      if (!isLegacyContactBearingId(need.id, ownerPhone)) {
+        return need;
+      }
+
+      migratedLegacyId = true;
+
+      return {
+        ...need,
+        id: createParentNeedId()
+      };
+    });
+
+    if (migratedLegacyId) {
+      storage.setItem(getParentNeedsKey(ownerPhone), JSON.stringify(migratedNeeds));
+    }
+
+    return migratedNeeds;
   } catch {
     return [];
   }

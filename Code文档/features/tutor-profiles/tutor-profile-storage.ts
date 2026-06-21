@@ -50,6 +50,10 @@ function createTutorProfileId() {
   return createOpaqueId("tutor-profile");
 }
 
+function isLegacyContactBearingId(id: string, ownerPhone: string) {
+  return id.includes(ownerPhone.trim());
+}
+
 function readOwnerPhones(storage: KeyValueStorage) {
   const rawOwners = storage.getItem(TUTOR_PROFILE_OWNERS_KEY);
 
@@ -179,8 +183,9 @@ export function readTutorProfiles({
 
   try {
     const profiles = JSON.parse(rawProfiles) as SavedTutorProfile[];
+    let migratedLegacyId = false;
 
-    return profiles.filter((profile) => {
+    const validProfiles = profiles.filter((profile) => {
       const validation = validateTutorProfileInput({
         gender: profile.gender,
         school: profile.school,
@@ -200,6 +205,28 @@ export function readTutorProfiles({
 
       return validation.ok && profile.ownerPhone === ownerPhone.trim();
     });
+
+    const migratedProfiles = validProfiles.map((profile) => {
+      if (!isLegacyContactBearingId(profile.id, ownerPhone)) {
+        return profile;
+      }
+
+      migratedLegacyId = true;
+
+      return {
+        ...profile,
+        id: createTutorProfileId()
+      };
+    });
+
+    if (migratedLegacyId) {
+      storage.setItem(
+        getTutorProfilesKey(ownerPhone),
+        JSON.stringify(migratedProfiles)
+      );
+    }
+
+    return migratedProfiles;
   } catch {
     return [];
   }

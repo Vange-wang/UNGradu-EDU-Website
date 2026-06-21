@@ -153,5 +153,33 @@ describe("tutor profile marketplace", () => {
 
     expect(profiles).toHaveLength(1);
     expect(profiles[0].ownerPhone).toBe(ownerPhone);
+    expect(profiles[0].id).not.toContain(ownerPhone);
+    expect(`/tutor-profiles/${profiles[0].id}`).not.toContain(ownerPhone);
+  });
+
+  it("keeps the migrated tutor profile id stable after reading legacy local data", () => {
+    const storage = createMemoryStorage();
+    const ownerPhone = "13800138000";
+
+    storage.setItem(
+      `ungradu.tutorProfiles.${ownerPhone}`,
+      JSON.stringify([
+        {
+          ...baseInput,
+          id: `${ownerPhone}-legacy-id`,
+          ownerPhone,
+          status: "published",
+          feeRanges: [{ grade: "初中", subject: "数学", min: 90, max: 130 }],
+          createdAt: new Date().toISOString()
+        }
+      ])
+    );
+
+    const firstRead = readAllTutorProfiles({ storage });
+    const secondRead = readAllTutorProfiles({ storage });
+
+    expect(firstRead).toHaveLength(1);
+    expect(secondRead).toHaveLength(1);
+    expect(secondRead[0].id).toBe(firstRead[0].id);
   });
 });

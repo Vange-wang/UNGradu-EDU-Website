@@ -38,8 +38,16 @@ function getParentNeedsKey(ownerPhone: string) {
   return `${PARENT_NEEDS_KEY}.${ownerPhone.trim()}`;
 }
 
-function createParentNeedId(ownerPhone: string, count: number) {
-  return `${ownerPhone.trim()}-${Date.now()}-${count + 1}`;
+function createOpaqueId(prefix: string) {
+  if (globalThis.crypto?.randomUUID) {
+    return `${prefix}-${globalThis.crypto.randomUUID()}`;
+  }
+
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function createParentNeedId() {
+  return createOpaqueId("parent-need");
 }
 
 function readOwnerPhones(storage: KeyValueStorage) {
@@ -69,6 +77,40 @@ function saveOwnerPhone(ownerPhone: string, storage: KeyValueStorage) {
     PARENT_NEED_OWNERS_KEY,
     JSON.stringify([...owners, normalizedOwnerPhone])
   );
+}
+
+function readLegacyOwnerPhonesFromKeys(storage: KeyValueStorage) {
+  if (typeof storage.key !== "function" || typeof storage.length !== "number") {
+    return [];
+  }
+
+  const ownerPhones = new Set<string>();
+  const legacyKeyPrefix = `${PARENT_NEEDS_KEY}.`;
+
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
+
+    if (!key?.startsWith(legacyKeyPrefix)) {
+      continue;
+    }
+
+    const ownerPhone = key.slice(legacyKeyPrefix.length).trim();
+
+    if (ownerPhone) {
+      ownerPhones.add(ownerPhone);
+    }
+  }
+
+  return Array.from(ownerPhones);
+}
+
+function readAllOwnerPhones(storage: KeyValueStorage) {
+  const ownerPhones = new Set([
+    ...readOwnerPhones(storage),
+    ...readLegacyOwnerPhonesFromKeys(storage)
+  ]);
+
+  return Array.from(ownerPhones);
 }
 
 function parseOptionalNumber(value?: string) {
@@ -106,7 +148,7 @@ export function saveParentNeed({
   const currentNeeds = readParentNeeds({ ownerPhone, storage });
   const savedNeed: SavedParentNeed = {
     ...result.value,
-    id: createParentNeedId(ownerPhone, currentNeeds.length),
+    id: createParentNeedId(),
     ownerPhone: ownerPhone.trim(),
     status: "published",
     createdAt: new Date().toISOString()
@@ -171,9 +213,11 @@ export function readAllParentNeeds({
 }: {
   storage: KeyValueStorage;
 }): SavedParentNeed[] {
-  return readOwnerPhones(storage).flatMap((ownerPhone) =>
-    readParentNeeds({ ownerPhone, storage })
-  );
+  const ownerPhones = readAllOwnerPhones(storage);
+
+  ownerPhones.forEach((ownerPhone) => saveOwnerPhone(ownerPhone, storage));
+
+  return ownerPhones.flatMap((ownerPhone) => readParentNeeds({ ownerPhone, storage }));
 }
 
 export function filterParentNeeds(

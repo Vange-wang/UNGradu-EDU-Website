@@ -7,6 +7,12 @@ export function createMemoryStorage(): KeyValueStorage {
     getItem(key) {
       return values.get(key) ?? null;
     },
+    key(index) {
+      return Array.from(values.keys())[index] ?? null;
+    },
+    get length() {
+      return values.size;
+    },
     removeItem(key) {
       values.delete(key);
     },

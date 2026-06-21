@@ -109,4 +109,46 @@ describe("parent need marketplace", () => {
     expect(detail).not.toHaveProperty("phone");
     expect(detail).not.toHaveProperty("wechat");
   });
+
+  it("uses an opaque detail id without the owner phone", () => {
+    const storage = createMemoryStorage();
+    const ownerPhone = "13800138000";
+    const saved = saveParentNeed({
+      input: baseInput,
+      ownerPhone,
+      storage
+    });
+
+    if (!saved.ok) {
+      throw new Error("expected valid parent need");
+    }
+
+    expect(saved.value.id).not.toContain(ownerPhone);
+    expect(`/parent-needs/${saved.value.id}`).not.toContain(ownerPhone);
+  });
+
+  it("reads M2 legacy local parent needs that do not have an owners index", () => {
+    const storage = createMemoryStorage();
+    const ownerPhone = "13800138000";
+
+    storage.setItem(
+      `ungradu.parentNeeds.${ownerPhone}`,
+      JSON.stringify([
+        {
+          ...baseInput,
+          id: `${ownerPhone}-legacy-id`,
+          ownerPhone,
+          status: "published",
+          budgetMin: 80,
+          budgetMax: 120,
+          createdAt: new Date().toISOString()
+        }
+      ])
+    );
+
+    const needs = readAllParentNeeds({ storage });
+
+    expect(needs).toHaveLength(1);
+    expect(needs[0].ownerPhone).toBe(ownerPhone);
+  });
 });

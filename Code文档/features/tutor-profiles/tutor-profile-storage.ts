@@ -38,8 +38,16 @@ function getTutorProfilesKey(ownerPhone: string) {
   return `${TUTOR_PROFILES_KEY}.${ownerPhone.trim()}`;
 }
 
-function createTutorProfileId(ownerPhone: string, count: number) {
-  return `${ownerPhone.trim()}-${Date.now()}-${count + 1}`;
+function createOpaqueId(prefix: string) {
+  if (globalThis.crypto?.randomUUID) {
+    return `${prefix}-${globalThis.crypto.randomUUID()}`;
+  }
+
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function createTutorProfileId() {
+  return createOpaqueId("tutor-profile");
 }
 
 function readOwnerPhones(storage: KeyValueStorage) {
@@ -69,6 +77,40 @@ function saveOwnerPhone(ownerPhone: string, storage: KeyValueStorage) {
     TUTOR_PROFILE_OWNERS_KEY,
     JSON.stringify([...owners, normalizedOwnerPhone])
   );
+}
+
+function readLegacyOwnerPhonesFromKeys(storage: KeyValueStorage) {
+  if (typeof storage.key !== "function" || typeof storage.length !== "number") {
+    return [];
+  }
+
+  const ownerPhones = new Set<string>();
+  const legacyKeyPrefix = `${TUTOR_PROFILES_KEY}.`;
+
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
+
+    if (!key?.startsWith(legacyKeyPrefix)) {
+      continue;
+    }
+
+    const ownerPhone = key.slice(legacyKeyPrefix.length).trim();
+
+    if (ownerPhone) {
+      ownerPhones.add(ownerPhone);
+    }
+  }
+
+  return Array.from(ownerPhones);
+}
+
+function readAllOwnerPhones(storage: KeyValueStorage) {
+  const ownerPhones = new Set([
+    ...readOwnerPhones(storage),
+    ...readLegacyOwnerPhonesFromKeys(storage)
+  ]);
+
+  return Array.from(ownerPhones);
 }
 
 function parseOptionalNumber(value?: string) {
@@ -106,7 +148,7 @@ export function saveTutorProfile({
   const currentProfiles = readTutorProfiles({ ownerPhone, storage });
   const savedProfile: SavedTutorProfile = {
     ...result.value,
-    id: createTutorProfileId(ownerPhone, currentProfiles.length),
+    id: createTutorProfileId(),
     ownerPhone: ownerPhone.trim(),
     status: "published",
     createdAt: new Date().toISOString()
@@ -176,7 +218,11 @@ export function readAllTutorProfiles({
 }: {
   storage: KeyValueStorage;
 }): SavedTutorProfile[] {
-  return readOwnerPhones(storage).flatMap((ownerPhone) =>
+  const ownerPhones = readAllOwnerPhones(storage);
+
+  ownerPhones.forEach((ownerPhone) => saveOwnerPhone(ownerPhone, storage));
+
+  return ownerPhones.flatMap((ownerPhone) =>
     readTutorProfiles({ ownerPhone, storage })
   );
 }

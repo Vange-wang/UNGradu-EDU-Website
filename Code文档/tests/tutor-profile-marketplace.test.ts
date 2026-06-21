@@ -113,4 +113,45 @@ describe("tutor profile marketplace", () => {
     expect(detail).not.toHaveProperty("phone");
     expect(detail).not.toHaveProperty("wechat");
   });
+
+  it("uses an opaque detail id without the owner phone", () => {
+    const storage = createMemoryStorage();
+    const ownerPhone = "13800138000";
+    const saved = saveTutorProfile({
+      input: baseInput,
+      ownerPhone,
+      storage
+    });
+
+    if (!saved.ok) {
+      throw new Error("expected valid tutor profile");
+    }
+
+    expect(saved.value.id).not.toContain(ownerPhone);
+    expect(`/tutor-profiles/${saved.value.id}`).not.toContain(ownerPhone);
+  });
+
+  it("reads M2 legacy local tutor profiles that do not have an owners index", () => {
+    const storage = createMemoryStorage();
+    const ownerPhone = "13800138000";
+
+    storage.setItem(
+      `ungradu.tutorProfiles.${ownerPhone}`,
+      JSON.stringify([
+        {
+          ...baseInput,
+          id: `${ownerPhone}-legacy-id`,
+          ownerPhone,
+          status: "published",
+          feeRanges: [{ grade: "初中", subject: "数学", min: 90, max: 130 }],
+          createdAt: new Date().toISOString()
+        }
+      ])
+    );
+
+    const profiles = readAllTutorProfiles({ storage });
+
+    expect(profiles).toHaveLength(1);
+    expect(profiles[0].ownerPhone).toBe(ownerPhone);
+  });
 });

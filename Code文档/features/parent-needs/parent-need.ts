@@ -105,13 +105,17 @@ export function validateParentNeedInput(
     errors.community = "具体位置最多填写到小区或村，不填写门牌号";
   }
 
-  if (childIntro.length > 100) {
+  if (!childIntro) {
+    errors.childIntro = "请填写孩子简介";
+  } else if (childIntro.length > 100) {
     errors.childIntro = "孩子简介最多 100 字";
   } else if (
     MAINLAND_PHONE_PATTERN.test(childIntro) ||
     WECHAT_HINT_PATTERN.test(childIntro)
   ) {
     errors.childIntro = "孩子简介不得包含手机号或微信号";
+  } else if (DOOR_NUMBER_PATTERN.test(childIntro)) {
+    errors.childIntro = "孩子简介不得包含详细门牌地址";
   }
 
   if (Object.keys(errors).length > 0) {

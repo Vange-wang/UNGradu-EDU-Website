@@ -56,6 +56,16 @@ describe("parent need validation", () => {
     expect(result.errors.childIntro).toBe("孩子简介最多 100 字");
   });
 
+  it("rejects empty child intro", () => {
+    const result = validateParentNeedInput({
+      ...validParentNeedInput,
+      childIntro: "   "
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.childIntro).toBe("请填写孩子简介");
+  });
+
   it("rejects contact information in child intro", () => {
     const result = validateParentNeedInput({
       ...validParentNeedInput,
@@ -64,6 +74,16 @@ describe("parent need validation", () => {
 
     expect(result.ok).toBe(false);
     expect(result.errors.childIntro).toBe("孩子简介不得包含手机号或微信号");
+  });
+
+  it("rejects door numbers in child intro", () => {
+    const result = validateParentNeedInput({
+      ...validParentNeedInput,
+      childIntro: "孩子住在 3 栋 1201 室，放学后可上课。"
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.childIntro).toBe("孩子简介不得包含详细门牌地址");
   });
 
   it("rejects door numbers in the community field", () => {

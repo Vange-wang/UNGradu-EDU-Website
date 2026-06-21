@@ -231,6 +231,7 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
             maxLength={120}
             onChange={(event) => updateInput("childIntro", event.target.value)}
             placeholder="100 字以内，不填写手机号、微信号或门牌号"
+            required
             rows={4}
             value={input.childIntro}
           />

@@ -8,9 +8,10 @@ import {
   validateContactProfileInput
 } from "@/features/profile/contact-profile";
 import {
-  readContactProfile,
-  saveContactProfile
-} from "@/features/profile/contact-profile-storage";
+  readContactProfileFromApi,
+  saveContactProfileToApi
+} from "@/features/profile/contact-profile-api-client";
+import { saveContactProfile } from "@/features/profile/contact-profile-storage";
 import { getBrowserStorage } from "@/lib/storage";
 
 function ContactProfileForm({ ownerPhone }: { ownerPhone: string }) {
@@ -20,56 +21,72 @@ function ContactProfileForm({ ownerPhone }: { ownerPhone: string }) {
   });
   const [phoneError, setPhoneError] = useState("");
   const [saved, setSaved] = useState(false);
-  const [storageError, setStorageError] = useState("");
+  const [requestError, setRequestError] = useState("");
 
   useEffect(() => {
-    const storage = getBrowserStorage();
-    const storedProfile = storage
-      ? readContactProfile({ ownerPhone, storage })
-      : null;
+    let ignoreResult = false;
 
-    if (storedProfile) {
-      setInput(storedProfile);
-    }
+    readContactProfileFromApi({ currentUserPhone: ownerPhone })
+      .then((result) => {
+        if (ignoreResult) {
+          return;
+        }
+
+        if (result.ok) {
+          setInput(result.value);
+          setRequestError("");
+        } else {
+          setRequestError(result.errors.request ?? "读取联系方式失败。");
+        }
+      })
+      .catch(() => {
+        if (!ignoreResult) {
+          setRequestError("读取联系方式失败。");
+        }
+      });
+
+    return () => {
+      ignoreResult = true;
+    };
   }, [ownerPhone]);
 
   function updateField(field: keyof ContactProfileInput, value: string) {
     setInput((current) => ({ ...current, [field]: value }));
     setSaved(false);
+    setRequestError("");
     if (field === "phone") {
       setPhoneError("");
     }
   }
 
-  function submitForm(event: FormEvent<HTMLFormElement>) {
+  async function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const result = validateContactProfileInput(input);
-    const storage = getBrowserStorage();
 
     if (!result.ok) {
       setPhoneError(result.errors.phone ?? "");
       return;
     }
 
-    if (!storage) {
-      setStorageError("当前浏览器无法保存联系方式。");
-      return;
-    }
-
-    const savedProfile = saveContactProfile({
-      input: result.value,
-      ownerPhone,
-      storage
+    const savedProfile = await saveContactProfileToApi({
+      currentUserPhone: ownerPhone,
+      input: result.value
     });
 
     if (!savedProfile.ok) {
       setPhoneError(savedProfile.errors.phone ?? "");
+      setRequestError(savedProfile.errors.request ?? "");
+      setSaved(false);
       return;
     }
 
     setInput(savedProfile.value);
+    const storage = getBrowserStorage();
+    if (storage) {
+      saveContactProfile({ input: savedProfile.value, ownerPhone, storage });
+    }
     setPhoneError("");
-    setStorageError("");
+    setRequestError("");
     setSaved(true);
   }
 
@@ -108,8 +125,8 @@ function ContactProfileForm({ ownerPhone }: { ownerPhone: string }) {
         </button>
       </form>
 
-      {storageError ? <p className="error">{storageError}</p> : null}
-      {saved ? <p className="success">联系方式已保存到当前测试账号的本地存储。</p> : null}
+      {requestError ? <p className="error">{requestError}</p> : null}
+      {saved ? <p className="success">联系方式已保存到服务端 contact_profiles。</p> : null}
     </section>
   );
 }

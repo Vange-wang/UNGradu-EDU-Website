@@ -139,6 +139,22 @@ M5 阶段已开始接入 CloudBase 服务端 SDK。真实密钥只放在本地 `
 
 连接检查脚本只输出脱敏后的 `SecretId` 前缀，不输出 `SecretKey`。
 
+## 当前服务端接口
+
+### `/api/contact-profile`
+
+用途：M5 第一批迁移接口，将个人联系方式存档从纯浏览器本地存储迁移到 CloudBase 服务端可信读写路径。
+
+- `GET /api/contact-profile`：读取当前登录用户自己的联系方式存档。
+- `PUT /api/contact-profile`：保存当前登录用户自己的联系方式存档。
+- CloudBase 集合：`contact_profiles`。
+- 服务端写入字段：`ownerUserId`、`phone`、`wechat`、`updatedAt`。
+- 数据归属规则：接口只读取和写入 `doc(currentUserId)`，不会按客户端传入的用户 ID 任意读取他人联系方式。
+- 当前临时认证：非生产环境通过请求头 `x-ungradu-test-user-phone` 承接 M1-M4 本地测试登录态。
+- 生产边界：`NODE_ENV=production` 时即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，接口也拒绝临时测试登录身份。
+
+该接口只完成联系方式存档迁移。聊天、联系方式交换请求、需求、家教信息和正式短信登录仍待后续 M5 继续迁移，不能视为已经具备完整生产权限模型。
+
 ## 开发前检查清单
 
 每次正式开发前：

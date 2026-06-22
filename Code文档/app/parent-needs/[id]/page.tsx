@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { useTestSession } from "@/features/auth/use-test-session";
+import { createOrReadConversation } from "@/features/chat/chat-storage";
 import {
   findParentNeedById,
   type SavedParentNeed
@@ -12,8 +14,11 @@ import { getBrowserStorage } from "@/lib/storage";
 
 export default function ParentNeedDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const { loaded: sessionLoaded, session } = useTestSession();
   const [need, setNeed] = useState<SavedParentNeed | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [chatError, setChatError] = useState("");
 
   useEffect(() => {
     const storage = getBrowserStorage();
@@ -24,6 +29,41 @@ export default function ParentNeedDetailPage() {
     setNeed(detail);
     setLoaded(true);
   }, [params.id]);
+
+  function startChat() {
+    setChatError("");
+
+    if (!session) {
+      router.push(`/login?next=${encodeURIComponent(`/parent-needs/${params.id}`)}`);
+      return;
+    }
+
+    if (!need) {
+      return;
+    }
+
+    const storage = getBrowserStorage();
+
+    if (!storage) {
+      setChatError("当前浏览器无法使用本地聊天存储。");
+      return;
+    }
+
+    const result = createOrReadConversation({
+      currentUserPhone: session.phone,
+      otherUserPhone: need.ownerPhone,
+      sourceId: need.id,
+      sourceType: "parent-need",
+      storage
+    });
+
+    if (!result.ok) {
+      setChatError(result.errors.request);
+      return;
+    }
+
+    router.push(`/chats/${result.value.id}`);
+  }
 
   return (
     <div className="page">
@@ -60,7 +100,16 @@ export default function ParentNeedDetailPage() {
 
             <aside className="detail-side">
               <h2>沟通入口</h2>
-              <p>M4 将实现站内聊天。当前 M3 只开放浏览和详情查看。</p>
+              <p>先通过站内文字聊天沟通，双方同意并二次确认后才展示联系方式。</p>
+              <button
+                className="button primary full-width"
+                disabled={!sessionLoaded || !need}
+                onClick={startChat}
+                type="button"
+              >
+                发起站内聊天
+              </button>
+              {chatError ? <p className="error">{chatError}</p> : null}
             </aside>
           </div>
         ) : null}

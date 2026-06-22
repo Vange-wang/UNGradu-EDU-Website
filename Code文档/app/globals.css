@@ -131,6 +131,10 @@ textarea {
   color: var(--accent-strong);
 }
 
+.full-width {
+  width: 100%;
+}
+
 .hero-panel,
 .content-panel {
   background: var(--surface);
@@ -438,6 +442,109 @@ textarea {
   margin: 8px 0;
 }
 
+.status-pill {
+  background: #e5f3e9;
+  border-radius: 999px;
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 8px 12px;
+}
+
+.chat-layout {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  margin-top: 24px;
+}
+
+.chat-main,
+.chat-side {
+  background: var(--surface-soft);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.message-list {
+  display: grid;
+  gap: 12px;
+  min-height: 320px;
+}
+
+.message-bubble {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  justify-self: start;
+  max-width: min(560px, 86%);
+  padding: 12px 14px;
+}
+
+.message-bubble p {
+  color: var(--text);
+  line-height: 1.65;
+  margin: 0 0 6px;
+}
+
+.message-bubble span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.own-message {
+  background: #e5f3e9;
+  border-color: #b7dec0;
+  justify-self: end;
+}
+
+.chat-compose {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 18px;
+}
+
+.chat-side {
+  display: grid;
+  gap: 14px;
+}
+
+.chat-side h2,
+.contact-panel h3 {
+  margin: 0;
+}
+
+.contact-panel,
+.exchange-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.contact-panel p,
+.exchange-card p {
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 6px 0 0;
+}
+
+.exchange-list {
+  display: grid;
+  gap: 12px;
+}
+
+.exchange-card {
+  display: grid;
+  gap: 12px;
+}
+
+.exchange-actions {
+  display: flex;
+  gap: 8px;
+}
+
 @media (max-width: 820px) {
   .site-header {
     padding: 0 18px;
@@ -457,6 +564,8 @@ textarea {
   }
 
   .choice-grid,
+  .chat-compose,
+  .chat-layout,
   .detail-layout,
   .filter-bar,
   .fee-range,

@@ -169,6 +169,22 @@ M5 阶段已开始接入 CloudBase 服务端 SDK。真实密钥只放在本地 `
 - 当前临时认证：非生产环境通过请求头 `x-ungradu-test-user-phone` 承接 M1-M4 本地测试登录态。
 - 生产边界：`NODE_ENV=production` 时即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，接口也拒绝临时测试登录身份。
 
+### `/api/conversations`
+
+用途：M5 第三批迁移接口，将会话创建、会话读取和文字消息读写迁移到服务端参与者校验。
+
+- `GET /api/conversations`：读取当前用户参与的会话列表。
+- `POST /api/conversations`：按来源对象创建或复用会话，参数为 `sourceId` 和 `sourceType`。
+- `GET /api/conversations/[id]`：读取当前用户参与的单个会话。
+- `GET /api/conversations/[id]/messages`：读取当前用户参与会话的消息列表。
+- `POST /api/conversations/[id]/messages`：向当前用户参与的会话发送文字消息。
+- CloudBase 集合：`conversations`、`conversation_messages`。
+- 依赖集合：`parent_needs`、`tutor_profiles`。
+- 服务端权限规则：不能和自己发布的信息创建会话；非参与者不能读取会话、不能读取消息、不能发送消息。
+- 隐私规则：接口返回会话和消息 View Model，不返回参与者用户 ID 或联系方式。
+- 当前临时认证：非生产环境通过请求头 `x-ungradu-test-user-phone` 承接 M1-M4 本地测试登录态。
+- 生产边界：`NODE_ENV=production` 时即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，接口也拒绝临时测试登录身份。
+
 ## 开发前检查清单
 
 每次正式开发前：

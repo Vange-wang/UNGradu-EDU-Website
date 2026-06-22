@@ -185,6 +185,21 @@ M5 阶段已开始接入 CloudBase 服务端 SDK。真实密钥只放在本地 `
 - 当前临时认证：非生产环境通过请求头 `x-ungradu-test-user-phone` 承接 M1-M4 本地测试登录态。
 - 生产边界：`NODE_ENV=production` 时即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，接口也拒绝临时测试登录身份。
 
+### `/api/parent-needs`
+
+用途：M5 第四批迁移接口，将家长需求发布、我的需求、公开列表和公开详情迁移到服务端数据归属与公开白名单。
+
+- `GET /api/parent-needs`：读取公开家长需求列表，支持 `subject`、`grade`、`budgetMin`、`budgetMax`、`teacherGenderPreference` 筛选。
+- `GET /api/parent-needs?scope=mine`：读取当前用户自己的家长需求列表。
+- `POST /api/parent-needs`：当前用户发布家长需求。
+- `GET /api/parent-needs/[id]`：读取公开家长需求详情。
+- CloudBase 集合：`parent_needs`。
+- 服务端写入字段：发布内容、`ownerUserId`、`status`、`createdAt`。
+- 数据归属规则：我的列表只按当前用户 `ownerUserId` 查询；客户端不能指定 owner。
+- 公开读取规则：公开列表和详情使用白名单 View Model，不返回 `ownerUserId` 或联系方式。
+- 当前临时认证：私有读写在非生产环境通过请求头 `x-ungradu-test-user-phone` 承接 M1-M4 本地测试登录态。
+- 生产边界：私有读写在 `NODE_ENV=production` 时拒绝临时测试登录身份。
+
 ## 开发前检查清单
 
 每次正式开发前：

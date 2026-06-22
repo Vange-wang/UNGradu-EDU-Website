@@ -1,0 +1,103 @@
+import type { ParentNeedInput } from "@/features/parent-needs/parent-need";
+import type {
+  PublicServerParentNeed,
+  ServerParentNeed,
+  ServerParentNeedFilters
+} from "@/server/parent-needs";
+
+type ApiResult<T> =
+  | {
+      ok: true;
+      value: T;
+      errors: Record<string, never>;
+    }
+  | {
+      ok: false;
+      value: null;
+      errors: Record<string, string>;
+    };
+
+function createTemporaryIdentityHeaders(currentUserPhone: string) {
+  return {
+    "content-type": "application/json",
+    "x-ungradu-test-user-phone": currentUserPhone.trim()
+  };
+}
+
+function buildQuery(params: Record<string, string | undefined>) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value?.trim()) {
+      searchParams.set(key, value.trim());
+    }
+  });
+
+  const query = searchParams.toString();
+  return query ? `?${query}` : "";
+}
+
+async function parseApiResponse<T>(response: Response) {
+  return await response.json() as ApiResult<T>;
+}
+
+export async function listPublicParentNeedsFromApi({
+  fetcher = fetch,
+  filters = {}
+}: {
+  fetcher?: typeof fetch;
+  filters?: ServerParentNeedFilters;
+}) {
+  const response = await fetcher(`/api/parent-needs${buildQuery(filters)}`, {
+    method: "GET"
+  });
+
+  return parseApiResponse<PublicServerParentNeed[]>(response);
+}
+
+export async function readPublicParentNeedFromApi({
+  fetcher = fetch,
+  id
+}: {
+  fetcher?: typeof fetch;
+  id: string;
+}) {
+  const response = await fetcher(`/api/parent-needs/${encodeURIComponent(id)}`, {
+    method: "GET"
+  });
+
+  return parseApiResponse<PublicServerParentNeed | null>(response);
+}
+
+export async function listMyParentNeedsFromApi({
+  currentUserPhone,
+  fetcher = fetch
+}: {
+  currentUserPhone: string;
+  fetcher?: typeof fetch;
+}) {
+  const response = await fetcher("/api/parent-needs?scope=mine", {
+    headers: createTemporaryIdentityHeaders(currentUserPhone),
+    method: "GET"
+  });
+
+  return parseApiResponse<ServerParentNeed[]>(response);
+}
+
+export async function saveParentNeedToApi({
+  currentUserPhone,
+  fetcher = fetch,
+  input
+}: {
+  currentUserPhone: string;
+  fetcher?: typeof fetch;
+  input: ParentNeedInput;
+}) {
+  const response = await fetcher("/api/parent-needs", {
+    body: JSON.stringify(input),
+    headers: createTemporaryIdentityHeaders(currentUserPhone),
+    method: "POST"
+  });
+
+  return parseApiResponse<ServerParentNeed>(response);
+}

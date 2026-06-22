@@ -7,8 +7,7 @@ import {
   type ParentNeedInput,
   validateParentNeedInput
 } from "@/features/parent-needs/parent-need";
-import { saveParentNeed } from "@/features/parent-needs/parent-need-storage";
-import { getBrowserStorage } from "@/lib/storage";
+import { saveParentNeedToApi } from "@/features/parent-needs/parent-need-api-client";
 
 const teacherGenderOptions = ["不限", "女老师", "男老师"];
 const subjectOptions = ["语文", "数学", "英语", "物理", "化学", "生物"];
@@ -53,7 +52,6 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
   const [input, setInput] = useState<ParentNeedInput>(initialInput);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
-  const [storageError, setStorageError] = useState("");
 
   function updateInput<K extends keyof ParentNeedInput>(
     field: K,
@@ -64,38 +62,34 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
     setErrors({});
   }
 
-  function submitForm(event: FormEvent<HTMLFormElement>) {
+  async function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const result = validateParentNeedInput(input);
-    const storage = getBrowserStorage();
+    const validation = validateParentNeedInput(input);
+
+    if (!validation.ok) {
+      setErrors(validation.errors);
+      return;
+    }
+
+    const result = await saveParentNeedToApi({
+      currentUserPhone: ownerPhone,
+      input
+    });
 
     if (!result.ok) {
       setErrors(result.errors);
       return;
     }
 
-    if (!storage) {
-      setStorageError("当前浏览器无法保存家长需求。");
-      return;
-    }
-
-    const savedNeed = saveParentNeed({ input, ownerPhone, storage });
-
-    if (!savedNeed.ok) {
-      setErrors(savedNeed.errors);
-      return;
-    }
-
     setInput(initialInput);
     setErrors({});
-    setStorageError("");
     setSaved(true);
   }
 
   return (
     <section className="content-panel wide-panel">
       <h1 className="section-title">发布家教需求</h1>
-      <p>当前测试账号：{ownerPhone}。M2 仅保存结构化需求，不展示联系方式，不创建聊天。</p>
+      <p>当前测试账号：{ownerPhone}。需求会保存到服务端 parent_needs。</p>
 
       <form className="form" onSubmit={submitForm}>
         <div className="field">
@@ -244,8 +238,7 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
         </button>
       </form>
 
-      {storageError ? <p className="error">{storageError}</p> : null}
-      {saved ? <p className="success">家长需求已保存到当前测试账号。</p> : null}
+      {saved ? <p className="success">家长需求已保存到服务端。</p> : null}
     </section>
   );
 }

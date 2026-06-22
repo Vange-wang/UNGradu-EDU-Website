@@ -5,32 +5,38 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useTestSession } from "@/features/auth/use-test-session";
-import { createOrReadConversationFromSource } from "@/features/chat/chat-storage";
-import {
-  findPublicTutorProfileById,
-  type PublicTutorProfile
-} from "@/features/tutor-profiles/tutor-profile-storage";
-import { getBrowserStorage } from "@/lib/storage";
+import { createConversationFromSourceToApi } from "@/features/chat/chat-api-client";
+import { readPublicTutorProfileFromApi } from "@/features/tutor-profiles/tutor-profile-api-client";
+import type { PublicServerTutorProfile } from "@/server/tutor-profiles";
 
 export default function TutorProfileDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { loaded: sessionLoaded, session } = useTestSession();
-  const [profile, setProfile] = useState<PublicTutorProfile | null>(null);
+  const [profile, setProfile] = useState<PublicServerTutorProfile | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [chatError, setChatError] = useState("");
 
   useEffect(() => {
-    const storage = getBrowserStorage();
-    const detail = storage
-      ? findPublicTutorProfileById({ id: params.id, storage })
-      : null;
+    let cancelled = false;
 
-    setProfile(detail);
-    setLoaded(true);
+    async function loadProfile() {
+      const result = await readPublicTutorProfileFromApi({ id: params.id });
+
+      if (!cancelled) {
+        setProfile(result.ok ? result.value : null);
+        setLoaded(true);
+      }
+    }
+
+    void loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
   }, [params.id]);
 
-  function startChat() {
+  async function startChat() {
     setChatError("");
 
     if (!session) {
@@ -42,22 +48,14 @@ export default function TutorProfileDetailPage() {
       return;
     }
 
-    const storage = getBrowserStorage();
-
-    if (!storage) {
-      setChatError("当前浏览器无法使用本地聊天存储。");
-      return;
-    }
-
-    const result = createOrReadConversationFromSource({
+    const result = await createConversationFromSourceToApi({
       currentUserPhone: session.phone,
       sourceId: profile.id,
-      sourceType: "tutor-profile",
-      storage
+      sourceType: "tutor-profile"
     });
 
     if (!result.ok) {
-      setChatError(result.errors.request);
+      setChatError(result.errors.request ?? "发起聊天失败");
       return;
     }
 
@@ -78,7 +76,7 @@ export default function TutorProfileDetailPage() {
         </div>
 
         {loaded && !profile ? (
-          <p className="empty-state">未找到该家教信息，可能尚未在当前浏览器本地保存。</p>
+          <p className="empty-state">未找到该家教信息。</p>
         ) : null}
 
         {profile ? (
@@ -110,7 +108,7 @@ export default function TutorProfileDetailPage() {
               <button
                 className="button primary full-width"
                 disabled={!sessionLoaded || !profile}
-                onClick={startChat}
+                onClick={() => void startChat()}
                 type="button"
               >
                 发起站内聊天

@@ -3,13 +3,11 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
-import {
-  filterParentNeeds,
-  readAllPublicParentNeeds,
-  type ParentNeedFilters,
-  type PublicParentNeed
-} from "@/features/parent-needs/parent-need-storage";
-import { getBrowserStorage } from "@/lib/storage";
+import { listPublicParentNeedsFromApi } from "@/features/parent-needs/parent-need-api-client";
+import type {
+  PublicServerParentNeed,
+  ServerParentNeedFilters
+} from "@/server/parent-needs";
 
 const subjectOptions = ["", "语文", "数学", "英语", "物理", "化学", "生物"];
 const gradeOptions = [
@@ -23,7 +21,7 @@ const gradeOptions = [
 ];
 const genderOptions = ["", "不限", "女老师", "男老师"];
 
-const emptyFilters: ParentNeedFilters = {
+const emptyFilters: ServerParentNeedFilters = {
   subject: "",
   grade: "",
   budgetMin: "",
@@ -31,7 +29,7 @@ const emptyFilters: ParentNeedFilters = {
   teacherGenderPreference: ""
 };
 
-function readFiltersFromUrl(): ParentNeedFilters {
+function readFiltersFromUrl(): ServerParentNeedFilters {
   const params = new URLSearchParams(window.location.search);
 
   return {
@@ -43,7 +41,7 @@ function readFiltersFromUrl(): ParentNeedFilters {
   };
 }
 
-function writeFiltersToUrl(filters: ParentNeedFilters) {
+function writeFiltersToUrl(filters: ServerParentNeedFilters) {
   const params = new URLSearchParams();
 
   Object.entries(filters).forEach(([key, value]) => {
@@ -57,41 +55,37 @@ function writeFiltersToUrl(filters: ParentNeedFilters) {
 }
 
 export default function ParentNeedsPage() {
-  const [filters, setFilters] = useState<ParentNeedFilters>(emptyFilters);
-  const [needs, setNeeds] = useState<PublicParentNeed[]>([]);
+  const [filters, setFilters] = useState<ServerParentNeedFilters>(emptyFilters);
+  const [needs, setNeeds] = useState<PublicServerParentNeed[]>([]);
+
+  async function loadNeeds(nextFilters: ServerParentNeedFilters) {
+    const result = await listPublicParentNeedsFromApi({ filters: nextFilters });
+    setNeeds(result.ok ? result.value : []);
+  }
 
   useEffect(() => {
     const initialFilters = readFiltersFromUrl();
-    const storage = getBrowserStorage();
-    const allNeeds = storage ? readAllPublicParentNeeds({ storage }) : [];
-
     setFilters(initialFilters);
-    setNeeds(filterParentNeeds(allNeeds, initialFilters));
+    void loadNeeds(initialFilters);
   }, []);
 
-  function updateFilter<K extends keyof ParentNeedFilters>(
+  function updateFilter<K extends keyof ServerParentNeedFilters>(
     field: K,
-    value: ParentNeedFilters[K]
+    value: ServerParentNeedFilters[K]
   ) {
     setFilters((current) => ({ ...current, [field]: value }));
   }
 
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const storage = getBrowserStorage();
-    const allNeeds = storage ? readAllPublicParentNeeds({ storage }) : [];
-
     writeFiltersToUrl(filters);
-    setNeeds(filterParentNeeds(allNeeds, filters));
+    void loadNeeds(filters);
   }
 
   function resetFilters() {
-    const storage = getBrowserStorage();
-    const allNeeds = storage ? readAllPublicParentNeeds({ storage }) : [];
-
     setFilters(emptyFilters);
     writeFiltersToUrl(emptyFilters);
-    setNeeds(allNeeds);
+    void loadNeeds(emptyFilters);
   }
 
   return (
@@ -100,7 +94,7 @@ export default function ParentNeedsPage() {
         <div className="section-heading-row">
           <div>
             <h1 className="section-title">需求广场</h1>
-            <p>按科目、学段、预算区间和性别偏好筛选家长需求。详情页不会展示联系方式。</p>
+            <p>按科目、学段、预算区间和性别偏好筛选家长需求；公开详情不展示联系方式。</p>
           </div>
           <Link className="button primary" href="/parent-needs/new">
             发布需求

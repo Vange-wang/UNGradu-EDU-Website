@@ -4,24 +4,36 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { RequireTestSession } from "@/features/auth/require-test-session";
-import {
-  readTutorProfiles,
-  type SavedTutorProfile
-} from "@/features/tutor-profiles/tutor-profile-storage";
-import { getBrowserStorage } from "@/lib/storage";
+import { listMyTutorProfilesFromApi } from "@/features/tutor-profiles/tutor-profile-api-client";
+import type { ServerTutorProfile } from "@/server/tutor-profiles";
 
 function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
-  const [profiles, setProfiles] = useState<SavedTutorProfile[]>([]);
+  const [profiles, setProfiles] = useState<ServerTutorProfile[]>([]);
 
   useEffect(() => {
-    const storage = getBrowserStorage();
-    setProfiles(storage ? readTutorProfiles({ ownerPhone, storage }) : []);
+    let cancelled = false;
+
+    async function loadProfiles() {
+      const result = await listMyTutorProfilesFromApi({
+        currentUserPhone: ownerPhone
+      });
+
+      if (!cancelled) {
+        setProfiles(result.ok ? result.value : []);
+      }
+    }
+
+    void loadProfiles();
+
+    return () => {
+      cancelled = true;
+    };
   }, [ownerPhone]);
 
   return (
     <section className="content-panel wide-panel">
-      <h1 className="section-title">我发布的家教信息</h1>
-      <p>当前测试账号：{ownerPhone}。这里展示 M2 本地测试保存的大学生家教信息。</p>
+      <h1 className="section-title">我的家教信息</h1>
+      <p>当前测试账号：{ownerPhone}。这里展示服务端 tutor_profiles 中属于当前账号的信息。</p>
 
       <div className="action-row">
         <Link className="button primary" href="/tutor-profiles/new">
@@ -38,11 +50,10 @@ function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
               <h2>
                 {profile.school} · {profile.major}
               </h2>
-              <p>
-                {profile.gender}；可教科目：{profile.subjects.join("、")}；学段：
-                {profile.grades.join("、")}
-              </p>
-              <p>时间：{profile.timeSlots.join("、")}</p>
+              <p>性别：{profile.gender}</p>
+              <p>可教科目：{profile.subjects.join("、")}</p>
+              <p>可教学段：{profile.grades.join("、")}</p>
+              <p>可上课时间：{profile.timeSlots.join("、")}</p>
               <p>
                 课时费：
                 {profile.feeRanges

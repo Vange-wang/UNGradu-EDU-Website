@@ -3,19 +3,17 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
-import {
-  filterTutorProfiles,
-  readAllPublicTutorProfiles,
-  type PublicTutorProfile,
-  type TutorProfileFilters
-} from "@/features/tutor-profiles/tutor-profile-storage";
-import { getBrowserStorage } from "@/lib/storage";
+import { listPublicTutorProfilesFromApi } from "@/features/tutor-profiles/tutor-profile-api-client";
+import type {
+  PublicServerTutorProfile,
+  ServerTutorProfileFilters
+} from "@/server/tutor-profiles";
 
 const subjectOptions = ["", "语文", "数学", "英语", "物理", "化学", "生物"];
 const gradeOptions = ["", "小学", "初中", "高中"];
 const genderOptions = ["", "女", "男"];
 
-const emptyFilters: TutorProfileFilters = {
+const emptyFilters: ServerTutorProfileFilters = {
   subject: "",
   grade: "",
   feeMin: "",
@@ -23,7 +21,7 @@ const emptyFilters: TutorProfileFilters = {
   gender: ""
 };
 
-function readFiltersFromUrl(): TutorProfileFilters {
+function readFiltersFromUrl(): ServerTutorProfileFilters {
   const params = new URLSearchParams(window.location.search);
 
   return {
@@ -35,7 +33,7 @@ function readFiltersFromUrl(): TutorProfileFilters {
   };
 }
 
-function writeFiltersToUrl(filters: TutorProfileFilters) {
+function writeFiltersToUrl(filters: ServerTutorProfileFilters) {
   const params = new URLSearchParams();
 
   Object.entries(filters).forEach(([key, value]) => {
@@ -45,49 +43,41 @@ function writeFiltersToUrl(filters: TutorProfileFilters) {
   });
 
   const query = params.toString();
-  window.history.pushState(
-    null,
-    "",
-    query ? `/tutor-profiles?${query}` : "/tutor-profiles"
-  );
+  window.history.pushState(null, "", query ? `/tutor-profiles?${query}` : "/tutor-profiles");
 }
 
 export default function TutorProfilesPage() {
-  const [filters, setFilters] = useState<TutorProfileFilters>(emptyFilters);
-  const [profiles, setProfiles] = useState<PublicTutorProfile[]>([]);
+  const [filters, setFilters] = useState<ServerTutorProfileFilters>(emptyFilters);
+  const [profiles, setProfiles] = useState<PublicServerTutorProfile[]>([]);
+
+  async function loadProfiles(nextFilters: ServerTutorProfileFilters) {
+    const result = await listPublicTutorProfilesFromApi({ filters: nextFilters });
+    setProfiles(result.ok ? result.value : []);
+  }
 
   useEffect(() => {
     const initialFilters = readFiltersFromUrl();
-    const storage = getBrowserStorage();
-    const allProfiles = storage ? readAllPublicTutorProfiles({ storage }) : [];
-
     setFilters(initialFilters);
-    setProfiles(filterTutorProfiles(allProfiles, initialFilters));
+    void loadProfiles(initialFilters);
   }, []);
 
-  function updateFilter<K extends keyof TutorProfileFilters>(
+  function updateFilter<K extends keyof ServerTutorProfileFilters>(
     field: K,
-    value: TutorProfileFilters[K]
+    value: ServerTutorProfileFilters[K]
   ) {
     setFilters((current) => ({ ...current, [field]: value }));
   }
 
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const storage = getBrowserStorage();
-    const allProfiles = storage ? readAllPublicTutorProfiles({ storage }) : [];
-
     writeFiltersToUrl(filters);
-    setProfiles(filterTutorProfiles(allProfiles, filters));
+    void loadProfiles(filters);
   }
 
   function resetFilters() {
-    const storage = getBrowserStorage();
-    const allProfiles = storage ? readAllPublicTutorProfiles({ storage }) : [];
-
     setFilters(emptyFilters);
     writeFiltersToUrl(emptyFilters);
-    setProfiles(allProfiles);
+    void loadProfiles(emptyFilters);
   }
 
   return (
@@ -96,7 +86,7 @@ export default function TutorProfilesPage() {
         <div className="section-heading-row">
           <div>
             <h1 className="section-title">家教信息广场</h1>
-            <p>按科目、学段、课时费区间和性别筛选大学生家教信息。详情页不会展示联系方式。</p>
+            <p>按科目、学段、课时费和性别筛选大学生家教信息；公开详情不展示联系方式。</p>
           </div>
           <Link className="button primary" href="/tutor-profiles/new">
             发布家教信息
@@ -105,9 +95,9 @@ export default function TutorProfilesPage() {
 
         <form className="filter-bar" onSubmit={applyFilters}>
           <div className="field">
-            <label htmlFor="profile-subject">科目</label>
+            <label htmlFor="tutor-subject">科目</label>
             <select
-              id="profile-subject"
+              id="tutor-subject"
               onChange={(event) => updateFilter("subject", event.target.value)}
               value={filters.subject}
             >
@@ -120,9 +110,9 @@ export default function TutorProfilesPage() {
           </div>
 
           <div className="field">
-            <label htmlFor="profile-grade">学段</label>
+            <label htmlFor="tutor-grade">学段</label>
             <select
-              id="profile-grade"
+              id="tutor-grade"
               onChange={(event) => updateFilter("grade", event.target.value)}
               value={filters.grade}
             >
@@ -135,9 +125,9 @@ export default function TutorProfilesPage() {
           </div>
 
           <div className="field">
-            <label htmlFor="profile-fee-min">课时费下限</label>
+            <label htmlFor="tutor-fee-min">课时费下限</label>
             <input
-              id="profile-fee-min"
+              id="tutor-fee-min"
               inputMode="numeric"
               onChange={(event) => updateFilter("feeMin", event.target.value)}
               value={filters.feeMin}
@@ -145,9 +135,9 @@ export default function TutorProfilesPage() {
           </div>
 
           <div className="field">
-            <label htmlFor="profile-fee-max">课时费上限</label>
+            <label htmlFor="tutor-fee-max">课时费上限</label>
             <input
-              id="profile-fee-max"
+              id="tutor-fee-max"
               inputMode="numeric"
               onChange={(event) => updateFilter("feeMax", event.target.value)}
               value={filters.feeMax}
@@ -155,9 +145,9 @@ export default function TutorProfilesPage() {
           </div>
 
           <div className="field">
-            <label htmlFor="profile-gender">性别</label>
+            <label htmlFor="tutor-gender">性别</label>
             <select
-              id="profile-gender"
+              id="tutor-gender"
               onChange={(event) => updateFilter("gender", event.target.value)}
               value={filters.gender}
             >
@@ -193,10 +183,9 @@ export default function TutorProfilesPage() {
                     查看详情
                   </Link>
                 </div>
-                <p>
-                  {profile.gender}；可教科目：{profile.subjects.join("、")}；学段：
-                  {profile.grades.join("、")}
-                </p>
+                <p>性别：{profile.gender}</p>
+                <p>可教科目：{profile.subjects.join("、")}</p>
+                <p>可教学段：{profile.grades.join("、")}</p>
                 <p>
                   课时费：
                   {profile.feeRanges

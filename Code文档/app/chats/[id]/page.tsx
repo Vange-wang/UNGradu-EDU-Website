@@ -6,25 +6,26 @@ import type { FormEvent } from "react";
 import { useCallback, useEffect, useState } from "react";
 
 import { RequireTestSession } from "@/features/auth/require-test-session";
-import { CHAT_POLLING_INTERVAL_MS } from "@/features/chat/chat-polling";
 import {
-  approveContactExchangeRequest,
-  createContactExchangeRequest,
-  listContactExchangeRequestsForConversation,
-  listConversationMessages,
-  readAuthorizedContactProfiles,
-  readConversationForUser,
-  rejectContactExchangeRequest,
-  sendConversationMessage,
-  type SavedContactExchangeRequest,
-  type SavedConversation,
-  type SavedConversationMessage,
-  withdrawContactExchangeRequest
-} from "@/features/chat/chat-storage";
+  approveContactExchangeRequestFromApi,
+  createContactExchangeRequestFromApi,
+  listContactExchangeRequestsFromApi,
+  readAuthorizedContactProfilesFromApi,
+  readConversationFromApi,
+  readConversationMessagesFromApi,
+  rejectContactExchangeRequestFromApi,
+  sendConversationMessageToApi,
+  withdrawContactExchangeRequestFromApi
+} from "@/features/chat/chat-api-client";
+import { CHAT_POLLING_INTERVAL_MS } from "@/features/chat/chat-polling";
 import type { ContactProfileInput } from "@/features/profile/contact-profile";
-import { getBrowserStorage } from "@/lib/storage";
+import type { ServerContactExchangeRequestView } from "@/server/contact-exchange";
+import type {
+  ServerConversationMessageView,
+  ServerConversationView
+} from "@/server/conversations";
 
-const statusLabels: Record<SavedContactExchangeRequest["status"], string> = {
+const statusLabels: Record<ServerContactExchangeRequestView["status"], string> = {
   approved: "已同意",
   expired: "已过期",
   pending: "待处理",
@@ -39,20 +40,25 @@ type AuthorizedProfiles = {
 
 function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
   const params = useParams<{ id: string }>();
-  const [conversation, setConversation] = useState<SavedConversation | null>(null);
-  const [messages, setMessages] = useState<SavedConversationMessage[]>([]);
-  const [requests, setRequests] = useState<SavedContactExchangeRequest[]>([]);
+  const [conversation, setConversation] = useState<ServerConversationView | null>(null);
+  const [messages, setMessages] = useState<ServerConversationMessageView[]>([]);
+  const [requests, setRequests] = useState<ServerContactExchangeRequestView[]>([]);
   const [authorizedProfiles, setAuthorizedProfiles] =
     useState<AuthorizedProfiles>(null);
   const [messageText, setMessageText] = useState("");
   const [notice, setNotice] = useState("");
   const [loaded, setLoaded] = useState(false);
 
-  const refresh = useCallback(() => {
-    const storage = getBrowserStorage();
+  const refresh = useCallback(async () => {
+    const conversationResult = await readConversationFromApi({
+      conversationId: params.id,
+      currentUserPhone
+    });
+    const currentConversation = conversationResult.ok ? conversationResult.value : null;
 
-    if (!storage) {
-      setConversation(null);
+    setConversation(currentConversation);
+
+    if (!currentConversation) {
       setMessages([]);
       setRequests([]);
       setAuthorizedProfiles(null);
@@ -60,158 +66,120 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
       return;
     }
 
-    const currentConversation = readConversationForUser({
-      conversationId: params.id,
-      currentUserPhone,
-      storage
-    });
+    const [messagesResult, requestsResult, authorizedProfilesResult] =
+      await Promise.all([
+        readConversationMessagesFromApi({
+          conversationId: currentConversation.id,
+          currentUserPhone
+        }),
+        listContactExchangeRequestsFromApi({
+          conversationId: currentConversation.id,
+          currentUserPhone
+        }),
+        readAuthorizedContactProfilesFromApi({
+          conversationId: currentConversation.id,
+          currentUserPhone
+        })
+      ]);
 
-    setConversation(currentConversation);
-    setMessages(
-      currentConversation
-        ? listConversationMessages({
-            conversationId: currentConversation.id,
-            currentUserPhone,
-            storage
-          })
-        : []
-    );
-    setRequests(
-      currentConversation
-        ? listContactExchangeRequestsForConversation({
-            conversationId: currentConversation.id,
-            currentUserPhone,
-            storage
-          })
-        : []
-    );
+    setMessages(messagesResult.ok ? messagesResult.value : []);
+    setRequests(requestsResult.ok ? requestsResult.value : []);
     setAuthorizedProfiles(
-      currentConversation
-        ? readAuthorizedContactProfiles({
-            conversationId: currentConversation.id,
-            currentUserPhone,
-            storage
-          })
-        : null
+      authorizedProfilesResult.ok ? authorizedProfilesResult.value : null
     );
     setLoaded(true);
   }, [currentUserPhone, params.id]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
   useEffect(() => {
-    const intervalId = window.setInterval(refresh, CHAT_POLLING_INTERVAL_MS);
+    const intervalId = window.setInterval(() => {
+      void refresh();
+    }, CHAT_POLLING_INTERVAL_MS);
 
     return () => window.clearInterval(intervalId);
   }, [refresh]);
 
-  function handleSendMessage(event: FormEvent<HTMLFormElement>) {
+  async function handleSendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNotice("");
 
-    const storage = getBrowserStorage();
-
-    if (!storage || !conversation) {
+    if (!conversation) {
       return;
     }
 
-    const result = sendConversationMessage({
+    const result = await sendConversationMessageToApi({
       conversationId: conversation.id,
-      senderPhone: currentUserPhone,
-      storage,
+      currentUserPhone,
       text: messageText
     });
 
     if (!result.ok) {
-      setNotice(result.errors.request);
+      setNotice(result.errors.request ?? "消息发送失败");
       return;
     }
 
     setMessageText("");
-    refresh();
+    await refresh();
   }
 
-  function handleCreateExchangeRequest() {
+  async function handleCreateExchangeRequest() {
     setNotice("");
 
-    const storage = getBrowserStorage();
-
-    if (!storage || !conversation) {
+    if (!conversation) {
       return;
     }
 
-    const result = createContactExchangeRequest({
+    const result = await createContactExchangeRequestFromApi({
       conversationId: conversation.id,
-      requesterPhone: currentUserPhone,
-      storage
+      currentUserPhone
     });
 
-    setNotice(result.ok ? "已发送联系方式交换请求。" : result.errors.request);
-    refresh();
+    setNotice(result.ok ? "已发送联系方式交换请求。" : result.errors.request ?? "请求失败");
+    await refresh();
   }
 
-  function handleApproveRequest(requestId: string) {
+  async function handleApproveRequest(requestId: string) {
     setNotice("");
 
     const confirmed = window.confirm(
       "二次确认：同意后双方将在本会话中看到彼此存档联系方式。是否继续？"
     );
 
-    const storage = getBrowserStorage();
-
-    if (!storage) {
-      return;
-    }
-
-    const result = approveContactExchangeRequest({
-      confirmerPhone: currentUserPhone,
+    const result = await approveContactExchangeRequestFromApi({
+      currentUserPhone,
       requestId,
-      secondConfirmation: confirmed,
-      storage
+      secondConfirmation: confirmed
     });
 
-    setNotice(result.ok ? "已同意交换联系方式。" : result.errors.request);
-    refresh();
+    setNotice(result.ok ? "已同意交换联系方式。" : result.errors.request ?? "处理失败");
+    await refresh();
   }
 
-  function handleRejectRequest(requestId: string) {
+  async function handleRejectRequest(requestId: string) {
     setNotice("");
 
-    const storage = getBrowserStorage();
-
-    if (!storage) {
-      return;
-    }
-
-    const result = rejectContactExchangeRequest({
-      receiverPhone: currentUserPhone,
-      requestId,
-      storage
+    const result = await rejectContactExchangeRequestFromApi({
+      currentUserPhone,
+      requestId
     });
 
-    setNotice(result.ok ? "已拒绝该联系方式交换请求。" : result.errors.request);
-    refresh();
+    setNotice(result.ok ? "已拒绝该联系方式交换请求。" : result.errors.request ?? "处理失败");
+    await refresh();
   }
 
-  function handleWithdrawRequest(requestId: string) {
+  async function handleWithdrawRequest(requestId: string) {
     setNotice("");
 
-    const storage = getBrowserStorage();
-
-    if (!storage) {
-      return;
-    }
-
-    const result = withdrawContactExchangeRequest({
-      requesterPhone: currentUserPhone,
-      requestId,
-      storage
+    const result = await withdrawContactExchangeRequestFromApi({
+      currentUserPhone,
+      requestId
     });
 
-    setNotice(result.ok ? "已撤回该联系方式交换请求。" : result.errors.request);
-    refresh();
+    setNotice(result.ok ? "已撤回该联系方式交换请求。" : result.errors.request ?? "处理失败");
+    await refresh();
   }
 
   if (!loaded) {
@@ -335,14 +303,14 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
                     <div className="exchange-actions">
                       <button
                         className="button primary"
-                        onClick={() => handleApproveRequest(request.id)}
+                        onClick={() => void handleApproveRequest(request.id)}
                         type="button"
                       >
                         同意
                       </button>
                       <button
                         className="button secondary"
-                        onClick={() => handleRejectRequest(request.id)}
+                        onClick={() => void handleRejectRequest(request.id)}
                         type="button"
                       >
                         拒绝
@@ -353,7 +321,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
                   {request.status === "pending" && isRequester ? (
                     <button
                       className="button secondary"
-                      onClick={() => handleWithdrawRequest(request.id)}
+                      onClick={() => void handleWithdrawRequest(request.id)}
                       type="button"
                     >
                       撤回

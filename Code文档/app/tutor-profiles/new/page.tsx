@@ -7,11 +7,9 @@ import {
   type TutorProfileInput,
   validateTutorProfileInput
 } from "@/features/tutor-profiles/tutor-profile";
-import { saveTutorProfile } from "@/features/tutor-profiles/tutor-profile-storage";
-import { getBrowserStorage } from "@/lib/storage";
+import { saveTutorProfileToApi } from "@/features/tutor-profiles/tutor-profile-api-client";
 
 const genderOptions = ["女", "男"];
-const schoolOptions = ["东莞理工学院", "广东医科大学", "东莞城市学院", "广东科技学院"];
 const subjectOptions = ["语文", "数学", "英语", "物理", "化学", "生物"];
 const gradeOptions = ["小学", "初中", "高中"];
 const timeSlotOptions = [
@@ -29,19 +27,12 @@ const timeSlotOptions = [
 
 const initialInput: TutorProfileInput = {
   gender: "女",
-  school: "东莞理工学院",
+  school: "",
   major: "",
   subjects: [],
   grades: [],
   timeSlots: [],
-  feeRanges: [
-    {
-      grade: "",
-      subject: "",
-      min: "",
-      max: ""
-    }
-  ],
+  feeRanges: [{ grade: "", subject: "", min: "", max: "" }],
   abilityDescription: "",
   proofImages: []
 };
@@ -56,7 +47,6 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
   const [input, setInput] = useState<TutorProfileInput>(initialInput);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
-  const [storageError, setStorageError] = useState("");
 
   function updateInput<K extends keyof TutorProfileInput>(
     field: K,
@@ -67,94 +57,86 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
     setErrors({});
   }
 
-  function updateFeeRange(
-    field: keyof TutorProfileInput["feeRanges"][number],
-    value: string
-  ) {
-    setInput((current) => ({
-      ...current,
-      feeRanges: [{ ...current.feeRanges[0], [field]: value }]
-    }));
-    setSaved(false);
-    setErrors({});
+  function updateFeeRange(field: "grade" | "subject" | "min" | "max", value: string) {
+    updateInput("feeRanges", [{ ...input.feeRanges[0], [field]: value }]);
   }
 
-  function submitForm(event: FormEvent<HTMLFormElement>) {
+  function updateProofImages(files: FileList | null) {
+    updateInput(
+      "proofImages",
+      Array.from(files ?? []).map((file) => ({
+        name: file.name,
+        type: file.type,
+        size: file.size
+      }))
+    );
+  }
+
+  async function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const result = validateTutorProfileInput(input);
-    const storage = getBrowserStorage();
+    const validation = validateTutorProfileInput(input);
+
+    if (!validation.ok) {
+      setErrors(validation.errors);
+      return;
+    }
+
+    const result = await saveTutorProfileToApi({
+      currentUserPhone: ownerPhone,
+      input
+    });
 
     if (!result.ok) {
       setErrors(result.errors);
       return;
     }
 
-    if (!storage) {
-      setStorageError("当前浏览器无法保存家教信息。");
-      return;
-    }
-
-    const savedProfile = saveTutorProfile({ input, ownerPhone, storage });
-
-    if (!savedProfile.ok) {
-      setErrors(savedProfile.errors);
-      return;
-    }
-
     setInput(initialInput);
     setErrors({});
-    setStorageError("");
     setSaved(true);
   }
 
   return (
     <section className="content-panel wide-panel">
       <h1 className="section-title">发布家教信息</h1>
-      <p>当前测试账号：{ownerPhone}。M2 只记录发布资料和可选证明图片入口，不展示联系方式。</p>
+      <p>当前测试账号：{ownerPhone}。家教信息会保存到服务端 tutor_profiles。</p>
 
       <form className="form" onSubmit={submitForm}>
+        <div className="field">
+          <label htmlFor="tutor-gender">性别</label>
+          <select
+            id="tutor-gender"
+            onChange={(event) => updateInput("gender", event.target.value)}
+            value={input.gender}
+          >
+            {genderOptions.map((gender) => (
+              <option key={gender} value={gender}>
+                {gender}
+              </option>
+            ))}
+          </select>
+          <span className="error">{errors.gender}</span>
+        </div>
+
         <div className="two-column">
           <div className="field">
-            <label htmlFor="gender">性别</label>
-            <select
-              id="gender"
-              onChange={(event) => updateInput("gender", event.target.value)}
-              value={input.gender}
-            >
-              {genderOptions.map((gender) => (
-                <option key={gender} value={gender}>
-                  {gender}
-                </option>
-              ))}
-            </select>
-            <span className="error">{errors.gender}</span>
-          </div>
-
-          <div className="field">
             <label htmlFor="school">学校</label>
-            <select
+            <input
               id="school"
               onChange={(event) => updateInput("school", event.target.value)}
               value={input.school}
-            >
-              {schoolOptions.map((school) => (
-                <option key={school} value={school}>
-                  {school}
-                </option>
-              ))}
-            </select>
+            />
             <span className="error">{errors.school}</span>
           </div>
-        </div>
-
-        <div className="field">
-          <label htmlFor="major">专业</label>
-          <input
-            id="major"
-            onChange={(event) => updateInput("major", event.target.value)}
-            value={input.major}
-          />
-          <span className="error">{errors.major}</span>
+          <div className="field">
+            <label htmlFor="major">专业</label>
+            <input
+              id="major"
+              onChange={(event) => updateInput("major", event.target.value)}
+              value={input.major}
+            />
+            <span className="error">{errors.major}</span>
+          </div>
         </div>
 
         <fieldset className="field option-field">
@@ -210,9 +192,9 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
           <span className="error">{errors.timeSlots}</span>
         </fieldset>
 
-        <div className="fee-range">
+        <div className="two-column">
           <div className="field">
-            <label htmlFor="fee-grade">课时费对应学段</label>
+            <label htmlFor="fee-grade">课时费学段</label>
             <select
               id="fee-grade"
               onChange={(event) => updateFeeRange("grade", event.target.value)}
@@ -227,7 +209,7 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
             </select>
           </div>
           <div className="field">
-            <label htmlFor="fee-subject">课时费对应科目</label>
+            <label htmlFor="fee-subject">课时费科目</label>
             <select
               id="fee-subject"
               onChange={(event) => updateFeeRange("subject", event.target.value)}
@@ -241,6 +223,9 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
               ))}
             </select>
           </div>
+        </div>
+
+        <div className="two-column">
           <div className="field">
             <label htmlFor="fee-min">最低课时费</label>
             <input
@@ -267,8 +252,8 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
           <textarea
             id="ability-description"
             onChange={(event) => updateInput("abilityDescription", event.target.value)}
-            placeholder="可写成绩、证书、擅长科目、过往家教经验，不填写联系方式"
-            rows={5}
+            placeholder="说明教学优势，不填写手机号或微信号"
+            rows={4}
             value={input.abilityDescription}
           />
           <span className="error">{errors.abilityDescription}</span>
@@ -280,19 +265,10 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
             accept="image/jpeg,image/png,image/webp"
             id="proof-images"
             multiple
-            onChange={(event) => {
-              const files = Array.from(event.target.files ?? []).map((file) => ({
-                name: file.name,
-                type: file.type,
-                size: file.size
-              }));
-              updateInput("proofImages", files);
-            }}
+            onChange={(event) => updateProofImages(event.target.files)}
             type="file"
           />
-          <span className="field-hint">
-            可选入口；当前 M2 本地测试仅保存图片名称、类型和大小。
-          </span>
+          <span className="field-hint">当前仅保存文件名、类型和大小。</span>
           <span className="error">{errors.proofImages}</span>
         </div>
 
@@ -301,8 +277,7 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
         </button>
       </form>
 
-      {storageError ? <p className="error">{storageError}</p> : null}
-      {saved ? <p className="success">家教信息已保存到当前测试账号。</p> : null}
+      {saved ? <p className="success">家教信息已保存到服务端。</p> : null}
     </section>
   );
 }

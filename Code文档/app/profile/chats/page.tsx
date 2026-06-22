@@ -4,25 +4,28 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { RequireTestSession } from "@/features/auth/require-test-session";
-import {
-  readConversationsForUser,
-  type SavedConversation
-} from "@/features/chat/chat-storage";
-import { getBrowserStorage } from "@/lib/storage";
+import { readConversationsFromApi } from "@/features/chat/chat-api-client";
+import type { ServerConversationView } from "@/server/conversations";
 
 function ChatList({ currentUserPhone }: { currentUserPhone: string }) {
-  const [conversations, setConversations] = useState<SavedConversation[]>([]);
+  const [conversations, setConversations] = useState<ServerConversationView[]>([]);
 
   useEffect(() => {
-    const storage = getBrowserStorage();
-    setConversations(
-      storage
-        ? readConversationsForUser({
-            currentUserPhone,
-            storage
-          })
-        : []
-    );
+    let cancelled = false;
+
+    async function loadConversations() {
+      const result = await readConversationsFromApi({ currentUserPhone });
+
+      if (!cancelled) {
+        setConversations(result.ok ? result.value : []);
+      }
+    }
+
+    void loadConversations();
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentUserPhone]);
 
   return (

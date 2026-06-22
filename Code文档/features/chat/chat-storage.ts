@@ -4,7 +4,7 @@ import { readContactProfile } from "@/features/profile/contact-profile-storage";
 
 export type ConversationSourceType = "parent-need" | "tutor-profile";
 
-export type SavedConversation = {
+type StoredConversation = {
   id: string;
   participantPhones: [string, string];
   sourceId: string;
@@ -12,10 +12,25 @@ export type SavedConversation = {
   createdAt: string;
 };
 
-export type SavedConversationMessage = {
+export type SavedConversation = {
+  id: string;
+  sourceId: string;
+  sourceType: ConversationSourceType;
+  createdAt: string;
+};
+
+type StoredConversationMessage = {
   id: string;
   conversationId: string;
   senderPhone: string;
+  text: string;
+  createdAt: string;
+};
+
+export type SavedConversationMessage = {
+  id: string;
+  conversationId: string;
+  direction: "sent" | "received";
   text: string;
   createdAt: string;
 };
@@ -27,11 +42,21 @@ export type ContactExchangeRequestStatus =
   | "withdrawn"
   | "expired";
 
-export type SavedContactExchangeRequest = {
+type StoredContactExchangeRequest = {
   id: string;
   conversationId: string;
   requesterPhone: string;
   receiverPhone: string;
+  status: ContactExchangeRequestStatus;
+  secondConfirmedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SavedContactExchangeRequest = {
+  id: string;
+  conversationId: string;
+  direction: "sent" | "received";
   status: ContactExchangeRequestStatus;
   secondConfirmedAt: string | null;
   createdAt: string;
@@ -90,14 +115,55 @@ function writeJsonArray<T>(storage: KeyValueStorage, key: string, values: T[]) {
   storage.setItem(key, JSON.stringify(values));
 }
 
-function isParticipant(conversation: SavedConversation, phone: string) {
+function isParticipant(conversation: StoredConversation, phone: string) {
   return conversation.participantPhones.includes(normalizePhone(phone));
 }
 
 function findConversation(conversationId: string, storage: KeyValueStorage) {
-  return readJsonArray<SavedConversation>(storage, CONVERSATIONS_KEY).find(
+  return readJsonArray<StoredConversation>(storage, CONVERSATIONS_KEY).find(
     (conversation) => conversation.id === conversationId
   ) ?? null;
+}
+
+function toConversationView(conversation: StoredConversation): SavedConversation {
+  return {
+    id: conversation.id,
+    sourceId: conversation.sourceId,
+    sourceType: conversation.sourceType,
+    createdAt: conversation.createdAt
+  };
+}
+
+function toMessageView(
+  message: StoredConversationMessage,
+  currentUserPhone: string
+): SavedConversationMessage {
+  return {
+    id: message.id,
+    conversationId: message.conversationId,
+    direction:
+      message.senderPhone === normalizePhone(currentUserPhone) ? "sent" : "received",
+    text: message.text,
+    createdAt: message.createdAt
+  };
+}
+
+function toContactExchangeRequestView(
+  request: StoredContactExchangeRequest,
+  currentUserPhone: string
+): SavedContactExchangeRequest {
+  return {
+    id: request.id,
+    conversationId: request.conversationId,
+    direction:
+      request.requesterPhone === normalizePhone(currentUserPhone)
+        ? "sent"
+        : "received",
+    status: request.status,
+    secondConfirmedAt: request.secondConfirmedAt,
+    createdAt: request.createdAt,
+    updatedAt: request.updatedAt
+  };
 }
 
 function createFailure(message: string): Failure {
@@ -108,13 +174,13 @@ function createFailure(message: string): Failure {
   };
 }
 
-function isExpired(request: SavedContactExchangeRequest, now: string) {
+function isExpired(request: StoredContactExchangeRequest, now: string) {
   return new Date(now).getTime() - new Date(request.createdAt).getTime() >
     CONTACT_EXCHANGE_EXPIRY_MS;
 }
 
 function refreshRequestExpiry(
-  request: SavedContactExchangeRequest,
+  request: StoredContactExchangeRequest,
   now: string
 ) {
   if (request.status !== "pending" || !isExpired(request, now)) {
@@ -132,7 +198,7 @@ function readContactExchangeRequests({
   now = new Date().toISOString(),
   storage
 }: StorageInput & { now?: string }) {
-  const requests = readJsonArray<SavedContactExchangeRequest>(
+  const requests = readJsonArray<StoredContactExchangeRequest>(
     storage,
     CONTACT_EXCHANGE_REQUESTS_KEY
   );
@@ -153,8 +219,8 @@ function readContactExchangeRequests({
 function updateContactExchangeRequest({
   request,
   storage
-}: StorageInput & { request: SavedContactExchangeRequest }) {
-  const requests = readJsonArray<SavedContactExchangeRequest>(
+}: StorageInput & { request: StoredContactExchangeRequest }) {
+  const requests = readJsonArray<StoredContactExchangeRequest>(
     storage,
     CONTACT_EXCHANGE_REQUESTS_KEY
   );
@@ -187,7 +253,7 @@ export function createOrReadConversation({
     return createFailure("聊天会话必须包含两个不同用户");
   }
 
-  const conversations = readJsonArray<SavedConversation>(
+  const conversations = readJsonArray<StoredConversation>(
     storage,
     CONVERSATIONS_KEY
   );
@@ -201,12 +267,12 @@ export function createOrReadConversation({
   if (existingConversation) {
     return {
       ok: true,
-      value: existingConversation,
+      value: toConversationView(existingConversation),
       errors: {}
     };
   }
 
-  const conversation: SavedConversation = {
+  const conversation: StoredConversation = {
     id: createOpaqueId("conversation"),
     participantPhones: [participants[0], participants[1]],
     sourceId,
@@ -218,7 +284,7 @@ export function createOrReadConversation({
 
   return {
     ok: true,
-    value: conversation,
+    value: toConversationView(conversation),
     errors: {}
   };
 }
@@ -237,19 +303,20 @@ export function readConversationForUser({
     return null;
   }
 
-  return conversation;
+  return toConversationView(conversation);
 }
 
 export function readConversationsForUser({
   currentUserPhone,
   storage
 }: StorageInput & { currentUserPhone: string }) {
-  return readJsonArray<SavedConversation>(storage, CONVERSATIONS_KEY)
+  return readJsonArray<StoredConversation>(storage, CONVERSATIONS_KEY)
     .filter((conversation) => isParticipant(conversation, currentUserPhone))
     .sort(
       (left, right) =>
         new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
-    );
+    )
+    .map(toConversationView);
 }
 
 export function sendConversationMessage({
@@ -277,8 +344,8 @@ export function sendConversationMessage({
     return createFailure("消息内容不能为空");
   }
 
-  const messages = readJsonArray<SavedConversationMessage>(storage, MESSAGES_KEY);
-  const message: SavedConversationMessage = {
+  const messages = readJsonArray<StoredConversationMessage>(storage, MESSAGES_KEY);
+  const message: StoredConversationMessage = {
     id: createOpaqueId("message"),
     conversationId,
     senderPhone: normalizePhone(senderPhone),
@@ -290,7 +357,7 @@ export function sendConversationMessage({
 
   return {
     ok: true,
-    value: message,
+    value: toMessageView(message, senderPhone),
     errors: {}
   };
 }
@@ -313,12 +380,13 @@ export function listConversationMessages({
     return [];
   }
 
-  return readJsonArray<SavedConversationMessage>(storage, MESSAGES_KEY)
+  return readJsonArray<StoredConversationMessage>(storage, MESSAGES_KEY)
     .filter((message) => message.conversationId === conversationId)
     .sort(
       (left, right) =>
         new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
-    );
+    )
+    .map((message) => toMessageView(message, currentUserPhone));
 }
 
 export function createContactExchangeRequest({
@@ -342,13 +410,16 @@ export function createContactExchangeRequest({
   }
 
   const requester = normalizePhone(requesterPhone);
-  const receiver = conversation.participantPhones.find((phone) => phone !== requester);
+  const storedConversation = findConversation(conversationId, storage);
+  const receiver = storedConversation?.participantPhones.find(
+    (phone) => phone !== requester
+  );
 
   if (!receiver) {
     return createFailure("无法找到联系方式交换接收方");
   }
 
-  const request: SavedContactExchangeRequest = {
+  const request: StoredContactExchangeRequest = {
     id: createOpaqueId("contact-exchange"),
     conversationId,
     requesterPhone: requester,
@@ -367,7 +438,7 @@ export function createContactExchangeRequest({
 
   return {
     ok: true,
-    value: request,
+    value: toContactExchangeRequestView(request, requesterPhone),
     errors: {}
   };
 }
@@ -417,7 +488,7 @@ export function approveContactExchangeRequest({
     return createFailure("双方都必须先填写存档手机号");
   }
 
-  const approvedRequest: SavedContactExchangeRequest = {
+  const approvedRequest: StoredContactExchangeRequest = {
     ...request,
     status: "approved",
     secondConfirmedAt: now,
@@ -428,7 +499,7 @@ export function approveContactExchangeRequest({
 
   return {
     ok: true,
-    value: approvedRequest,
+    value: toContactExchangeRequestView(approvedRequest, confirmerPhone),
     errors: {}
   };
 }
@@ -454,7 +525,7 @@ export function rejectContactExchangeRequest({
     return createFailure("只能处理待处理的联系方式交换请求");
   }
 
-  const rejectedRequest: SavedContactExchangeRequest = {
+  const rejectedRequest: StoredContactExchangeRequest = {
     ...request,
     status: "rejected",
     updatedAt: now
@@ -464,7 +535,7 @@ export function rejectContactExchangeRequest({
 
   return {
     ok: true,
-    value: rejectedRequest,
+    value: toContactExchangeRequestView(rejectedRequest, receiverPhone),
     errors: {}
   };
 }
@@ -490,7 +561,7 @@ export function withdrawContactExchangeRequest({
     return createFailure("只能撤回待处理的联系方式交换请求");
   }
 
-  const withdrawnRequest: SavedContactExchangeRequest = {
+  const withdrawnRequest: StoredContactExchangeRequest = {
     ...request,
     status: "withdrawn",
     updatedAt: now
@@ -500,7 +571,7 @@ export function withdrawContactExchangeRequest({
 
   return {
     ok: true,
-    value: withdrawnRequest,
+    value: toContactExchangeRequestView(withdrawnRequest, requesterPhone),
     errors: {}
   };
 }
@@ -528,6 +599,9 @@ export function listContactExchangeRequestsForConversation({
     .sort(
       (left, right) =>
         new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
+    )
+    .map((request) =>
+      toContactExchangeRequestView(request, currentUserPhone)
     );
 }
 
@@ -561,7 +635,8 @@ export function readAuthorizedContactProfiles({
   }
 
   const currentPhone = normalizePhone(currentUserPhone);
-  const otherPhone = conversation.participantPhones.find(
+  const storedConversation = findConversation(conversationId, storage);
+  const otherPhone = storedConversation?.participantPhones.find(
     (phone) => phone !== currentPhone
   );
 

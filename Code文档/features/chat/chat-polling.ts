@@ -1,0 +1,1 @@
+export const CHAT_POLLING_INTERVAL_MS = 3000;

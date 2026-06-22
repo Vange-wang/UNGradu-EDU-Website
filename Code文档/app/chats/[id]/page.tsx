@@ -6,6 +6,7 @@ import type { FormEvent } from "react";
 import { useCallback, useEffect, useState } from "react";
 
 import { RequireTestSession } from "@/features/auth/require-test-session";
+import { CHAT_POLLING_INTERVAL_MS } from "@/features/chat/chat-polling";
 import {
   approveContactExchangeRequest,
   createContactExchangeRequest,
@@ -98,6 +99,12 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
 
   useEffect(() => {
     refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(refresh, CHAT_POLLING_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
   }, [refresh]);
 
   function handleSendMessage(event: FormEvent<HTMLFormElement>) {
@@ -249,7 +256,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
             ) : null}
 
             {messages.map((message) => {
-              const isOwn = message.senderPhone === currentUserPhone;
+              const isOwn = message.direction === "sent";
 
               return (
                 <article
@@ -311,8 +318,8 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
             ) : null}
 
             {requests.map((request) => {
-              const isReceiver = request.receiverPhone === currentUserPhone;
-              const isRequester = request.requesterPhone === currentUserPhone;
+              const isReceiver = request.direction === "received";
+              const isRequester = request.direction === "sent";
 
               return (
                 <article className="exchange-card" key={request.id}>

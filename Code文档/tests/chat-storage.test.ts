@@ -42,6 +42,8 @@ describe("chat storage", () => {
     }
 
     expect(second.value.id).toBe(first.value.id);
+    expect(JSON.stringify(first.value)).not.toContain("13800138000");
+    expect(JSON.stringify(first.value)).not.toContain("13900139000");
     expect(
       readConversationForUser({
         conversationId: first.value.id,
@@ -101,8 +103,23 @@ describe("chat storage", () => {
         conversationId: conversation.value.id,
         currentUserPhone: "13800138000",
         storage
-      }).map((message) => message.text)
-    ).toEqual(["你好，想了解一下周末时间", "可以，周六下午方便"]);
+      }).map((message) => ({
+        direction: message.direction,
+        text: message.text
+      }))
+    ).toEqual([
+      { direction: "sent", text: "你好，想了解一下周末时间" },
+      { direction: "received", text: "可以，周六下午方便" }
+    ]);
+    expect(
+      JSON.stringify(
+        listConversationMessages({
+          conversationId: conversation.value.id,
+          currentUserPhone: "13800138000",
+          storage
+        })
+      )
+    ).not.toContain("13900139000");
     expect(
       listConversationMessages({
         conversationId: conversation.value.id,
@@ -286,8 +303,20 @@ describe("chat storage", () => {
         conversationId: conversation.value.id,
         currentUserPhone: "13900139000",
         storage
-      }).map((item) => item.id)
-    ).toEqual(request.ok ? [request.value.id] : []);
+      }).map((item) => ({
+        direction: item.direction,
+        id: item.id
+      }))
+    ).toEqual(request.ok ? [{ direction: "received", id: request.value.id }] : []);
+    expect(
+      JSON.stringify(
+        listContactExchangeRequestsForConversation({
+          conversationId: conversation.value.id,
+          currentUserPhone: "13900139000",
+          storage
+        })
+      )
+    ).not.toContain("13800138000");
     expect(
       listContactExchangeRequestsForConversation({
         conversationId: conversation.value.id,

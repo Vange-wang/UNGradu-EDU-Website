@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   findParentNeedById,
+  findPublicParentNeedById,
   filterParentNeeds,
   readAllParentNeeds,
+  readAllPublicParentNeeds,
   saveParentNeed
 } from "@/features/parent-needs/parent-need-storage";
 import { createMemoryStorage } from "@/lib/memory-storage";
@@ -108,6 +110,32 @@ describe("parent need marketplace", () => {
     });
     expect(detail).not.toHaveProperty("phone");
     expect(detail).not.toHaveProperty("wechat");
+  });
+
+  it("returns public parent need views without owner phone identifiers", () => {
+    const storage = createMemoryStorage();
+    const ownerPhone = "13800138000";
+    const saved = saveParentNeed({
+      input: baseInput,
+      ownerPhone,
+      storage
+    });
+
+    if (!saved.ok) {
+      throw new Error("expected valid parent need");
+    }
+
+    const publicNeeds = readAllPublicParentNeeds({ storage });
+    const publicDetail = findPublicParentNeedById({
+      id: saved.value.id,
+      storage
+    });
+
+    expect(publicNeeds).toHaveLength(1);
+    expect(publicNeeds[0]).not.toHaveProperty("ownerPhone");
+    expect(publicDetail).not.toHaveProperty("ownerPhone");
+    expect(JSON.stringify(publicNeeds)).not.toContain(ownerPhone);
+    expect(JSON.stringify(publicDetail)).not.toContain(ownerPhone);
   });
 
   it("uses an opaque detail id without the owner phone", () => {

@@ -13,6 +13,8 @@ export type SavedTutorProfile = TutorProfile & {
   createdAt: string;
 };
 
+export type PublicTutorProfile = Omit<SavedTutorProfile, "ownerPhone">;
+
 type TutorProfileStorageInput = {
   ownerPhone: string;
   storage: KeyValueStorage;
@@ -136,6 +138,23 @@ function rangesOverlap(
     (filterMax === null || itemMin <= filterMax);
 }
 
+function toPublicTutorProfile(profile: SavedTutorProfile): PublicTutorProfile {
+  return {
+    id: profile.id,
+    gender: profile.gender,
+    school: profile.school,
+    major: profile.major,
+    subjects: profile.subjects,
+    grades: profile.grades,
+    timeSlots: profile.timeSlots,
+    feeRanges: profile.feeRanges,
+    abilityDescription: profile.abilityDescription,
+    proofImages: profile.proofImages,
+    status: profile.status,
+    createdAt: profile.createdAt
+  };
+}
+
 export function saveTutorProfile({
   input,
   ownerPhone,
@@ -254,8 +273,16 @@ export function readAllTutorProfiles({
   );
 }
 
-export function filterTutorProfiles(
-  profiles: SavedTutorProfile[],
+export function readAllPublicTutorProfiles({
+  storage
+}: {
+  storage: KeyValueStorage;
+}): PublicTutorProfile[] {
+  return readAllTutorProfiles({ storage }).map(toPublicTutorProfile);
+}
+
+export function filterTutorProfiles<T extends TutorProfile>(
+  profiles: T[],
   filters: TutorProfileFilters
 ) {
   const subject = filters.subject?.trim();
@@ -289,4 +316,15 @@ export function findTutorProfileById({
   storage: KeyValueStorage;
 }) {
   return readAllTutorProfiles({ storage }).find((profile) => profile.id === id) ?? null;
+}
+
+export function findPublicTutorProfileById({
+  id,
+  storage
+}: {
+  id: string;
+  storage: KeyValueStorage;
+}) {
+  const profile = findTutorProfileById({ id, storage });
+  return profile ? toPublicTutorProfile(profile) : null;
 }

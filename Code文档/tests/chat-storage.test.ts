@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   approveContactExchangeRequest,
   createOrReadConversation,
+  createOrReadConversationFromSource,
   createContactExchangeRequest,
   listContactExchangeRequestsForConversation,
   listConversationMessages,
@@ -12,8 +13,28 @@ import {
   sendConversationMessage,
   withdrawContactExchangeRequest
 } from "@/features/chat/chat-storage";
+import { saveTutorProfile } from "@/features/tutor-profiles/tutor-profile-storage";
 import { saveContactProfile } from "@/features/profile/contact-profile-storage";
 import { createMemoryStorage } from "@/lib/memory-storage";
+
+const tutorProfileInput = {
+  gender: "女",
+  school: "东莞理工学院",
+  major: "数学与应用数学",
+  subjects: ["数学"],
+  grades: ["初中"],
+  timeSlots: ["周六下午"],
+  feeRanges: [
+    {
+      grade: "初中",
+      subject: "数学",
+      min: "90",
+      max: "130"
+    }
+  ],
+  abilityDescription: "擅长拆题和基础巩固，有同伴辅导经验。",
+  proofImages: []
+};
 
 describe("chat storage", () => {
   it("creates one conversation for the same source and only participants can read it", () => {
@@ -58,6 +79,43 @@ describe("chat storage", () => {
         storage
       })
     ).toBeNull();
+  });
+
+  it("creates a conversation from a public source id without exposing the source owner phone", () => {
+    const storage = createMemoryStorage();
+    const profile = saveTutorProfile({
+      input: tutorProfileInput,
+      ownerPhone: "13900139000",
+      storage
+    });
+
+    expect(profile.ok).toBe(true);
+
+    if (!profile.ok) {
+      return;
+    }
+
+    const conversation = createOrReadConversationFromSource({
+      currentUserPhone: "13800138000",
+      sourceId: profile.value.id,
+      sourceType: "tutor-profile",
+      storage
+    });
+
+    expect(conversation.ok).toBe(true);
+
+    if (!conversation.ok) {
+      return;
+    }
+
+    expect(JSON.stringify(conversation.value)).not.toContain("13900139000");
+    expect(
+      readConversationForUser({
+        conversationId: conversation.value.id,
+        currentUserPhone: "13900139000",
+        storage
+      })
+    ).toEqual(conversation.value);
   });
 
   it("allows only conversation participants to send and read messages in created order", () => {

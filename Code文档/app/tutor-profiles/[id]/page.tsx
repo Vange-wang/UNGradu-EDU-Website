@@ -5,10 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useTestSession } from "@/features/auth/use-test-session";
-import { createOrReadConversation } from "@/features/chat/chat-storage";
+import { createOrReadConversationFromSource } from "@/features/chat/chat-storage";
 import {
-  findTutorProfileById,
-  type SavedTutorProfile
+  findPublicTutorProfileById,
+  type PublicTutorProfile
 } from "@/features/tutor-profiles/tutor-profile-storage";
 import { getBrowserStorage } from "@/lib/storage";
 
@@ -16,14 +16,14 @@ export default function TutorProfileDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { loaded: sessionLoaded, session } = useTestSession();
-  const [profile, setProfile] = useState<SavedTutorProfile | null>(null);
+  const [profile, setProfile] = useState<PublicTutorProfile | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [chatError, setChatError] = useState("");
 
   useEffect(() => {
     const storage = getBrowserStorage();
     const detail = storage
-      ? findTutorProfileById({ id: params.id, storage })
+      ? findPublicTutorProfileById({ id: params.id, storage })
       : null;
 
     setProfile(detail);
@@ -49,9 +49,8 @@ export default function TutorProfileDetailPage() {
       return;
     }
 
-    const result = createOrReadConversation({
+    const result = createOrReadConversationFromSource({
       currentUserPhone: session.phone,
-      otherUserPhone: profile.ownerPhone,
       sourceId: profile.id,
       sourceType: "tutor-profile",
       storage

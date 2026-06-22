@@ -13,6 +13,8 @@ export type SavedParentNeed = ParentNeed & {
   createdAt: string;
 };
 
+export type PublicParentNeed = Omit<SavedParentNeed, "ownerPhone">;
+
 type ParentNeedStorageInput = {
   ownerPhone: string;
   storage: KeyValueStorage;
@@ -136,6 +138,23 @@ function rangesOverlap(
     (filterMax === null || itemMin <= filterMax);
 }
 
+function toPublicParentNeed(need: SavedParentNeed): PublicParentNeed {
+  return {
+    id: need.id,
+    teacherGenderPreference: need.teacherGenderPreference,
+    subjects: need.subjects,
+    grade: need.grade,
+    budgetMin: need.budgetMin,
+    budgetMax: need.budgetMax,
+    timeSlots: need.timeSlots,
+    region: need.region,
+    community: need.community,
+    childIntro: need.childIntro,
+    status: need.status,
+    createdAt: need.createdAt
+  };
+}
+
 export function saveParentNeed({
   input,
   ownerPhone,
@@ -244,8 +263,16 @@ export function readAllParentNeeds({
   return ownerPhones.flatMap((ownerPhone) => readParentNeeds({ ownerPhone, storage }));
 }
 
-export function filterParentNeeds(
-  needs: SavedParentNeed[],
+export function readAllPublicParentNeeds({
+  storage
+}: {
+  storage: KeyValueStorage;
+}): PublicParentNeed[] {
+  return readAllParentNeeds({ storage }).map(toPublicParentNeed);
+}
+
+export function filterParentNeeds<T extends ParentNeed>(
+  needs: T[],
   filters: ParentNeedFilters
 ) {
   const subject = filters.subject?.trim();
@@ -281,4 +308,15 @@ export function findParentNeedById({
   storage: KeyValueStorage;
 }) {
   return readAllParentNeeds({ storage }).find((need) => need.id === id) ?? null;
+}
+
+export function findPublicParentNeedById({
+  id,
+  storage
+}: {
+  id: string;
+  storage: KeyValueStorage;
+}) {
+  const need = findParentNeedById({ id, storage });
+  return need ? toPublicParentNeed(need) : null;
 }

@@ -5,10 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useTestSession } from "@/features/auth/use-test-session";
-import { createOrReadConversation } from "@/features/chat/chat-storage";
+import { createOrReadConversationFromSource } from "@/features/chat/chat-storage";
 import {
-  findParentNeedById,
-  type SavedParentNeed
+  findPublicParentNeedById,
+  type PublicParentNeed
 } from "@/features/parent-needs/parent-need-storage";
 import { getBrowserStorage } from "@/lib/storage";
 
@@ -16,14 +16,14 @@ export default function ParentNeedDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { loaded: sessionLoaded, session } = useTestSession();
-  const [need, setNeed] = useState<SavedParentNeed | null>(null);
+  const [need, setNeed] = useState<PublicParentNeed | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [chatError, setChatError] = useState("");
 
   useEffect(() => {
     const storage = getBrowserStorage();
     const detail = storage
-      ? findParentNeedById({ id: params.id, storage })
+      ? findPublicParentNeedById({ id: params.id, storage })
       : null;
 
     setNeed(detail);
@@ -49,9 +49,8 @@ export default function ParentNeedDetailPage() {
       return;
     }
 
-    const result = createOrReadConversation({
+    const result = createOrReadConversationFromSource({
       currentUserPhone: session.phone,
-      otherUserPhone: need.ownerPhone,
       sourceId: need.id,
       sourceType: "parent-need",
       storage

@@ -5,9 +5,9 @@ import { FormEvent, useEffect, useState } from "react";
 
 import {
   filterParentNeeds,
-  readAllParentNeeds,
+  readAllPublicParentNeeds,
   type ParentNeedFilters,
-  type SavedParentNeed
+  type PublicParentNeed
 } from "@/features/parent-needs/parent-need-storage";
 import { getBrowserStorage } from "@/lib/storage";
 
@@ -58,12 +58,12 @@ function writeFiltersToUrl(filters: ParentNeedFilters) {
 
 export default function ParentNeedsPage() {
   const [filters, setFilters] = useState<ParentNeedFilters>(emptyFilters);
-  const [needs, setNeeds] = useState<SavedParentNeed[]>([]);
+  const [needs, setNeeds] = useState<PublicParentNeed[]>([]);
 
   useEffect(() => {
     const initialFilters = readFiltersFromUrl();
     const storage = getBrowserStorage();
-    const allNeeds = storage ? readAllParentNeeds({ storage }) : [];
+    const allNeeds = storage ? readAllPublicParentNeeds({ storage }) : [];
 
     setFilters(initialFilters);
     setNeeds(filterParentNeeds(allNeeds, initialFilters));
@@ -79,7 +79,7 @@ export default function ParentNeedsPage() {
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const storage = getBrowserStorage();
-    const allNeeds = storage ? readAllParentNeeds({ storage }) : [];
+    const allNeeds = storage ? readAllPublicParentNeeds({ storage }) : [];
 
     writeFiltersToUrl(filters);
     setNeeds(filterParentNeeds(allNeeds, filters));
@@ -87,7 +87,7 @@ export default function ParentNeedsPage() {
 
   function resetFilters() {
     const storage = getBrowserStorage();
-    const allNeeds = storage ? readAllParentNeeds({ storage }) : [];
+    const allNeeds = storage ? readAllPublicParentNeeds({ storage }) : [];
 
     setFilters(emptyFilters);
     writeFiltersToUrl(emptyFilters);

@@ -1,6 +1,8 @@
 import type { KeyValueStorage } from "@/lib/storage";
 
+import { findParentNeedById } from "@/features/parent-needs/parent-need-storage";
 import { readContactProfile } from "@/features/profile/contact-profile-storage";
+import { findTutorProfileById } from "@/features/tutor-profiles/tutor-profile-storage";
 
 export type ConversationSourceType = "parent-need" | "tutor-profile";
 
@@ -287,6 +289,34 @@ export function createOrReadConversation({
     value: toConversationView(conversation),
     errors: {}
   };
+}
+
+export function createOrReadConversationFromSource({
+  currentUserPhone,
+  sourceId,
+  sourceType,
+  storage
+}: StorageInput & {
+  currentUserPhone: string;
+  sourceId: string;
+  sourceType: ConversationSourceType;
+}): Success<SavedConversation> | Failure {
+  const source =
+    sourceType === "parent-need"
+      ? findParentNeedById({ id: sourceId, storage })
+      : findTutorProfileById({ id: sourceId, storage });
+
+  if (!source) {
+    return createFailure("无法找到聊天来源");
+  }
+
+  return createOrReadConversation({
+    currentUserPhone,
+    otherUserPhone: source.ownerPhone,
+    sourceId,
+    sourceType,
+    storage
+  });
 }
 
 export function readConversationForUser({

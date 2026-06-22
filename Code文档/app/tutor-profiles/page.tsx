@@ -5,8 +5,8 @@ import { FormEvent, useEffect, useState } from "react";
 
 import {
   filterTutorProfiles,
-  readAllTutorProfiles,
-  type SavedTutorProfile,
+  readAllPublicTutorProfiles,
+  type PublicTutorProfile,
   type TutorProfileFilters
 } from "@/features/tutor-profiles/tutor-profile-storage";
 import { getBrowserStorage } from "@/lib/storage";
@@ -54,12 +54,12 @@ function writeFiltersToUrl(filters: TutorProfileFilters) {
 
 export default function TutorProfilesPage() {
   const [filters, setFilters] = useState<TutorProfileFilters>(emptyFilters);
-  const [profiles, setProfiles] = useState<SavedTutorProfile[]>([]);
+  const [profiles, setProfiles] = useState<PublicTutorProfile[]>([]);
 
   useEffect(() => {
     const initialFilters = readFiltersFromUrl();
     const storage = getBrowserStorage();
-    const allProfiles = storage ? readAllTutorProfiles({ storage }) : [];
+    const allProfiles = storage ? readAllPublicTutorProfiles({ storage }) : [];
 
     setFilters(initialFilters);
     setProfiles(filterTutorProfiles(allProfiles, initialFilters));
@@ -75,7 +75,7 @@ export default function TutorProfilesPage() {
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const storage = getBrowserStorage();
-    const allProfiles = storage ? readAllTutorProfiles({ storage }) : [];
+    const allProfiles = storage ? readAllPublicTutorProfiles({ storage }) : [];
 
     writeFiltersToUrl(filters);
     setProfiles(filterTutorProfiles(allProfiles, filters));
@@ -83,7 +83,7 @@ export default function TutorProfilesPage() {
 
   function resetFilters() {
     const storage = getBrowserStorage();
-    const allProfiles = storage ? readAllTutorProfiles({ storage }) : [];
+    const allProfiles = storage ? readAllPublicTutorProfiles({ storage }) : [];
 
     setFilters(emptyFilters);
     writeFiltersToUrl(emptyFilters);

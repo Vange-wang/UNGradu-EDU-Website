@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   findTutorProfileById,
+  findPublicTutorProfileById,
   filterTutorProfiles,
   readAllTutorProfiles,
+  readAllPublicTutorProfiles,
   saveTutorProfile
 } from "@/features/tutor-profiles/tutor-profile-storage";
 import { createMemoryStorage } from "@/lib/memory-storage";
@@ -112,6 +114,32 @@ describe("tutor profile marketplace", () => {
     });
     expect(detail).not.toHaveProperty("phone");
     expect(detail).not.toHaveProperty("wechat");
+  });
+
+  it("returns public tutor profile views without owner phone identifiers", () => {
+    const storage = createMemoryStorage();
+    const ownerPhone = "13800138000";
+    const saved = saveTutorProfile({
+      input: baseInput,
+      ownerPhone,
+      storage
+    });
+
+    if (!saved.ok) {
+      throw new Error("expected valid tutor profile");
+    }
+
+    const publicProfiles = readAllPublicTutorProfiles({ storage });
+    const publicDetail = findPublicTutorProfileById({
+      id: saved.value.id,
+      storage
+    });
+
+    expect(publicProfiles).toHaveLength(1);
+    expect(publicProfiles[0]).not.toHaveProperty("ownerPhone");
+    expect(publicDetail).not.toHaveProperty("ownerPhone");
+    expect(JSON.stringify(publicProfiles)).not.toContain(ownerPhone);
+    expect(JSON.stringify(publicDetail)).not.toContain(ownerPhone);
   });
 
   it("uses an opaque detail id without the owner phone", () => {

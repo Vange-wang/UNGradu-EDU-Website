@@ -6,14 +6,17 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "cloudbase:check": "node scripts/check-cloudbase-connection.mjs",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
+    "@cloudbase/node-sdk": "^3.18.3",
     "next": "^15.5.19",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@types/node": "^26.0.0",

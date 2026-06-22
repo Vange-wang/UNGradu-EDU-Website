@@ -108,6 +108,7 @@
 - 安装依赖：`npm install`
 - 本地启动：`npm run dev`
 - 生产构建：`npm run build`
+- CloudBase 连接检查：`npm run cloudbase:check`
 - 代码检查：`npm run lint`
 - 类型检查：`npm run typecheck`
 - 测试：`npm test`
@@ -124,6 +125,19 @@
 
 - 本机 Node.js 为 `20.18.0`。
 - npm audit 当前报告 Next.js 内部 `postcss` 相关 moderate advisory；npm 自动修复方案会降级到旧 Next，不可直接采用。后续应持续关注 Next.js 补丁版本。
+
+## CloudBase 本地连接
+
+M5 阶段已开始接入 CloudBase 服务端 SDK。真实密钥只放在本地 `.env.local`，不要提交到 Git。
+
+本地配置步骤：
+
+1. 复制 `.env.example` 为 `.env.local`。
+2. 将 `TENCENTCLOUD_SECRETID` 和 `TENCENTCLOUD_SECRETKEY` 替换为腾讯云真实访问密钥。
+3. 保留 `CLOUDBASE_ENV_ID=ungradu-edu-test-d0ed1mqeceb0ae1` 和 `APP_ENV=test`，除非后续技术验证明确调整。
+4. 运行 `npm run cloudbase:check`，默认读取 `users` 集合 1 条数据验证服务端连接。
+
+连接检查脚本只输出脱敏后的 `SecretId` 前缀，不输出 `SecretKey`。
 
 ## 开发前检查清单
 

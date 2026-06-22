@@ -1,0 +1,620 @@
+import type { ContactProfileInput } from "@/features/profile/contact-profile";
+import { readServerContactProfile } from "@/server/contact-profiles";
+
+export const CONTACT_EXCHANGE_REQUESTS_COLLECTION = "contact_exchange_requests";
+export const CONVERSATIONS_COLLECTION = "conversations";
+
+export type ServerContactExchangeRequestStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "withdrawn"
+  | "expired";
+
+export type ServerContactExchangeRequestView = {
+  id: string;
+  conversationId: string;
+  direction: "sent" | "received";
+  status: ServerContactExchangeRequestStatus;
+  secondConfirmedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ConversationDocument = {
+  id?: string;
+  participantUserIds?: string[];
+  sourceId?: string;
+  sourceType?: "parent-need" | "tutor-profile";
+  createdAt?: string;
+};
+
+type ContactExchangeRequestDocument = {
+  id?: string;
+  conversationId?: string;
+  requesterUserId?: string;
+  receiverUserId?: string;
+  status?: ServerContactExchangeRequestStatus;
+  secondConfirmedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type DocumentCollection<T extends Record<string, unknown>> = {
+  doc: (docId: string) => {
+    get: () => Promise<{ data?: unknown[] }>;
+    set: (data: T) => Promise<unknown>;
+  };
+  where: (query: Record<string, unknown>) => {
+    get: () => Promise<{ data?: unknown[] }>;
+  };
+};
+
+type ContactProfileCollection = Parameters<typeof readServerContactProfile>[0]["collection"];
+
+type ContactExchangeDependencies = {
+  contactProfilesCollection: ContactProfileCollection;
+  conversationsCollection: DocumentCollection<ConversationDocument>;
+  requestsCollection: DocumentCollection<ContactExchangeRequestDocument>;
+};
+
+type Failure = {
+  ok: false;
+  value: null;
+  errors: { request: string };
+};
+
+type Success<T> = {
+  ok: true;
+  value: T;
+  errors: Record<string, never>;
+};
+
+const CONTACT_EXCHANGE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+
+function normalizeUserId(userId: string) {
+  return userId.trim();
+}
+
+function createOpaqueId(prefix: string) {
+  if (globalThis.crypto?.randomUUID) {
+    return `${prefix}-${globalThis.crypto.randomUUID()}`;
+  }
+
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function createFailure(message: string): Failure {
+  return {
+    ok: false,
+    value: null,
+    errors: { request: message }
+  };
+}
+
+function createAuthFailure() {
+  return createFailure("必须登录后才能访问联系方式交换请求");
+}
+
+function requireAuthenticatedUser(authenticatedUserId: string) {
+  const currentUserId = normalizeUserId(authenticatedUserId);
+  return currentUserId || null;
+}
+
+async function readConversation({
+  conversationId,
+  conversationsCollection
+}: Pick<ContactExchangeDependencies, "conversationsCollection"> & {
+  conversationId: string;
+}) {
+  const result = await conversationsCollection.doc(conversationId).get();
+  const conversation = result.data?.[0] as ConversationDocument | undefined;
+
+  if (!conversation?.participantUserIds?.length) {
+    return null;
+  }
+
+  return {
+    ...conversation,
+    id: conversationId,
+    participantUserIds: conversation.participantUserIds.map(normalizeUserId)
+  };
+}
+
+function isParticipant(conversation: ConversationDocument, userId: string) {
+  return conversation.participantUserIds?.includes(normalizeUserId(userId)) ?? false;
+}
+
+function findOtherParticipant(conversation: ConversationDocument, userId: string) {
+  return conversation.participantUserIds?.find(
+    (participantUserId) => participantUserId !== normalizeUserId(userId)
+  ) ?? null;
+}
+
+function toRequestView(
+  request: Required<
+    Pick<
+      ContactExchangeRequestDocument,
+      | "conversationId"
+      | "createdAt"
+      | "id"
+      | "receiverUserId"
+      | "requesterUserId"
+      | "secondConfirmedAt"
+      | "status"
+      | "updatedAt"
+    >
+  >,
+  currentUserId: string
+): ServerContactExchangeRequestView {
+  return {
+    id: request.id,
+    conversationId: request.conversationId,
+    direction: request.requesterUserId === currentUserId ? "sent" : "received",
+    status: request.status,
+    secondConfirmedAt: request.secondConfirmedAt,
+    createdAt: request.createdAt,
+    updatedAt: request.updatedAt
+  };
+}
+
+function normalizeRequest(
+  request: ContactExchangeRequestDocument
+): Required<
+  Pick<
+    ContactExchangeRequestDocument,
+    | "conversationId"
+    | "createdAt"
+    | "id"
+    | "receiverUserId"
+    | "requesterUserId"
+    | "secondConfirmedAt"
+    | "status"
+    | "updatedAt"
+  >
+> | null {
+  if (
+    !request.id ||
+    !request.conversationId ||
+    !request.requesterUserId ||
+    !request.receiverUserId ||
+    !request.status ||
+    !request.createdAt ||
+    !request.updatedAt
+  ) {
+    return null;
+  }
+
+  return {
+    id: request.id,
+    conversationId: request.conversationId,
+    requesterUserId: request.requesterUserId,
+    receiverUserId: request.receiverUserId,
+    status: request.status,
+    secondConfirmedAt: request.secondConfirmedAt ?? null,
+    createdAt: request.createdAt,
+    updatedAt: request.updatedAt
+  };
+}
+
+function refreshExpiry<T extends ContactExchangeRequestDocument>(
+  request: T,
+  now: string
+) {
+  if (request.status !== "pending" || !request.createdAt) {
+    return request;
+  }
+
+  const isExpired =
+    new Date(now).getTime() - new Date(request.createdAt).getTime() >
+    CONTACT_EXCHANGE_EXPIRY_MS;
+
+  if (!isExpired) {
+    return request;
+  }
+
+  return {
+    ...request,
+    status: "expired" as const,
+    updatedAt: now
+  };
+}
+
+async function readRequestById({
+  now,
+  requestId,
+  requestsCollection
+}: Pick<ContactExchangeDependencies, "requestsCollection"> & {
+  now: string;
+  requestId: string;
+}) {
+  const result = await requestsCollection.doc(requestId).get();
+  const rawRequest = result.data?.[0] as ContactExchangeRequestDocument | undefined;
+
+  if (!rawRequest) {
+    return null;
+  }
+
+  const refreshedRequest = refreshExpiry({ ...rawRequest, id: requestId }, now);
+
+  if (refreshedRequest !== rawRequest && refreshedRequest.status === "expired") {
+    await requestsCollection.doc(requestId).set(refreshedRequest);
+  }
+
+  return normalizeRequest(refreshedRequest);
+}
+
+async function readRequestsForConversation({
+  conversationId,
+  now,
+  requestsCollection
+}: Pick<ContactExchangeDependencies, "requestsCollection"> & {
+  conversationId: string;
+  now: string;
+}) {
+  const result = await requestsCollection.where({ conversationId }).get();
+  const requests = result.data ?? [];
+
+  return Promise.all(
+    requests.map(async (rawRequest) => {
+      const request = rawRequest as ContactExchangeRequestDocument;
+      const refreshedRequest = refreshExpiry(request, now);
+
+      if (
+        refreshedRequest.id &&
+        refreshedRequest !== request &&
+        refreshedRequest.status === "expired"
+      ) {
+        await requestsCollection.doc(refreshedRequest.id).set(refreshedRequest);
+      }
+
+      return normalizeRequest(refreshedRequest);
+    })
+  ).then((values) =>
+    values
+      .filter((request): request is NonNullable<typeof request> => Boolean(request))
+      .sort(
+        (left, right) =>
+          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+      )
+  );
+}
+
+async function readValidatedContactProfile({
+  authenticatedUserId,
+  contactProfilesCollection
+}: Pick<ContactExchangeDependencies, "contactProfilesCollection"> & {
+  authenticatedUserId: string;
+}) {
+  const result = await readServerContactProfile({
+    authenticatedUserId,
+    collection: contactProfilesCollection
+  });
+
+  if (!result.ok || !result.value.phone) {
+    return null;
+  }
+
+  return result.value;
+}
+
+export async function createServerContactExchangeRequest({
+  authenticatedUserId,
+  conversationId,
+  conversationsCollection,
+  now = new Date().toISOString(),
+  requestsCollection
+}: ContactExchangeDependencies & {
+  authenticatedUserId: string;
+  conversationId: string;
+  now?: string;
+}): Promise<Success<ServerContactExchangeRequestView> | Failure> {
+  const currentUserId = requireAuthenticatedUser(authenticatedUserId);
+
+  if (!currentUserId) {
+    return createAuthFailure();
+  }
+
+  const conversation = await readConversation({
+    conversationId,
+    conversationsCollection
+  });
+
+  if (!conversation || !isParticipant(conversation, currentUserId)) {
+    return createFailure("只有会话参与者可以请求交换联系方式");
+  }
+
+  const receiverUserId = findOtherParticipant(conversation, currentUserId);
+
+  if (!receiverUserId) {
+    return createFailure("无法找到联系方式交换接收方");
+  }
+
+  const request = {
+    id: createOpaqueId("contact-exchange"),
+    conversationId,
+    requesterUserId: currentUserId,
+    receiverUserId,
+    status: "pending" as const,
+    secondConfirmedAt: null,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  await requestsCollection.doc(request.id).set(request);
+
+  return {
+    ok: true,
+    value: toRequestView(request, currentUserId),
+    errors: {}
+  };
+}
+
+export async function approveServerContactExchangeRequest({
+  authenticatedUserId,
+  contactProfilesCollection,
+  now = new Date().toISOString(),
+  requestId,
+  requestsCollection,
+  secondConfirmation
+}: ContactExchangeDependencies & {
+  authenticatedUserId: string;
+  now?: string;
+  requestId: string;
+  secondConfirmation: boolean;
+}): Promise<Success<ServerContactExchangeRequestView> | Failure> {
+  const currentUserId = requireAuthenticatedUser(authenticatedUserId);
+
+  if (!currentUserId) {
+    return createAuthFailure();
+  }
+
+  const request = await readRequestById({ now, requestId, requestsCollection });
+
+  if (!request || request.receiverUserId !== currentUserId) {
+    return createFailure("只能处理发给自己的联系方式交换请求");
+  }
+
+  if (request.status === "expired") {
+    return createFailure("联系方式交换请求已过期");
+  }
+
+  if (request.status !== "pending") {
+    return createFailure("只能处理待处理的联系方式交换请求");
+  }
+
+  if (!secondConfirmation) {
+    return createFailure("同意交换联系方式前必须完成二次确认");
+  }
+
+  const requesterProfile = await readValidatedContactProfile({
+    authenticatedUserId: request.requesterUserId,
+    contactProfilesCollection
+  });
+  const receiverProfile = await readValidatedContactProfile({
+    authenticatedUserId: request.receiverUserId,
+    contactProfilesCollection
+  });
+
+  if (!requesterProfile || !receiverProfile) {
+    return createFailure("双方都必须先填写存档手机号");
+  }
+
+  const approvedRequest = {
+    ...request,
+    status: "approved" as const,
+    secondConfirmedAt: now,
+    updatedAt: now
+  };
+
+  await requestsCollection.doc(request.id).set(approvedRequest);
+
+  return {
+    ok: true,
+    value: toRequestView(approvedRequest, currentUserId),
+    errors: {}
+  };
+}
+
+export async function rejectServerContactExchangeRequest({
+  authenticatedUserId,
+  now = new Date().toISOString(),
+  requestId,
+  requestsCollection
+}: ContactExchangeDependencies & {
+  authenticatedUserId: string;
+  now?: string;
+  requestId: string;
+}): Promise<Success<ServerContactExchangeRequestView> | Failure> {
+  const currentUserId = requireAuthenticatedUser(authenticatedUserId);
+
+  if (!currentUserId) {
+    return createAuthFailure();
+  }
+
+  const request = await readRequestById({ now, requestId, requestsCollection });
+
+  if (!request || request.receiverUserId !== currentUserId) {
+    return createFailure("只能处理发给自己的联系方式交换请求");
+  }
+
+  if (request.status !== "pending") {
+    return createFailure("只能处理待处理的联系方式交换请求");
+  }
+
+  const rejectedRequest = {
+    ...request,
+    status: "rejected" as const,
+    updatedAt: now
+  };
+
+  await requestsCollection.doc(request.id).set(rejectedRequest);
+
+  return {
+    ok: true,
+    value: toRequestView(rejectedRequest, currentUserId),
+    errors: {}
+  };
+}
+
+export async function withdrawServerContactExchangeRequest({
+  authenticatedUserId,
+  now = new Date().toISOString(),
+  requestId,
+  requestsCollection
+}: ContactExchangeDependencies & {
+  authenticatedUserId: string;
+  now?: string;
+  requestId: string;
+}): Promise<Success<ServerContactExchangeRequestView> | Failure> {
+  const currentUserId = requireAuthenticatedUser(authenticatedUserId);
+
+  if (!currentUserId) {
+    return createAuthFailure();
+  }
+
+  const request = await readRequestById({ now, requestId, requestsCollection });
+
+  if (!request || request.requesterUserId !== currentUserId) {
+    return createFailure("只能撤回自己发起的联系方式交换请求");
+  }
+
+  if (request.status !== "pending") {
+    return createFailure("只能撤回待处理的联系方式交换请求");
+  }
+
+  const withdrawnRequest = {
+    ...request,
+    status: "withdrawn" as const,
+    updatedAt: now
+  };
+
+  await requestsCollection.doc(request.id).set(withdrawnRequest);
+
+  return {
+    ok: true,
+    value: toRequestView(withdrawnRequest, currentUserId),
+    errors: {}
+  };
+}
+
+export async function listServerContactExchangeRequests({
+  authenticatedUserId,
+  conversationId,
+  conversationsCollection,
+  now = new Date().toISOString(),
+  requestsCollection
+}: ContactExchangeDependencies & {
+  authenticatedUserId: string;
+  conversationId: string;
+  now?: string;
+}): Promise<Success<ServerContactExchangeRequestView[]> | Failure> {
+  const currentUserId = requireAuthenticatedUser(authenticatedUserId);
+
+  if (!currentUserId) {
+    return createAuthFailure();
+  }
+
+  const conversation = await readConversation({
+    conversationId,
+    conversationsCollection
+  });
+
+  if (!conversation || !isParticipant(conversation, currentUserId)) {
+    return {
+      ok: true,
+      value: [],
+      errors: {}
+    };
+  }
+
+  const requests = await readRequestsForConversation({
+    conversationId,
+    now,
+    requestsCollection
+  });
+
+  return {
+    ok: true,
+    value: requests.map((request) => toRequestView(request, currentUserId)),
+    errors: {}
+  };
+}
+
+export async function readServerAuthorizedContactProfiles({
+  authenticatedUserId,
+  contactProfilesCollection,
+  conversationId,
+  conversationsCollection,
+  now = new Date().toISOString(),
+  requestsCollection
+}: ContactExchangeDependencies & {
+  authenticatedUserId: string;
+  conversationId: string;
+  now?: string;
+}): Promise<
+  Success<{
+    currentUser: ContactProfileInput;
+    otherUser: ContactProfileInput;
+  } | null> | Failure
+> {
+  const currentUserId = requireAuthenticatedUser(authenticatedUserId);
+
+  if (!currentUserId) {
+    return createAuthFailure();
+  }
+
+  const conversation = await readConversation({
+    conversationId,
+    conversationsCollection
+  });
+
+  if (!conversation || !isParticipant(conversation, currentUserId)) {
+    return {
+      ok: true,
+      value: null,
+      errors: {}
+    };
+  }
+
+  const approvedRequest = (await readRequestsForConversation({
+    conversationId,
+    now,
+    requestsCollection
+  })).find(
+    (request) => request.status === "approved" && request.secondConfirmedAt
+  );
+
+  if (!approvedRequest) {
+    return {
+      ok: true,
+      value: null,
+      errors: {}
+    };
+  }
+
+  const otherUserId = findOtherParticipant(conversation, currentUserId);
+
+  if (!otherUserId) {
+    return {
+      ok: true,
+      value: null,
+      errors: {}
+    };
+  }
+
+  const currentUser = await readValidatedContactProfile({
+    authenticatedUserId: currentUserId,
+    contactProfilesCollection
+  });
+  const otherUser = await readValidatedContactProfile({
+    authenticatedUserId: otherUserId,
+    contactProfilesCollection
+  });
+
+  return {
+    ok: true,
+    value: currentUser && otherUser ? { currentUser, otherUser } : null,
+    errors: {}
+  };
+}

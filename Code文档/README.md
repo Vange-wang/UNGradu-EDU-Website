@@ -155,6 +155,20 @@ M5 阶段已开始接入 CloudBase 服务端 SDK。真实密钥只放在本地 `
 
 该接口只完成联系方式存档迁移。聊天、联系方式交换请求、需求、家教信息和正式短信登录仍待后续 M5 继续迁移，不能视为已经具备完整生产权限模型。
 
+### `/api/contact-exchange`
+
+用途：M5 第二批迁移接口，将联系方式交换请求和授权后读取对方联系方式迁移到服务端可信判断。
+
+- `GET /api/contact-exchange?conversationId=...`：读取当前用户在会话中的联系方式交换请求视图。
+- `GET /api/contact-exchange?conversationId=...&view=authorized-profiles`：仅在已同意且完成二次确认后返回双方联系方式。
+- `POST /api/contact-exchange`：通过 `action` 执行 `create`、`approve`、`reject`、`withdraw`。
+- CloudBase 集合：`contact_exchange_requests`。
+- 依赖集合：`conversations`、`contact_profiles`。
+- 服务端权限规则：只有会话参与者可以发起和查看交换请求；只有接收方可以同意或拒绝；只有发起方可以撤回；非参与者读取授权联系方式返回 `null`。
+- 授权读取规则：未发起、待处理、拒绝、撤回、过期、未二次确认或任一方未填写联系方式时，均不返回对方联系方式。
+- 当前临时认证：非生产环境通过请求头 `x-ungradu-test-user-phone` 承接 M1-M4 本地测试登录态。
+- 生产边界：`NODE_ENV=production` 时即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，接口也拒绝临时测试登录身份。
+
 ## 开发前检查清单
 
 每次正式开发前：

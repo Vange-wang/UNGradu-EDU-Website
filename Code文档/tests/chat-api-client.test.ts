@@ -15,7 +15,7 @@ import {
 } from "@/features/chat/chat-api-client";
 
 describe("chat API client", () => {
-  it("sends temporary identity headers to conversation and exchange APIs", async () => {
+  it("uses cookie-backed conversation and exchange APIs", async () => {
     const calls: Array<{ body: string | null; headers: Headers; method: string; url: string }> = [];
     const fetcher: typeof fetch = async (url, init) => {
       calls.push({
@@ -97,7 +97,7 @@ describe("chat API client", () => {
       "POST"
     ]);
     expect(calls.every((call) =>
-      call.headers.get("x-ungradu-test-user-phone") === "13800138000"
+      call.headers.get("x-ungradu-test-user-phone") === null
     )).toBe(true);
     expect(calls[0].url).toBe("/api/conversations");
     expect(calls[1].url).toBe("/api/conversations");

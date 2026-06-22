@@ -9,3 +9,4 @@ const handlers = createTutorProfileApiHandlers({
 });
 
 export const GET = handlers.GET_ITEM;
+export const PATCH = handlers.PATCH_ITEM;

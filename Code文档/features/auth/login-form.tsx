@@ -4,11 +4,25 @@ import { FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import {
-  createTestSession,
   isTestLoginAllowed,
   validateTestLoginInput
 } from "@/features/auth/test-auth";
-import { getBrowserStorage } from "@/lib/storage";
+
+type LoginApiResult =
+  | {
+      ok: true;
+      value: { phone: string; createdAt: string };
+      errors: Record<string, never>;
+    }
+  | {
+      ok: false;
+      value: null;
+      errors: {
+        code?: string;
+        phone?: string;
+        request?: string;
+      };
+    };
 
 export function LoginForm() {
   const router = useRouter();
@@ -26,30 +40,39 @@ export function LoginForm() {
     []
   );
 
-  function submitLogin(event: FormEvent<HTMLFormElement>) {
+  async function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormMessage("");
 
     if (!allowTestLogin) {
-      setFormMessage("当前环境未开启临时测试登录，请接入正式短信登录。");
+      setFormMessage("Temporary test login is disabled in this environment.");
       return;
     }
 
-    const result = validateTestLoginInput({ phone, code });
+    const validation = validateTestLoginInput({ phone, code });
+
+    if (!validation.ok) {
+      setErrors(validation.errors);
+      return;
+    }
+
+    const response = await fetch("/api/auth/test-login", {
+      body: JSON.stringify(validation.value),
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      method: "POST"
+    });
+    const result = await response.json() as LoginApiResult;
 
     if (!result.ok) {
-      setErrors(result.errors);
+      setErrors({
+        code: result.errors.code,
+        phone: result.errors.phone
+      });
+      setFormMessage(result.errors.request ?? "Login failed.");
       return;
     }
 
-    const storage = getBrowserStorage();
-
-    if (!storage) {
-      setFormMessage("当前浏览器无法写入测试登录态。");
-      return;
-    }
-
-    createTestSession({ phone: result.value.phone }, storage);
     router.push(searchParams.get("next") ?? "/");
   }
 
@@ -57,7 +80,7 @@ export function LoginForm() {
     <>
       <form className="form" onSubmit={submitLogin}>
         <div className="field">
-          <label htmlFor="phone">手机号</label>
+          <label htmlFor="phone">Phone</label>
           <input
             id="phone"
             inputMode="tel"
@@ -66,13 +89,13 @@ export function LoginForm() {
               setPhone(event.target.value);
               setErrors((current) => ({ ...current, phone: undefined }));
             }}
-            placeholder="请输入手机号"
+            placeholder="Enter phone number"
             value={phone}
           />
           <span className="error">{errors.phone}</span>
         </div>
         <div className="field">
-          <label htmlFor="code">验证码</label>
+          <label htmlFor="code">Code</label>
           <input
             id="code"
             inputMode="numeric"
@@ -81,13 +104,13 @@ export function LoginForm() {
               setCode(event.target.value);
               setErrors((current) => ({ ...current, code: undefined }));
             }}
-            placeholder={allowTestLogin ? "本地测试验证码 000000" : "请输入验证码"}
+            placeholder={allowTestLogin ? "Local test code: 000000" : "Enter code"}
             value={code}
           />
           <span className="error">{errors.code}</span>
         </div>
         <button className="button primary" type="submit">
-          登录并进入主页面
+          Login
         </button>
       </form>
 

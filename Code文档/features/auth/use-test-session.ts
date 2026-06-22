@@ -2,17 +2,54 @@
 
 import { useEffect, useState } from "react";
 
-import { readTestSession, type TestSession } from "@/features/auth/test-auth";
-import { getBrowserStorage } from "@/lib/storage";
+import type { TestSession } from "@/features/auth/test-auth";
+
+type SessionApiResult =
+  | {
+      ok: true;
+      value: TestSession;
+      errors: Record<string, never>;
+    }
+  | {
+      ok: false;
+      value: null;
+      errors: { request?: string };
+    };
 
 export function useTestSession() {
   const [session, setSession] = useState<TestSession | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const storage = getBrowserStorage();
-    setSession(storage ? readTestSession(storage) : null);
-    setLoaded(true);
+    let cancelled = false;
+
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/auth/session", {
+          credentials: "same-origin",
+          method: "GET"
+        });
+        const result = await response.json() as SessionApiResult;
+
+        if (!cancelled) {
+          setSession(result.ok ? result.value : null);
+        }
+      } catch {
+        if (!cancelled) {
+          setSession(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoaded(true);
+        }
+      }
+    }
+
+    void loadSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { loaded, session };

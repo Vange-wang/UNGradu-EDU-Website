@@ -10,7 +10,8 @@ import {
   findPublicServerParentNeedById,
   listPublicServerParentNeeds,
   listServerParentNeedsForOwner,
-  saveServerParentNeed
+  saveServerParentNeed,
+  updateServerParentNeed
 } from "@/server/parent-needs";
 
 type ParentNeedCollection = Parameters<typeof saveServerParentNeed>[0]["collection"];
@@ -87,6 +88,30 @@ export function createParentNeedApiHandlers({
       const result = await findPublicServerParentNeedById({ collection, id });
 
       return jsonResponse(result);
+    },
+
+    async PATCH_ITEM(request: Request, context: RouteContext) {
+      const auth = readTemporaryAuthenticatedUserId(request, env);
+
+      if (!auth.ok) {
+        return auth.response;
+      }
+
+      const body = await readJsonBody<ParentNeedInput>(request);
+
+      if (!body.ok) {
+        return body.response;
+      }
+
+      const { id } = await context.params;
+      const result = await updateServerParentNeed({
+        authenticatedUserId: auth.authenticatedUserId,
+        collection,
+        id,
+        input: body.value
+      });
+
+      return jsonResponse(result, statusForResult(result, 403));
     }
   };
 }

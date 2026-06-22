@@ -143,4 +143,32 @@ describe("parent need API handlers", () => {
       }
     });
   });
+
+  it("allows only the owner to update a parent need by id", async () => {
+    const handlers = createHandlers();
+
+    const updated = await handlers.PATCH_ITEM(
+      new Request("http://localhost/api/parent-needs/need-a", {
+        body: JSON.stringify({ ...validInput, budgetMin: "100", budgetMax: "150" }),
+        headers: { "x-ungradu-test-user-phone": "parent-a" },
+        method: "PATCH"
+      }),
+      { params: Promise.resolve({ id: "need-a" }) }
+    );
+    const forbidden = await handlers.PATCH_ITEM(
+      new Request("http://localhost/api/parent-needs/need-a", {
+        body: JSON.stringify({ ...validInput, budgetMin: "110", budgetMax: "160" }),
+        headers: { "x-ungradu-test-user-phone": "parent-b" },
+        method: "PATCH"
+      }),
+      { params: Promise.resolve({ id: "need-a" }) }
+    );
+
+    expect(updated.status).toBe(200);
+    await expect(updated.json()).resolves.toMatchObject({
+      ok: true,
+      value: { id: "need-a", ownerUserId: "parent-a", budgetMin: 100 }
+    });
+    expect(forbidden.status).toBe(403);
+  });
 });

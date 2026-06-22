@@ -44,7 +44,7 @@ describe("contact profile API client", () => {
         method: "GET"
       }
     ]);
-    expect(calls[0].headers.get("x-ungradu-test-user-phone")).toBe("13800138000");
-    expect(calls[1].headers.get("x-ungradu-test-user-phone")).toBe("13800138000");
+    expect(calls[0].headers.get("x-ungradu-test-user-phone")).toBeNull();
+    expect(calls[1].headers.get("x-ungradu-test-user-phone")).toBeNull();
   });
 });

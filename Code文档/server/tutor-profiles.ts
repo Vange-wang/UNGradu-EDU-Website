@@ -225,6 +225,56 @@ export async function saveServerTutorProfile({
   };
 }
 
+export async function updateServerTutorProfile({
+  authenticatedUserId,
+  collection,
+  id,
+  input
+}: {
+  authenticatedUserId: string;
+  collection: TutorProfileCollection;
+  id: string;
+  input: TutorProfileInput;
+}): Promise<Success<ServerTutorProfile> | Failure> {
+  const currentUserId = requireAuthenticatedUser(authenticatedUserId);
+
+  if (!currentUserId) {
+    return createFailure("Login is required to update tutor profiles.");
+  }
+
+  const existingResult = await collection.doc(id).get();
+  const existing = normalizeTutorProfile({
+    ...(existingResult.data?.[0] as TutorProfileDocument | undefined),
+    id
+  });
+
+  if (!existing || existing.ownerUserId !== currentUserId) {
+    return createFailure("Only the owner can update this tutor profile.");
+  }
+
+  const validation = validateTutorProfileInput(input);
+
+  if (!validation.ok) {
+    return validation;
+  }
+
+  const profile: ServerTutorProfile = {
+    ...validation.value,
+    id: existing.id,
+    ownerUserId: existing.ownerUserId,
+    status: existing.status,
+    createdAt: existing.createdAt
+  };
+
+  await collection.doc(existing.id).set(profile);
+
+  return {
+    ok: true,
+    value: profile,
+    errors: {}
+  };
+}
+
 export async function listServerTutorProfilesForOwner({
   authenticatedUserId,
   collection

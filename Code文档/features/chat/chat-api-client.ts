@@ -28,10 +28,9 @@ type AuthorizedProfiles = {
   otherUser: ContactProfileInput;
 } | null;
 
-function createTemporaryIdentityHeaders(currentUserPhone: string) {
+function createCookieBackedHeaders() {
   return {
-    "content-type": "application/json",
-    "x-ungradu-test-user-phone": currentUserPhone.trim()
+    "content-type": "application/json"
   };
 }
 
@@ -44,11 +43,11 @@ function encodePathSegment(value: string) {
 }
 
 export async function readConversationsFromApi({
-  currentUserPhone,
   fetcher = fetch
 }: ChatApiClientInput) {
   const response = await fetcher("/api/conversations", {
-    headers: createTemporaryIdentityHeaders(currentUserPhone),
+    credentials: "same-origin",
+    headers: createCookieBackedHeaders(),
     method: "GET"
   });
 
@@ -56,7 +55,6 @@ export async function readConversationsFromApi({
 }
 
 export async function createConversationFromSourceToApi({
-  currentUserPhone,
   fetcher = fetch,
   sourceId,
   sourceType
@@ -66,7 +64,8 @@ export async function createConversationFromSourceToApi({
 }) {
   const response = await fetcher("/api/conversations", {
     body: JSON.stringify({ sourceId, sourceType }),
-    headers: createTemporaryIdentityHeaders(currentUserPhone),
+    credentials: "same-origin",
+    headers: createCookieBackedHeaders(),
     method: "POST"
   });
 
@@ -75,13 +74,13 @@ export async function createConversationFromSourceToApi({
 
 export async function readConversationFromApi({
   conversationId,
-  currentUserPhone,
   fetcher = fetch
 }: ChatApiClientInput & { conversationId: string }) {
   const response = await fetcher(
     `/api/conversations/${encodePathSegment(conversationId)}`,
     {
-      headers: createTemporaryIdentityHeaders(currentUserPhone),
+      credentials: "same-origin",
+      headers: createCookieBackedHeaders(),
       method: "GET"
     }
   );
@@ -91,13 +90,13 @@ export async function readConversationFromApi({
 
 export async function readConversationMessagesFromApi({
   conversationId,
-  currentUserPhone,
   fetcher = fetch
 }: ChatApiClientInput & { conversationId: string }) {
   const response = await fetcher(
     `/api/conversations/${encodePathSegment(conversationId)}/messages`,
     {
-      headers: createTemporaryIdentityHeaders(currentUserPhone),
+      credentials: "same-origin",
+      headers: createCookieBackedHeaders(),
       method: "GET"
     }
   );
@@ -107,7 +106,6 @@ export async function readConversationMessagesFromApi({
 
 export async function sendConversationMessageToApi({
   conversationId,
-  currentUserPhone,
   fetcher = fetch,
   text
 }: ChatApiClientInput & { conversationId: string; text: string }) {
@@ -115,7 +113,8 @@ export async function sendConversationMessageToApi({
     `/api/conversations/${encodePathSegment(conversationId)}/messages`,
     {
       body: JSON.stringify({ text }),
-      headers: createTemporaryIdentityHeaders(currentUserPhone),
+      credentials: "same-origin",
+      headers: createCookieBackedHeaders(),
       method: "POST"
     }
   );
@@ -125,13 +124,13 @@ export async function sendConversationMessageToApi({
 
 export async function listContactExchangeRequestsFromApi({
   conversationId,
-  currentUserPhone,
   fetcher = fetch
 }: ChatApiClientInput & { conversationId: string }) {
   const response = await fetcher(
     `/api/contact-exchange?conversationId=${encodeURIComponent(conversationId)}`,
     {
-      headers: createTemporaryIdentityHeaders(currentUserPhone),
+      credentials: "same-origin",
+      headers: createCookieBackedHeaders(),
       method: "GET"
     }
   );
@@ -141,13 +140,13 @@ export async function listContactExchangeRequestsFromApi({
 
 export async function readAuthorizedContactProfilesFromApi({
   conversationId,
-  currentUserPhone,
   fetcher = fetch
 }: ChatApiClientInput & { conversationId: string }) {
   const response = await fetcher(
     `/api/contact-exchange?conversationId=${encodeURIComponent(conversationId)}&view=authorized-profiles`,
     {
-      headers: createTemporaryIdentityHeaders(currentUserPhone),
+      credentials: "same-origin",
+      headers: createCookieBackedHeaders(),
       method: "GET"
     }
   );
@@ -157,12 +156,12 @@ export async function readAuthorizedContactProfilesFromApi({
 
 export async function createContactExchangeRequestFromApi({
   conversationId,
-  currentUserPhone,
   fetcher = fetch
 }: ChatApiClientInput & { conversationId: string }) {
   const response = await fetcher("/api/contact-exchange", {
     body: JSON.stringify({ action: "create", conversationId }),
-    headers: createTemporaryIdentityHeaders(currentUserPhone),
+    credentials: "same-origin",
+    headers: createCookieBackedHeaders(),
     method: "POST"
   });
 
@@ -170,7 +169,6 @@ export async function createContactExchangeRequestFromApi({
 }
 
 export async function approveContactExchangeRequestFromApi({
-  currentUserPhone,
   fetcher = fetch,
   requestId,
   secondConfirmation
@@ -184,7 +182,8 @@ export async function approveContactExchangeRequestFromApi({
       requestId,
       secondConfirmation
     }),
-    headers: createTemporaryIdentityHeaders(currentUserPhone),
+    credentials: "same-origin",
+    headers: createCookieBackedHeaders(),
     method: "POST"
   });
 
@@ -192,13 +191,13 @@ export async function approveContactExchangeRequestFromApi({
 }
 
 export async function rejectContactExchangeRequestFromApi({
-  currentUserPhone,
   fetcher = fetch,
   requestId
 }: ChatApiClientInput & { requestId: string }) {
   const response = await fetcher("/api/contact-exchange", {
     body: JSON.stringify({ action: "reject", requestId }),
-    headers: createTemporaryIdentityHeaders(currentUserPhone),
+    credentials: "same-origin",
+    headers: createCookieBackedHeaders(),
     method: "POST"
   });
 
@@ -206,13 +205,13 @@ export async function rejectContactExchangeRequestFromApi({
 }
 
 export async function withdrawContactExchangeRequestFromApi({
-  currentUserPhone,
   fetcher = fetch,
   requestId
 }: ChatApiClientInput & { requestId: string }) {
   const response = await fetcher("/api/contact-exchange", {
     body: JSON.stringify({ action: "withdraw", requestId }),
-    headers: createTemporaryIdentityHeaders(currentUserPhone),
+    credentials: "same-origin",
+    headers: createCookieBackedHeaders(),
     method: "POST"
   });
 

@@ -225,6 +225,56 @@ export async function saveServerParentNeed({
   };
 }
 
+export async function updateServerParentNeed({
+  authenticatedUserId,
+  collection,
+  id,
+  input
+}: {
+  authenticatedUserId: string;
+  collection: ParentNeedCollection;
+  id: string;
+  input: ParentNeedInput;
+}): Promise<Success<ServerParentNeed> | Failure> {
+  const currentUserId = requireAuthenticatedUser(authenticatedUserId);
+
+  if (!currentUserId) {
+    return createFailure("Login is required to update parent needs.");
+  }
+
+  const existingResult = await collection.doc(id).get();
+  const existing = normalizeParentNeed({
+    ...(existingResult.data?.[0] as ParentNeedDocument | undefined),
+    id
+  });
+
+  if (!existing || existing.ownerUserId !== currentUserId) {
+    return createFailure("Only the owner can update this parent need.");
+  }
+
+  const validation = validateParentNeedInput(input);
+
+  if (!validation.ok) {
+    return validation;
+  }
+
+  const parentNeed: ServerParentNeed = {
+    ...validation.value,
+    id: existing.id,
+    ownerUserId: existing.ownerUserId,
+    status: existing.status,
+    createdAt: existing.createdAt
+  };
+
+  await collection.doc(existing.id).set(parentNeed);
+
+  return {
+    ok: true,
+    value: parentNeed,
+    errors: {}
+  };
+}
+
 export async function listServerParentNeedsForOwner({
   authenticatedUserId,
   collection

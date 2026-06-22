@@ -17,10 +17,9 @@ type ApiResult<T> =
       errors: Record<string, string>;
     };
 
-function createTemporaryIdentityHeaders(currentUserPhone: string) {
+function createCookieBackedHeaders() {
   return {
-    "content-type": "application/json",
-    "x-ungradu-test-user-phone": currentUserPhone.trim()
+    "content-type": "application/json"
   };
 }
 
@@ -70,14 +69,14 @@ export async function readPublicTutorProfileFromApi({
 }
 
 export async function listMyTutorProfilesFromApi({
-  currentUserPhone,
   fetcher = fetch
 }: {
   currentUserPhone: string;
   fetcher?: typeof fetch;
 }) {
   const response = await fetcher("/api/tutor-profiles?scope=mine", {
-    headers: createTemporaryIdentityHeaders(currentUserPhone),
+    credentials: "same-origin",
+    headers: createCookieBackedHeaders(),
     method: "GET"
   });
 
@@ -85,7 +84,6 @@ export async function listMyTutorProfilesFromApi({
 }
 
 export async function saveTutorProfileToApi({
-  currentUserPhone,
   fetcher = fetch,
   input
 }: {
@@ -95,7 +93,8 @@ export async function saveTutorProfileToApi({
 }) {
   const response = await fetcher("/api/tutor-profiles", {
     body: JSON.stringify(input),
-    headers: createTemporaryIdentityHeaders(currentUserPhone),
+    credentials: "same-origin",
+    headers: createCookieBackedHeaders(),
     method: "POST"
   });
 

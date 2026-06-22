@@ -1,6 +1,8 @@
 import { isTestLoginAllowed } from "@/features/auth/test-auth";
+import { readAuthSessionFromRequest } from "@/server/auth-session";
 
 export type RuntimeEnv = {
+  AUTH_SESSION_SECRET?: string;
   NODE_ENV?: string;
   NEXT_PUBLIC_ALLOW_TEST_LOGIN?: string;
 };
@@ -25,10 +27,19 @@ export function apiError(status: number, message: string) {
   );
 }
 
-export function readTemporaryAuthenticatedUserId(
+export function readAuthenticatedUserId(
   request: Request,
   env: RuntimeEnv
 ) {
+  const session = readAuthSessionFromRequest(request, env);
+
+  if (session) {
+    return {
+      ok: true as const,
+      authenticatedUserId: session.phone
+    };
+  }
+
   const testUserPhone = request.headers.get("x-ungradu-test-user-phone")?.trim();
 
   if (!testUserPhone) {
@@ -58,6 +69,8 @@ export function readTemporaryAuthenticatedUserId(
     authenticatedUserId: testUserPhone
   };
 }
+
+export const readTemporaryAuthenticatedUserId = readAuthenticatedUserId;
 
 export async function readJsonBody<T>(request: Request) {
   try {

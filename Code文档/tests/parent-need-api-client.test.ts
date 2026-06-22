@@ -20,7 +20,7 @@ const input = {
 };
 
 describe("parent need API client", () => {
-  it("uses public routes for public reads and temporary identity for private reads and writes", async () => {
+  it("uses cookie-backed routes for private reads and writes", async () => {
     const calls: Array<{ body: string | null; headers: Headers; method: string; url: string }> = [];
     const fetcher: typeof fetch = async (url, init) => {
       calls.push({
@@ -52,9 +52,9 @@ describe("parent need API client", () => {
     expect(calls[0].headers.get("x-ungradu-test-user-phone")).toBeNull();
     expect(calls[1].url).toBe("/api/parent-needs/need-a");
     expect(calls[2].url).toBe("/api/parent-needs?scope=mine");
-    expect(calls[2].headers.get("x-ungradu-test-user-phone")).toBe("13800138000");
+    expect(calls[2].headers.get("x-ungradu-test-user-phone")).toBeNull();
     expect(calls[3].method).toBe("POST");
     expect(calls[3].body).toBe(JSON.stringify(input));
-    expect(calls[3].headers.get("x-ungradu-test-user-phone")).toBe("13800138000");
+    expect(calls[3].headers.get("x-ungradu-test-user-phone")).toBeNull();
   });
 });

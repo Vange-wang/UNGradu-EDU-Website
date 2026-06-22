@@ -20,10 +20,9 @@ type ContactProfileApiClientInput = {
   fetcher?: typeof fetch;
 };
 
-function createTemporaryIdentityHeaders(currentUserPhone: string) {
+function createCookieBackedHeaders() {
   return {
-    "content-type": "application/json",
-    "x-ungradu-test-user-phone": currentUserPhone.trim()
+    "content-type": "application/json"
   };
 }
 
@@ -32,11 +31,11 @@ async function parseContactProfileResponse(response: Response) {
 }
 
 export async function readContactProfileFromApi({
-  currentUserPhone,
   fetcher = fetch
 }: ContactProfileApiClientInput) {
   const response = await fetcher("/api/contact-profile", {
-    headers: createTemporaryIdentityHeaders(currentUserPhone),
+    credentials: "same-origin",
+    headers: createCookieBackedHeaders(),
     method: "GET"
   });
 
@@ -44,13 +43,13 @@ export async function readContactProfileFromApi({
 }
 
 export async function saveContactProfileToApi({
-  currentUserPhone,
   fetcher = fetch,
   input
 }: ContactProfileApiClientInput & { input: ContactProfileInput }) {
   const response = await fetcher("/api/contact-profile", {
     body: JSON.stringify(input),
-    headers: createTemporaryIdentityHeaders(currentUserPhone),
+    credentials: "same-origin",
+    headers: createCookieBackedHeaders(),
     method: "PUT"
   });
 

@@ -1,5 +1,5 @@
 export const CONVERSATIONS_COLLECTION = "conversations";
-export const CONVERSATION_MESSAGES_COLLECTION = "conversation_messages";
+export const CONVERSATION_MESSAGES_COLLECTION = "messages";
 
 export type ServerConversationSourceType = "parent-need" | "tutor-profile";
 

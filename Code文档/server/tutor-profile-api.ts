@@ -10,7 +10,8 @@ import {
   findPublicServerTutorProfileById,
   listPublicServerTutorProfiles,
   listServerTutorProfilesForOwner,
-  saveServerTutorProfile
+  saveServerTutorProfile,
+  updateServerTutorProfile
 } from "@/server/tutor-profiles";
 
 type TutorProfileCollection = Parameters<typeof saveServerTutorProfile>[0]["collection"];
@@ -86,6 +87,30 @@ export function createTutorProfileApiHandlers({
       const result = await findPublicServerTutorProfileById({ collection, id });
 
       return jsonResponse(result);
+    },
+
+    async PATCH_ITEM(request: Request, context: RouteContext) {
+      const auth = readTemporaryAuthenticatedUserId(request, env);
+
+      if (!auth.ok) {
+        return auth.response;
+      }
+
+      const body = await readJsonBody<TutorProfileInput>(request);
+
+      if (!body.ok) {
+        return body.response;
+      }
+
+      const { id } = await context.params;
+      const result = await updateServerTutorProfile({
+        authenticatedUserId: auth.authenticatedUserId,
+        collection,
+        id,
+        input: body.value
+      });
+
+      return jsonResponse(result, statusForResult(result, 403));
     }
   };
 }

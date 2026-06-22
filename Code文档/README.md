@@ -136,10 +136,27 @@ M5 阶段已开始接入 CloudBase 服务端 SDK。真实密钥只放在本地 `
 2. 将 `TENCENTCLOUD_SECRETID` 和 `TENCENTCLOUD_SECRETKEY` 替换为腾讯云真实访问密钥。
 3. 保留 `CLOUDBASE_ENV_ID=ungradu-edu-test-d0ed1mqeceb0ae1` 和 `APP_ENV=test`，除非后续技术验证明确调整。
 4. 运行 `npm run cloudbase:check`，默认读取 `users` 集合 1 条数据验证服务端连接。
+5. M5 后端签名会话需要配置 `AUTH_SESSION_SECRET`。本地测试可使用占位随机串，生产必须使用足够长的服务端私密随机值。
 
 连接检查脚本只输出脱敏后的 `SecretId` 前缀，不输出 `SecretKey`。
 
+M5 发布前验证命令：
+
+- `npm run m5:cloudbase:collections`：检查 `contact_profiles`、`parent_needs`、`tutor_profiles`、`conversations`、`messages`、`contact_exchange_requests` 均可由服务端读取。
+- `npm run m5:flow`：跑服务端核心流程验证，覆盖登录后身份、发布、筛选、聊天、联系方式交换、二次确认和授权展示。
+- `npm run m5:load`：跑同一服务端核心流程的 50 并发基础压测，用于确认不崩、不乱返回权限数据。
+
 ## 当前服务端接口
+
+### `/api/auth/test-login`、`/api/auth/session`、`/api/auth/logout`
+
+用途：M5 发布前过渡登录态。非生产环境允许测试登录接口写入 HttpOnly 签名 Cookie，业务 API 优先从该服务端签名 Cookie 读取用户身份。
+
+- `POST /api/auth/test-login`：仅非生产环境可用，校验本地测试手机号和验证码后写入 `ungradu_auth_session` HttpOnly Cookie。
+- `GET /api/auth/session`：从服务端签名 Cookie 读取当前会话。
+- `POST /api/auth/logout`：清除服务端签名 Cookie。
+- 生产边界：`NODE_ENV=production` 时，即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，也拒绝创建临时测试登录 Cookie。
+- 安全边界：业务 API 不再依赖浏览器 localStorage 或前端变量传入当前用户身份；前端 API client 默认只携带同源 Cookie。
 
 ### `/api/contact-profile`
 
@@ -182,7 +199,7 @@ M5 阶段已开始接入 CloudBase 服务端 SDK。真实密钥只放在本地 `
 - `GET /api/conversations/[id]`：读取当前用户参与的单个会话。
 - `GET /api/conversations/[id]/messages`：读取当前用户参与会话的消息列表。
 - `POST /api/conversations/[id]/messages`：向当前用户参与的会话发送文字消息。
-- CloudBase 集合：`conversations`、`conversation_messages`。
+- CloudBase 集合：`conversations`、`messages`。
 - 依赖集合：`parent_needs`、`tutor_profiles`。
 - 服务端权限规则：不能和自己发布的信息创建会话；非参与者不能读取会话、不能读取消息、不能发送消息。
 - 隐私规则：接口返回会话和消息 View Model，不返回参与者用户 ID 或联系方式。

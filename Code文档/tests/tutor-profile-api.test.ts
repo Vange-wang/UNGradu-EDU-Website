@@ -135,4 +135,42 @@ describe("tutor profile API handlers", () => {
       }
     });
   });
+
+  it("allows only the owner to update a tutor profile by id", async () => {
+    const handlers = createHandlers();
+
+    const updated = await handlers.PATCH_ITEM(
+      new Request("http://localhost/api/tutor-profiles/profile-a", {
+        body: JSON.stringify({
+          ...validInput,
+          abilityDescription: "Updated ability description"
+        }),
+        headers: { "x-ungradu-test-user-phone": "tutor-a" },
+        method: "PATCH"
+      }),
+      { params: Promise.resolve({ id: "profile-a" }) }
+    );
+    const forbidden = await handlers.PATCH_ITEM(
+      new Request("http://localhost/api/tutor-profiles/profile-a", {
+        body: JSON.stringify({
+          ...validInput,
+          abilityDescription: "Forbidden update"
+        }),
+        headers: { "x-ungradu-test-user-phone": "tutor-b" },
+        method: "PATCH"
+      }),
+      { params: Promise.resolve({ id: "profile-a" }) }
+    );
+
+    expect(updated.status).toBe(200);
+    await expect(updated.json()).resolves.toMatchObject({
+      ok: true,
+      value: {
+        id: "profile-a",
+        ownerUserId: "tutor-a",
+        abilityDescription: "Updated ability description"
+      }
+    });
+    expect(forbidden.status).toBe(403);
+  });
 });

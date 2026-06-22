@@ -137,7 +137,9 @@ describe("conversation API handlers", () => {
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toMatchObject({
       ok: false,
-      errors: { request: "生产环境不接受临时测试登录身份" }
+      errors: {
+        request: "Production does not accept temporary test login identity."
+      }
     });
   });
 

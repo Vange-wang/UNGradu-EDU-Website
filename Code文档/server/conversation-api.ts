@@ -1,4 +1,11 @@
-import { isTestLoginAllowed } from "@/features/auth/test-auth";
+import {
+  apiError,
+  jsonResponse,
+  readJsonBody,
+  readTemporaryAuthenticatedUserId,
+  statusForResult,
+  type RuntimeEnv
+} from "@/server/api-utils";
 import {
   createOrReadServerConversationFromSource,
   listServerConversationMessages,
@@ -11,11 +18,6 @@ import {
 type ConversationDependencies =
   Parameters<typeof createOrReadServerConversationFromSource>[0];
 
-type RuntimeEnv = {
-  NODE_ENV?: string;
-  NEXT_PUBLIC_ALLOW_TEST_LOGIN?: string;
-};
-
 type ConversationApiDependencies = Omit<
   ConversationDependencies,
   "authenticatedUserId" | "sourceId" | "sourceType"
@@ -26,68 +28,6 @@ type ConversationApiDependencies = Omit<
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
-
-function jsonResponse(body: unknown, status = 200) {
-  return Response.json(body, { status });
-}
-
-function authFailure(message: string) {
-  return jsonResponse(
-    {
-      ok: false,
-      value: null,
-      errors: { request: message }
-    },
-    401
-  );
-}
-
-function readTemporaryAuthenticatedUserId(request: Request, env: RuntimeEnv) {
-  const testUserPhone = request.headers.get("x-ungradu-test-user-phone")?.trim();
-
-  if (!testUserPhone) {
-    return {
-      ok: false as const,
-      response: authFailure("必须登录后才能访问会话")
-    };
-  }
-
-  if (
-    !isTestLoginAllowed({
-      allowTestLogin: env.NEXT_PUBLIC_ALLOW_TEST_LOGIN,
-      nodeEnv: env.NODE_ENV
-    })
-  ) {
-    return {
-      ok: false as const,
-      response: authFailure("生产环境不接受临时测试登录身份")
-    };
-  }
-
-  return {
-    ok: true as const,
-    authenticatedUserId: testUserPhone
-  };
-}
-
-function statusForResult(result: { ok: boolean; errors?: { request?: string } }) {
-  if (result.ok) {
-    return 200;
-  }
-
-  return result.errors?.request?.includes("登录") ? 401 : 403;
-}
-
-function badRequest(message: string) {
-  return jsonResponse(
-    {
-      ok: false,
-      value: null,
-      errors: { request: message }
-    },
-    400
-  );
-}
 
 function isSourceType(value: unknown): value is ServerConversationSourceType {
   return value === "parent-need" || value === "tutor-profile";
@@ -120,7 +60,7 @@ export function createConversationApiHandlers({
         authenticatedUserId: auth.authenticatedUserId
       });
 
-      return jsonResponse(result, statusForResult(result));
+      return jsonResponse(result, statusForResult(result, 403));
     },
 
     async POST_COLLECTION(request: Request) {
@@ -130,25 +70,29 @@ export function createConversationApiHandlers({
         return auth.response;
       }
 
-      const body = await request.json() as {
+      const body = await readJsonBody<{
         now?: string;
         sourceId?: string;
         sourceType?: unknown;
-      };
+      }>(request);
 
-      if (!body.sourceId || !isSourceType(body.sourceType)) {
-        return badRequest("缺少会话来源");
+      if (!body.ok) {
+        return body.response;
+      }
+
+      if (!body.value.sourceId || !isSourceType(body.value.sourceType)) {
+        return apiError(400, "Missing conversation source.");
       }
 
       const result = await createOrReadServerConversationFromSource({
         ...dependencies,
         authenticatedUserId: auth.authenticatedUserId,
-        now: body.now,
-        sourceId: body.sourceId,
-        sourceType: body.sourceType
+        now: body.value.now,
+        sourceId: body.value.sourceId,
+        sourceType: body.value.sourceType
       });
 
-      return jsonResponse(result, statusForResult(result));
+      return jsonResponse(result, statusForResult(result, 403));
     },
 
     async GET_ITEM(request: Request, context: RouteContext) {
@@ -165,7 +109,7 @@ export function createConversationApiHandlers({
         conversationId: id
       });
 
-      return jsonResponse(result, statusForResult(result));
+      return jsonResponse(result, statusForResult(result, 403));
     },
 
     async GET_MESSAGES(request: Request, context: RouteContext) {
@@ -182,7 +126,7 @@ export function createConversationApiHandlers({
         conversationId: id
       });
 
-      return jsonResponse(result, statusForResult(result));
+      return jsonResponse(result, statusForResult(result, 403));
     },
 
     async POST_MESSAGES(request: Request, context: RouteContext) {
@@ -193,16 +137,21 @@ export function createConversationApiHandlers({
       }
 
       const { id } = await context.params;
-      const body = await request.json() as { now?: string; text?: string };
+      const body = await readJsonBody<{ now?: string; text?: string }>(request);
+
+      if (!body.ok) {
+        return body.response;
+      }
+
       const result = await sendServerConversationMessage({
         ...dependencies,
         authenticatedUserId: auth.authenticatedUserId,
         conversationId: id,
-        now: body.now,
-        text: body.text ?? ""
+        now: body.value.now,
+        text: body.value.text ?? ""
       });
 
-      return jsonResponse(result, statusForResult(result));
+      return jsonResponse(result, statusForResult(result, 403));
     }
   };
 }

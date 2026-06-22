@@ -1,5 +1,10 @@
-import { isTestLoginAllowed } from "@/features/auth/test-auth";
 import type { ContactProfileInput } from "@/features/profile/contact-profile";
+import {
+  jsonResponse,
+  readJsonBody,
+  readTemporaryAuthenticatedUserId,
+  type RuntimeEnv
+} from "@/server/api-utils";
 import {
   readServerContactProfile,
   saveServerContactProfile
@@ -7,61 +12,10 @@ import {
 
 type ContactProfileCollection = Parameters<typeof readServerContactProfile>[0]["collection"];
 
-type RuntimeEnv = {
-  NODE_ENV?: string;
-  NEXT_PUBLIC_ALLOW_TEST_LOGIN?: string;
-};
-
 type ContactProfileApiDependencies = {
   collection: ContactProfileCollection;
   env?: RuntimeEnv;
 };
-
-function jsonResponse(body: unknown, status = 200) {
-  return Response.json(body, { status });
-}
-
-function readTemporaryAuthenticatedUserId(request: Request, env: RuntimeEnv) {
-  const testUserPhone = request.headers.get("x-ungradu-test-user-phone")?.trim();
-
-  if (!testUserPhone) {
-    return {
-      ok: false as const,
-      response: jsonResponse(
-        {
-          ok: false,
-          value: null,
-          errors: { request: "必须登录后才能访问联系方式存档" }
-        },
-        401
-      )
-    };
-  }
-
-  if (
-    !isTestLoginAllowed({
-      allowTestLogin: env.NEXT_PUBLIC_ALLOW_TEST_LOGIN,
-      nodeEnv: env.NODE_ENV
-    })
-  ) {
-    return {
-      ok: false as const,
-      response: jsonResponse(
-        {
-          ok: false,
-          value: null,
-          errors: { request: "生产环境不接受临时测试登录身份" }
-        },
-        401
-      )
-    };
-  }
-
-  return {
-    ok: true as const,
-    authenticatedUserId: testUserPhone
-  };
-}
 
 export function createContactProfileApiHandlers({
   collection,
@@ -90,11 +44,16 @@ export function createContactProfileApiHandlers({
         return auth.response;
       }
 
-      const input = await request.json() as ContactProfileInput;
+      const body = await readJsonBody<ContactProfileInput>(request);
+
+      if (!body.ok) {
+        return body.response;
+      }
+
       const result = await saveServerContactProfile({
         authenticatedUserId: auth.authenticatedUserId,
         collection,
-        input
+        input: body.value
       });
 
       if (!result.ok) {

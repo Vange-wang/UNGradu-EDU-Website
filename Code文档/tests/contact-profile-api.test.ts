@@ -75,7 +75,9 @@ describe("contact profile API handlers", () => {
     expect(productionIdentity.status).toBe(401);
     await expect(productionIdentity.json()).resolves.toMatchObject({
       ok: false,
-      errors: { request: "生产环境不接受临时测试登录身份" }
+      errors: {
+        request: "Production does not accept temporary test login identity."
+      }
     });
   });
 

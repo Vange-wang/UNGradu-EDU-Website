@@ -30,9 +30,14 @@ type ParentNeedCollection = {
     get: () => Promise<{ data?: unknown[] }>;
     set: (data: ServerParentNeed) => Promise<unknown>;
   };
-  where: (query: Record<string, unknown>) => {
-    get: () => Promise<{ data?: unknown[] }>;
-  };
+  where: (query: Record<string, unknown>) => ParentNeedQuery;
+};
+
+type ParentNeedQuery = {
+  get: () => Promise<{ data?: unknown[] }>;
+  limit?: (value: number) => ParentNeedQuery;
+  orderBy?: (field: string, direction: "asc" | "desc") => ParentNeedQuery;
+  skip?: (value: number) => ParentNeedQuery;
 };
 
 type Failure = {
@@ -108,6 +113,9 @@ function normalizeParentNeed(document: ParentNeedDocument): ServerParentNeed | n
   };
 }
 
+const RECENT_PUBLIC_QUERY_LIMIT = 100;
+const RECENT_PUBLIC_QUERY_MAX_PAGES = 10;
+
 function toPublicParentNeed(need: ServerParentNeed): PublicServerParentNeed {
   return {
     id: need.id,
@@ -125,10 +133,30 @@ function toPublicParentNeed(need: ServerParentNeed): PublicServerParentNeed {
   };
 }
 
-async function listAllParentNeeds(collection: ParentNeedCollection) {
-  const result = await collection.where({}).get();
+async function listRecentPublishedParentNeeds(collection: ParentNeedCollection) {
+  const documents: unknown[] = [];
 
-  return (result.data ?? [])
+  for (let page = 0; page < RECENT_PUBLIC_QUERY_MAX_PAGES; page += 1) {
+    let query = collection.where({ status: "published" });
+
+    query = query.orderBy?.("createdAt", "desc") ?? query;
+    query = query.skip?.(page * RECENT_PUBLIC_QUERY_LIMIT) ?? query;
+    query = query.limit?.(RECENT_PUBLIC_QUERY_LIMIT) ?? query;
+
+    const result = await query.get();
+    const pageDocuments = result.data ?? [];
+    documents.push(...pageDocuments);
+
+    if (
+      pageDocuments.length < RECENT_PUBLIC_QUERY_LIMIT ||
+      !query.skip ||
+      !query.limit
+    ) {
+      break;
+    }
+  }
+
+  return documents
     .map((document) => normalizeParentNeed(document as ParentNeedDocument))
     .filter((need): need is ServerParentNeed => Boolean(need))
     .sort(
@@ -307,7 +335,7 @@ export async function listPublicServerParentNeeds({
   collection: ParentNeedCollection;
   filters?: ServerParentNeedFilters;
 }): Promise<Success<PublicServerParentNeed[]> | Failure> {
-  const needs = await listAllParentNeeds(collection);
+  const needs = await listRecentPublishedParentNeeds(collection);
 
   return {
     ok: true,

@@ -41,17 +41,52 @@ function createFakeCollection(initialValues: Record<string, StoredDocument> = {}
         };
       },
       where(query: Record<string, unknown>) {
-        return {
+        const state = {
+          limit: undefined as number | undefined,
+          orderBy: undefined as { direction: "asc" | "desc"; field: string } | undefined,
+          skip: 0
+        };
+        const chain = {
+          orderBy(field: string, direction: "asc" | "desc") {
+            state.orderBy = { direction, field };
+            return chain;
+          },
+          skip(value: number) {
+            state.skip = value;
+            return chain;
+          },
+          limit(value: number) {
+            state.limit = value;
+            return chain;
+          },
           async get() {
+            let rows = Array.from(documents.entries())
+              .filter(([, document]) =>
+                Object.entries(query).every(([key, value]) => document[key] === value)
+              )
+              .map(([id, document]) => ({ ...document, id }));
+
+            if (state.orderBy) {
+              rows = rows.sort((left, right) => {
+                const leftDocument = left as Record<string, unknown>;
+                const rightDocument = right as Record<string, unknown>;
+                const leftValue = String(leftDocument[state.orderBy?.field ?? ""] ?? "");
+                const rightValue = String(rightDocument[state.orderBy?.field ?? ""] ?? "");
+                const direction = state.orderBy?.direction === "asc" ? 1 : -1;
+                return leftValue.localeCompare(rightValue) * direction;
+              });
+            }
+
             return {
-              data: Array.from(documents.entries())
-                .filter(([, document]) =>
-                  Object.entries(query).every(([key, value]) => document[key] === value)
-                )
-                .map(([id, document]) => ({ ...document, id }))
+              data: rows.slice(
+                state.skip,
+                state.skip + (state.limit ?? 100)
+              )
             };
           }
         };
+
+        return chain;
       }
     }
   };
@@ -178,6 +213,43 @@ describe("server tutor_profiles interface", () => {
 
     expect(matched).toHaveLength(1);
     expect(matched[0].id).toBe("profile-a");
+  });
+
+  it("lists newly created public tutor profiles when the collection has many older documents", async () => {
+    const oldProfiles = Object.fromEntries(
+      Array.from({ length: 120 }, (_, index) => [
+        `old-profile-${index}`,
+        {
+          ...validInput,
+          ownerUserId: `old-tutor-${index}`,
+          feeRanges: [{ grade: "初中", subject: "数学", min: 90, max: 130 }],
+          status: "published",
+          createdAt: `2026-06-20T00:${String(index).padStart(2, "0")}:00.000Z`
+        }
+      ])
+    );
+    const fake = createFakeCollection({
+      ...oldProfiles,
+      "fresh-profile": {
+        ...validInput,
+        ownerUserId: "fresh-tutor",
+        feeRanges: [{ grade: "初中", subject: "数学", min: 90, max: 130 }],
+        status: "published",
+        createdAt: "2026-06-23T00:00:00.000Z"
+      }
+    });
+
+    const publicList = await listPublicServerTutorProfiles({
+      collection: fake.collection,
+      filters: { subject: "数学" }
+    });
+
+    expect(publicList).toMatchObject({
+      ok: true,
+      value: expect.arrayContaining([
+        expect.objectContaining({ id: "fresh-profile" })
+      ])
+    });
   });
 
   it("rejects missing authentication and invalid input", async () => {

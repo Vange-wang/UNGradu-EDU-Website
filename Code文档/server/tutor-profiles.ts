@@ -30,9 +30,14 @@ type TutorProfileCollection = {
     get: () => Promise<{ data?: unknown[] }>;
     set: (data: ServerTutorProfile) => Promise<unknown>;
   };
-  where: (query: Record<string, unknown>) => {
-    get: () => Promise<{ data?: unknown[] }>;
-  };
+  where: (query: Record<string, unknown>) => TutorProfileQuery;
+};
+
+type TutorProfileQuery = {
+  get: () => Promise<{ data?: unknown[] }>;
+  limit?: (value: number) => TutorProfileQuery;
+  orderBy?: (field: string, direction: "asc" | "desc") => TutorProfileQuery;
+  skip?: (value: number) => TutorProfileQuery;
 };
 
 type Failure = {
@@ -110,6 +115,9 @@ function normalizeTutorProfile(
   };
 }
 
+const RECENT_PUBLIC_QUERY_LIMIT = 100;
+const RECENT_PUBLIC_QUERY_MAX_PAGES = 10;
+
 function toPublicTutorProfile(profile: ServerTutorProfile): PublicServerTutorProfile {
   return {
     id: profile.id,
@@ -127,10 +135,30 @@ function toPublicTutorProfile(profile: ServerTutorProfile): PublicServerTutorPro
   };
 }
 
-async function listAllTutorProfiles(collection: TutorProfileCollection) {
-  const result = await collection.where({}).get();
+async function listRecentPublishedTutorProfiles(collection: TutorProfileCollection) {
+  const documents: unknown[] = [];
 
-  return (result.data ?? [])
+  for (let page = 0; page < RECENT_PUBLIC_QUERY_MAX_PAGES; page += 1) {
+    let query = collection.where({ status: "published" });
+
+    query = query.orderBy?.("createdAt", "desc") ?? query;
+    query = query.skip?.(page * RECENT_PUBLIC_QUERY_LIMIT) ?? query;
+    query = query.limit?.(RECENT_PUBLIC_QUERY_LIMIT) ?? query;
+
+    const result = await query.get();
+    const pageDocuments = result.data ?? [];
+    documents.push(...pageDocuments);
+
+    if (
+      pageDocuments.length < RECENT_PUBLIC_QUERY_LIMIT ||
+      !query.skip ||
+      !query.limit
+    ) {
+      break;
+    }
+  }
+
+  return documents
     .map((document) => normalizeTutorProfile(document as TutorProfileDocument))
     .filter((profile): profile is ServerTutorProfile => Boolean(profile))
     .sort(
@@ -307,7 +335,7 @@ export async function listPublicServerTutorProfiles({
   collection: TutorProfileCollection;
   filters?: ServerTutorProfileFilters;
 }): Promise<Success<PublicServerTutorProfile[]> | Failure> {
-  const profiles = await listAllTutorProfiles(collection);
+  const profiles = await listRecentPublishedTutorProfiles(collection);
 
   return {
     ok: true,

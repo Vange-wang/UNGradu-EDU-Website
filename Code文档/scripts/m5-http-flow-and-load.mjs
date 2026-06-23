@@ -62,6 +62,11 @@ function recordFailure(label) {
   metrics.failures.set(label, (metrics.failures.get(label) ?? 0) + 1);
 }
 
+function failBusinessCheck(label, message) {
+  recordFailure(`business ${label}`);
+  throw new Error(message);
+}
+
 function percentile(values, rank) {
   if (values.length === 0) {
     return 0;
@@ -86,8 +91,9 @@ function average(values) {
 
 function printMetrics(startedAt, successPairs = 0) {
   const elapsedMs = Math.round(performance.now() - startedAt);
-  const successRate = metrics.total === 0 ? 0 : (metrics.success / metrics.total) * 100;
-  const errorRate = metrics.total === 0 ? 0 : (metrics.failure / metrics.total) * 100;
+  const measuredOperations = metrics.success + metrics.failure;
+  const successRate = measuredOperations === 0 ? 0 : (metrics.success / measuredOperations) * 100;
+  const errorRate = measuredOperations === 0 ? 0 : (metrics.failure / measuredOperations) * 100;
   const p95 = Math.round(percentile(metrics.durations, 95));
   const avg = Math.round(average(metrics.durations));
   const max = Math.round(Math.max(0, ...metrics.durations));
@@ -114,6 +120,7 @@ async function request(path, {
   method = "GET"
 } = {}) {
   const startedAt = performance.now();
+  let failureRecorded = false;
   metrics.total += 1;
 
   try {
@@ -132,14 +139,23 @@ async function request(path, {
 
     if (response.status !== expectedStatus) {
       recordFailure(`${method} ${path} -> ${response.status}`);
+      failureRecorded = true;
       throw new Error(`${method} ${path} expected ${expectedStatus}, got ${response.status}: ${text}`);
     }
 
     metrics.success += 1;
     return { cookie: readSetCookie(response.headers), payload, response };
   } catch (error) {
+    if (failureRecorded) {
+      throw error;
+    }
+
     if (error instanceof TypeError) {
       recordFailure(`${method} ${path} -> network`);
+    } else if (error instanceof SyntaxError) {
+      recordFailure(`${method} ${path} -> invalid-json`);
+    } else {
+      recordFailure(`${method} ${path} -> unexpected`);
     }
 
     throw error;
@@ -153,7 +169,7 @@ async function login(phone) {
   });
 
   if (!result.cookie.includes("ungradu_auth_session=")) {
-    throw new Error("Login did not return auth session cookie.");
+    failBusinessCheck("auth-cookie", "Login did not return auth session cookie.");
   }
 
   return result.cookie;
@@ -161,7 +177,7 @@ async function login(phone) {
 
 function expectOk(result, label) {
   if (!result.payload?.ok) {
-    throw new Error(`${label} failed: ${JSON.stringify(result.payload)}`);
+    failBusinessCheck(label, `${label} failed: ${JSON.stringify(result.payload)}`);
   }
 
   return result.payload.value;
@@ -207,11 +223,17 @@ async function runPair(index) {
   ]);
 
   if (!needs.some((need) => need.id === parentNeed.id)) {
-    throw new Error("Created parent need was not visible in filtered public list.");
+    failBusinessCheck(
+      "created-parent-need-visible",
+      "Created parent need was not visible in filtered public list."
+    );
   }
 
   if (!profiles.some((profile) => profile.id === tutorProfile.id)) {
-    throw new Error("Created tutor profile was not visible in filtered public list.");
+    failBusinessCheck(
+      "created-tutor-profile-visible",
+      "Created tutor profile was not visible in filtered public list."
+    );
   }
 
   const conversation = await request("/api/conversations", {
@@ -237,7 +259,10 @@ async function runPair(index) {
   );
 
   if (unauthorizedContact.payload.value !== null) {
-    throw new Error("Unauthorized contact profile read returned data before approval.");
+    failBusinessCheck(
+      "unauthorized-contact-hidden",
+      "Unauthorized contact profile read returned data before approval."
+    );
   }
 
   const exchangeRequest = await request("/api/contact-exchange", {
@@ -263,7 +288,10 @@ async function runPair(index) {
 
   if (authorizedContact.currentUser.phone !== parentPhone ||
     authorizedContact.otherUser.phone !== tutorPhone) {
-    throw new Error("Authorized contact profile read returned mismatched phones.");
+    failBusinessCheck(
+      "authorized-contact-matches",
+      "Authorized contact profile read returned mismatched phones."
+    );
   }
 
   return { conversationId: conversation.id, parentNeedId: parentNeed.id, tutorProfileId: tutorProfile.id };

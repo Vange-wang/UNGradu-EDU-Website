@@ -148,6 +148,7 @@ M5 发布前验证命令：
 - `npm run m5:load`：跑同一服务端核心流程的 50 并发基础压测，用于确认不崩、不乱返回权限数据。
 - `npm run m5:http:flow`：通过 HTTP 调用真实 Next API route 跑核心闭环。默认目标为 `http://127.0.0.1:3000`，可通过 `M5_BASE_URL=https://your-deploy.example.com npm run m5:http:flow` 指向部署地址，并输出请求数、成功率、错误率和 avg/p95/max 延迟。
 - `npm run m5:http:load`：通过 HTTP 对真实 API route 跑 50 虚拟用户基础压测。默认目标为 `http://127.0.0.1:3000`，可通过 `M5_BASE_URL=https://your-deploy.example.com npm run m5:http:load` 指向部署地址，并输出请求数、成功率、错误率和 avg/p95/max 延迟。
+- `npm run m5:hosted:verify`：只用于 CloudBase 或等价托管环境复验。必须显式提供非 localhost 的 `M5_BASE_URL`，脚本会连续执行部署地址 HTTP flow 和 50 虚拟用户 load。
 
 如果部署平台以 `NODE_ENV=production` 运行隔离测试环境，HTTP 验收脚本需要服务端配置：
 
@@ -156,6 +157,16 @@ M5 发布前验证命令：
 - `AUTH_SESSION_SECRET=<足够长的服务端随机值>`
 
 正式生产环境必须配置 `APP_ENV=production`，此时即使误配 `M5_ENABLE_HOSTED_TEST_LOGIN=true` 或 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，服务端仍拒绝临时测试登录。
+
+托管环境复验示例：
+
+```powershell
+$env:M5_BASE_URL='https://your-cloudbase-test-url.example.com'
+npm run m5:hosted:verify
+Remove-Item Env:\M5_BASE_URL
+```
+
+当前仓库不包含真实 CloudBase 托管访问地址；拿到实际测试托管 URL 后，必须用上面的命令复跑并记录输出，才能形成部署地址下的 M5 发布前验证证据。
 
 ## 当前服务端接口
 

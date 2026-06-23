@@ -93,7 +93,9 @@ describe("backend trusted auth session API", () => {
   it("rejects temporary test login creation in production", async () => {
     const handlers = createAuthApiHandlers({
       env: {
+        APP_ENV: "production",
         AUTH_SESSION_SECRET: "m5-test-secret",
+        M5_ENABLE_HOSTED_TEST_LOGIN: "true",
         NODE_ENV: "production",
         NEXT_PUBLIC_ALLOW_TEST_LOGIN: "true"
       }
@@ -108,5 +110,27 @@ describe("backend trusted auth session API", () => {
 
     expect(response.status).toBe(401);
     expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
+  it("allows temporary test login in isolated hosted M5 test environment", async () => {
+    const handlers = createAuthApiHandlers({
+      env: {
+        APP_ENV: "test",
+        AUTH_SESSION_SECRET: "m5-test-secret",
+        M5_ENABLE_HOSTED_TEST_LOGIN: "true",
+        NODE_ENV: "production",
+        NEXT_PUBLIC_ALLOW_TEST_LOGIN: "false"
+      }
+    });
+
+    const response = await handlers.POST_TEST_LOGIN(
+      new Request("http://localhost/api/auth/test-login", {
+        body: JSON.stringify({ phone: "13800138000", code: "000000" }),
+        method: "POST"
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("set-cookie")).toContain("ungradu_auth_session=");
   });
 });

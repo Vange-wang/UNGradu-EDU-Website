@@ -4,6 +4,14 @@ import { performance } from "node:perf_hooks";
 const baseUrl = (process.env.M5_BASE_URL || "http://127.0.0.1:3000").replace(/\/$/, "");
 const mode = process.argv.includes("--load") ? "load" : "flow";
 const pairCount = mode === "load" ? 25 : 1;
+const scriptStartedAt = performance.now();
+const metrics = {
+  durations: [],
+  failures: new Map(),
+  failure: 0,
+  success: 0,
+  total: 0
+};
 
 function createPhone(prefix, index) {
   return `${prefix}${String(index).padStart(8, "0")}`;
@@ -49,28 +57,93 @@ function readSetCookie(headers) {
   return headers.get("set-cookie") ?? "";
 }
 
+function recordFailure(label) {
+  metrics.failure += 1;
+  metrics.failures.set(label, (metrics.failures.get(label) ?? 0) + 1);
+}
+
+function percentile(values, rank) {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = Math.min(
+    sorted.length - 1,
+    Math.ceil((rank / 100) * sorted.length) - 1
+  );
+
+  return sorted[index];
+}
+
+function average(values) {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function printMetrics(startedAt, successPairs = 0) {
+  const elapsedMs = Math.round(performance.now() - startedAt);
+  const successRate = metrics.total === 0 ? 0 : (metrics.success / metrics.total) * 100;
+  const errorRate = metrics.total === 0 ? 0 : (metrics.failure / metrics.total) * 100;
+  const p95 = Math.round(percentile(metrics.durations, 95));
+  const avg = Math.round(average(metrics.durations));
+  const max = Math.round(Math.max(0, ...metrics.durations));
+
+  console.log(`Success pairs: ${successPairs}`);
+  console.log(`Elapsed: ${elapsedMs}ms`);
+  console.log(`Requests: ${metrics.total}`);
+  console.log(`Success rate: ${successRate.toFixed(2)}%`);
+  console.log(`Error rate: ${errorRate.toFixed(2)}%`);
+  console.log(`Latency avg/p95/max: ${avg}ms / ${p95}ms / ${max}ms`);
+
+  if (metrics.failures.size > 0) {
+    console.log("Failures:");
+    for (const [label, count] of metrics.failures.entries()) {
+      console.log(`- ${label}: ${count}`);
+    }
+  }
+}
+
 async function request(path, {
   body,
   cookie,
   expectedStatus = 200,
   method = "GET"
 } = {}) {
-  const response = await fetch(`${baseUrl}${path}`, {
-    body: body === undefined ? undefined : JSON.stringify(body),
-    headers: {
-      ...(body === undefined ? {} : { "content-type": "application/json" }),
-      ...(cookie ? { cookie } : {})
-    },
-    method
-  });
-  const text = await response.text();
-  const payload = text ? JSON.parse(text) : null;
+  const startedAt = performance.now();
+  metrics.total += 1;
 
-  if (response.status !== expectedStatus) {
-    throw new Error(`${method} ${path} expected ${expectedStatus}, got ${response.status}: ${text}`);
+  try {
+    const response = await fetch(`${baseUrl}${path}`, {
+      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: {
+        ...(body === undefined ? {} : { "content-type": "application/json" }),
+        ...(cookie ? { cookie } : {})
+      },
+      method
+    });
+    const text = await response.text();
+    const payload = text ? JSON.parse(text) : null;
+    const durationMs = performance.now() - startedAt;
+    metrics.durations.push(durationMs);
+
+    if (response.status !== expectedStatus) {
+      recordFailure(`${method} ${path} -> ${response.status}`);
+      throw new Error(`${method} ${path} expected ${expectedStatus}, got ${response.status}: ${text}`);
+    }
+
+    metrics.success += 1;
+    return { cookie: readSetCookie(response.headers), payload, response };
+  } catch (error) {
+    if (error instanceof TypeError) {
+      recordFailure(`${method} ${path} -> network`);
+    }
+
+    throw error;
   }
-
-  return { cookie: readSetCookie(response.headers), payload, response };
 }
 
 async function login(phone) {
@@ -197,7 +270,6 @@ async function runPair(index) {
 }
 
 async function main() {
-  const startedAt = performance.now();
   console.log(`M5 HTTP ${mode} start`);
   console.log(`Target: ${baseUrl}`);
   console.log(`Pairs: ${pairCount}; virtual users: ${pairCount * 2}`);
@@ -206,14 +278,13 @@ async function main() {
     Array.from({ length: pairCount }, (_, index) => runPair(index))
   );
 
-  const elapsedMs = Math.round(performance.now() - startedAt);
   console.log(`M5 HTTP ${mode} passed`);
-  console.log(`Success pairs: ${results.length}`);
-  console.log(`Elapsed: ${elapsedMs}ms`);
+  printMetrics(scriptStartedAt, results.length);
 }
 
 main().catch((error) => {
   console.error(`M5 HTTP ${mode} failed`);
   console.error(error instanceof Error ? error.message : String(error));
+  printMetrics(scriptStartedAt);
   process.exit(1);
 });

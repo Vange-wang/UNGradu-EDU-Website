@@ -137,6 +137,7 @@ M5 阶段已开始接入 CloudBase 服务端 SDK。真实密钥只放在本地 `
 3. 保留 `CLOUDBASE_ENV_ID=ungradu-edu-test-d0ed1mqeceb0ae1` 和 `APP_ENV=test`，除非后续技术验证明确调整。
 4. 运行 `npm run cloudbase:check`，默认读取 `users` 集合 1 条数据验证服务端连接。
 5. M5 后端签名会话需要配置 `AUTH_SESSION_SECRET`。本地测试可使用占位随机串，生产必须使用足够长的服务端私密随机值。
+6. `M5_ENABLE_HOSTED_TEST_LOGIN` 默认保持 `false`。只有部署到隔离的 M5 测试托管环境，且 `APP_ENV=test` 时，才可临时设为 `true` 用于跑 HTTP 验收脚本。
 
 连接检查脚本只输出脱敏后的 `SecretId` 前缀，不输出 `SecretKey`。
 
@@ -145,8 +146,16 @@ M5 发布前验证命令：
 - `npm run m5:cloudbase:collections`：检查 `contact_profiles`、`parent_needs`、`tutor_profiles`、`conversations`、`messages`、`contact_exchange_requests` 均可由服务端读取。
 - `npm run m5:flow`：跑服务端核心流程验证，覆盖登录后身份、发布、筛选、聊天、联系方式交换、二次确认和授权展示。
 - `npm run m5:load`：跑同一服务端核心流程的 50 并发基础压测，用于确认不崩、不乱返回权限数据。
-- `npm run m5:http:flow`：通过 HTTP 调用真实 Next API route 跑核心闭环。默认目标为 `http://127.0.0.1:3000`，可通过 `M5_BASE_URL=https://your-deploy.example.com npm run m5:http:flow` 指向部署地址。
-- `npm run m5:http:load`：通过 HTTP 对真实 API route 跑 50 虚拟用户基础压测。默认目标为 `http://127.0.0.1:3000`，可通过 `M5_BASE_URL=https://your-deploy.example.com npm run m5:http:load` 指向部署地址。
+- `npm run m5:http:flow`：通过 HTTP 调用真实 Next API route 跑核心闭环。默认目标为 `http://127.0.0.1:3000`，可通过 `M5_BASE_URL=https://your-deploy.example.com npm run m5:http:flow` 指向部署地址，并输出请求数、成功率、错误率和 avg/p95/max 延迟。
+- `npm run m5:http:load`：通过 HTTP 对真实 API route 跑 50 虚拟用户基础压测。默认目标为 `http://127.0.0.1:3000`，可通过 `M5_BASE_URL=https://your-deploy.example.com npm run m5:http:load` 指向部署地址，并输出请求数、成功率、错误率和 avg/p95/max 延迟。
+
+如果部署平台以 `NODE_ENV=production` 运行隔离测试环境，HTTP 验收脚本需要服务端配置：
+
+- `APP_ENV=test`
+- `M5_ENABLE_HOSTED_TEST_LOGIN=true`
+- `AUTH_SESSION_SECRET=<足够长的服务端随机值>`
+
+正式生产环境必须配置 `APP_ENV=production`，此时即使误配 `M5_ENABLE_HOSTED_TEST_LOGIN=true` 或 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，服务端仍拒绝临时测试登录。
 
 ## 当前服务端接口
 
@@ -154,10 +163,10 @@ M5 发布前验证命令：
 
 用途：M5 发布前过渡登录态。非生产环境允许测试登录接口写入 HttpOnly 签名 Cookie，业务 API 优先从该服务端签名 Cookie 读取用户身份。
 
-- `POST /api/auth/test-login`：仅非生产环境可用，校验本地测试手机号和验证码后写入 `ungradu_auth_session` HttpOnly Cookie。
+- `POST /api/auth/test-login`：仅本地开发、显式测试环境或隔离 M5 托管测试环境可用，校验本地测试手机号和验证码后写入 `ungradu_auth_session` HttpOnly Cookie。
 - `GET /api/auth/session`：从服务端签名 Cookie 读取当前会话。
 - `POST /api/auth/logout`：清除服务端签名 Cookie。
-- 生产边界：`NODE_ENV=production` 时，即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，也拒绝创建临时测试登录 Cookie。
+- 生产边界：`APP_ENV=production` 时，即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true` 或 `M5_ENABLE_HOSTED_TEST_LOGIN=true`，也拒绝创建临时测试登录 Cookie。
 - 安全边界：业务 API 不再依赖浏览器 localStorage 或前端变量传入当前用户身份；前端 API client 默认只携带同源 Cookie。
 
 ### `/api/contact-profile`
@@ -170,7 +179,7 @@ M5 发布前验证命令：
 - 服务端写入字段：`ownerUserId`、`phone`、`wechat`、`updatedAt`。
 - 数据归属规则：接口只读取和写入 `doc(currentUserId)`，不会按客户端传入的用户 ID 任意读取他人联系方式。
 - 当前临时认证：非生产环境通过请求头 `x-ungradu-test-user-phone` 承接 M1-M4 本地测试登录态。
-- 生产边界：`NODE_ENV=production` 时即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，接口也拒绝临时测试登录身份。
+- 生产边界：`APP_ENV=production` 时即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true` 或 `M5_ENABLE_HOSTED_TEST_LOGIN=true`，接口也拒绝临时测试登录身份。
 
 该接口只完成联系方式存档迁移。聊天、联系方式交换请求、需求、家教信息和正式短信登录仍待后续 M5 继续迁移，不能视为已经具备完整生产权限模型。
 
@@ -188,7 +197,7 @@ M5 发布前验证命令：
 - 服务端权限规则：只有会话参与者可以发起和查看交换请求；只有接收方可以同意或拒绝；只有发起方可以撤回；非参与者读取授权联系方式返回 `null`。
 - 授权读取规则：未发起、待处理、拒绝、撤回、过期、未二次确认或任一方未填写联系方式时，均不返回对方联系方式。
 - 当前临时认证：非生产环境通过请求头 `x-ungradu-test-user-phone` 承接 M1-M4 本地测试登录态。
-- 生产边界：`NODE_ENV=production` 时即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，接口也拒绝临时测试登录身份。
+- 生产边界：`APP_ENV=production` 时即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true` 或 `M5_ENABLE_HOSTED_TEST_LOGIN=true`，接口也拒绝临时测试登录身份。
 
 页面接入状态：聊天详情页已调用该接口读取交换请求、处理同意/拒绝/撤回，并读取授权后联系方式。
 
@@ -206,7 +215,7 @@ M5 发布前验证命令：
 - 服务端权限规则：不能和自己发布的信息创建会话；非参与者不能读取会话、不能读取消息、不能发送消息。
 - 隐私规则：接口返回会话和消息 View Model，不返回参与者用户 ID 或联系方式。
 - 当前临时认证：非生产环境通过请求头 `x-ungradu-test-user-phone` 承接 M1-M4 本地测试登录态。
-- 生产边界：`NODE_ENV=production` 时即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，接口也拒绝临时测试登录身份。
+- 生产边界：`APP_ENV=production` 时即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true` 或 `M5_ENABLE_HOSTED_TEST_LOGIN=true`，接口也拒绝临时测试登录身份。
 
 页面接入状态：我的聊天页、聊天详情页、需求详情页和家教信息详情页的会话入口已调用该接口。
 
@@ -223,7 +232,7 @@ M5 发布前验证命令：
 - 数据归属规则：我的列表只按当前用户 `ownerUserId` 查询；客户端不能指定 owner。
 - 公开读取规则：公开列表和详情使用白名单 View Model，不返回 `ownerUserId` 或联系方式。
 - 当前临时认证：私有读写在非生产环境通过请求头 `x-ungradu-test-user-phone` 承接 M1-M4 本地测试登录态。
-- 生产边界：私有读写在 `NODE_ENV=production` 时拒绝临时测试登录身份。
+- 生产边界：私有读写在 `APP_ENV=production` 时拒绝临时测试登录身份。
 
 页面接入状态：需求广场、需求详情、发布需求和我发布的需求均已调用该接口。
 
@@ -240,7 +249,7 @@ M5 发布前验证命令：
 - 数据归属规则：我的列表只按当前用户 `ownerUserId` 查询；客户端不能指定 owner。
 - 公开读取规则：公开列表和详情使用白名单 View Model，不返回 `ownerUserId` 或联系方式。
 - 当前临时认证：私有读写在非生产环境通过请求头 `x-ungradu-test-user-phone` 承接 M1-M4 本地测试登录态。
-- 生产边界：私有读写在 `NODE_ENV=production` 时拒绝临时测试登录身份。
+- 生产边界：私有读写在 `APP_ENV=production` 时拒绝临时测试登录身份。
 
 页面接入状态：家教信息广场、家教信息详情、发布家教信息和我的家教信息均已调用该接口。
 

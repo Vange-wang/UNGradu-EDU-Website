@@ -49,8 +49,28 @@ describe("isTestLoginAllowed", () => {
     expect(isTestLoginAllowed({ nodeEnv: "production" })).toBe(false);
     expect(
       isTestLoginAllowed({
+        appEnv: "production",
+        allowHostedTestLogin: "true",
         nodeEnv: "production",
         allowTestLogin: "true"
+      })
+    ).toBe(false);
+  });
+
+  it("allows hosted M5 test login only for isolated test app environment", () => {
+    expect(
+      isTestLoginAllowed({
+        appEnv: "test",
+        allowHostedTestLogin: "true",
+        nodeEnv: "production"
+      })
+    ).toBe(true);
+
+    expect(
+      isTestLoginAllowed({
+        appEnv: "test",
+        allowHostedTestLogin: "false",
+        nodeEnv: "production"
       })
     ).toBe(false);
   });

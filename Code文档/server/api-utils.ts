@@ -2,7 +2,9 @@ import { isTestLoginAllowed } from "@/features/auth/test-auth";
 import { readAuthSessionFromRequest } from "@/server/auth-session";
 
 export type RuntimeEnv = {
+  APP_ENV?: string;
   AUTH_SESSION_SECRET?: string;
+  M5_ENABLE_HOSTED_TEST_LOGIN?: string;
   NODE_ENV?: string;
   NEXT_PUBLIC_ALLOW_TEST_LOGIN?: string;
 };
@@ -52,6 +54,8 @@ export function readAuthenticatedUserId(
   if (
     !isTestLoginAllowed({
       allowTestLogin: env.NEXT_PUBLIC_ALLOW_TEST_LOGIN,
+      allowHostedTestLogin: env.M5_ENABLE_HOSTED_TEST_LOGIN,
+      appEnv: env.APP_ENV,
       nodeEnv: env.NODE_ENV
     })
   ) {

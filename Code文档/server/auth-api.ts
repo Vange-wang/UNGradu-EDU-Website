@@ -42,6 +42,8 @@ export function createAuthApiHandlers({ env = process.env }: AuthApiDependencies
       if (
         !isTestLoginAllowed({
           allowTestLogin: env.NEXT_PUBLIC_ALLOW_TEST_LOGIN,
+          allowHostedTestLogin: env.M5_ENABLE_HOSTED_TEST_LOGIN,
+          appEnv: env.APP_ENV,
           nodeEnv: env.NODE_ENV
         })
       ) {

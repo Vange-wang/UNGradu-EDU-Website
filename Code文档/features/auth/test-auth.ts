@@ -33,13 +33,21 @@ const TEST_CODE = "000000";
 
 export function isTestLoginAllowed({
   allowTestLogin,
+  allowHostedTestLogin,
+  appEnv,
   nodeEnv
 }: {
   allowTestLogin?: string;
+  allowHostedTestLogin?: string;
+  appEnv?: string;
   nodeEnv?: string;
 }) {
-  if (nodeEnv === "production") {
+  if (appEnv === "production") {
     return false;
+  }
+
+  if (nodeEnv === "production") {
+    return appEnv === "test" && allowHostedTestLogin === "true";
   }
 
   return nodeEnv === "development" || allowTestLogin === "true";

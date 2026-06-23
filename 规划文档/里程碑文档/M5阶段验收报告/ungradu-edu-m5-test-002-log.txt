@@ -1,0 +1,209 @@
+[2026-06-23 18:16:49] Cloning Git repository...
+[2026-06-23 18:16:49] Cloning into '.'...
+[2026-06-23 18:16:50] Switched to a new branch 'codex/m5-security-preflight'
+[2026-06-23 18:16:50] branch 'codex/m5-security-preflight' set up to track 'origin/codex/m5-security-preflight'.
+[2026-06-23 18:16:50] Repository cloned and checked out.
+[2026-06-23 18:16:51] Logging into Docker registry...
+[2026-06-23 18:16:51] WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
+[2026-06-23 18:16:51] Configure a credential helper to remove this warning. See
+[2026-06-23 18:16:51] https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+[2026-06-23 18:16:51] 
+[2026-06-23 18:16:51] Login Succeeded
+[2026-06-23 18:16:51] Building Docker image: ccr.ccs.tencentyun.com/tcb-100050033869-lqqa/ca-hjqymbig_ungradu-edu-m5-test:ungradu-edu-m5-test-002-20260623181639
+[2026-06-23 18:16:52] #0 building with "default" instance using docker driver
+[2026-06-23 18:16:52] 
+[2026-06-23 18:16:52] #1 [internal] load build definition from Dockerfile
+[2026-06-23 18:16:52] #1 transferring dockerfile: 1.01kB done
+[2026-06-23 18:16:52] #1 DONE 0.0s
+[2026-06-23 18:16:52] 
+[2026-06-23 18:16:52] #2 [internal] load metadata for docker.io/library/node:22-alpine
+[2026-06-23 18:16:53] #2 DONE 1.3s
+[2026-06-23 18:16:53] 
+[2026-06-23 18:16:53] #3 [internal] load .dockerignore
+[2026-06-23 18:16:53] #3 transferring context: 141B done
+[2026-06-23 18:16:53] #3 DONE 0.0s
+[2026-06-23 18:16:53] 
+[2026-06-23 18:16:53] #4 [internal] load build context
+[2026-06-23 18:16:53] #4 transferring context: 767.44kB 0.0s done
+[2026-06-23 18:16:53] #4 DONE 0.0s
+[2026-06-23 18:16:53] 
+[2026-06-23 18:16:53] #5 [deps 1/4] FROM docker.io/library/node:22-alpine@sha256:ab07539e0988b63558ff621f5fbe1077054c39d9809112974fb79993949d41cd
+[2026-06-23 18:16:53] #5 resolve docker.io/library/node:22-alpine@sha256:ab07539e0988b63558ff621f5fbe1077054c39d9809112974fb79993949d41cd 0.0s done
+[2026-06-23 18:16:53] #5 sha256:0fc147b22c03cedcc1fe31b873b416dcd1a3f5b71e6e8afc73be1cbe5c5e64a1 6.52kB / 6.52kB done
+[2026-06-23 18:16:53] #5 sha256:55afa1ecc21d2bb5e5045f32dafee56272ffd89860bac26f6c32123439af26a4 0B / 3.85MB 0.1s
+[2026-06-23 18:16:53] #5 sha256:1ab5d8a304ff2fb254054287b801d0212825bd9b10fb64a93b5f087fe1ffe33d 0B / 52.31MB 0.1s
+[2026-06-23 18:16:53] #5 sha256:3c142f572651f90fb95c674eb226e6a09a45da711d2ab3c3e87481685c82d927 0B / 1.26MB 0.1s
+[2026-06-23 18:16:53] #5 sha256:ab07539e0988b63558ff621f5fbe1077054c39d9809112974fb79993949d41cd 6.41kB / 6.41kB done
+[2026-06-23 18:16:53] #5 sha256:5e8888a165087a80513a7e773bb1a60c2e7dd54ac7cddab404ae2f470815e8e8 1.72kB / 1.72kB done
+[2026-06-23 18:16:53] #5 sha256:55afa1ecc21d2bb5e5045f32dafee56272ffd89860bac26f6c32123439af26a4 1.05MB / 3.85MB 0.3s
+[2026-06-23 18:16:53] #5 sha256:55afa1ecc21d2bb5e5045f32dafee56272ffd89860bac26f6c32123439af26a4 3.85MB / 3.85MB 0.3s done
+[2026-06-23 18:16:53] #5 sha256:1ab5d8a304ff2fb254054287b801d0212825bd9b10fb64a93b5f087fe1ffe33d 5.24MB / 52.31MB 0.4s
+[2026-06-23 18:16:53] #5 extracting sha256:55afa1ecc21d2bb5e5045f32dafee56272ffd89860bac26f6c32123439af26a4 0.1s done
+[2026-06-23 18:16:53] #5 sha256:8757288416597719bcd6765ede6ab4e21eeec30e81150d2ece0ae9dcec49a1ec 0B / 444B 0.4s
+[2026-06-23 18:16:53] #5 sha256:1ab5d8a304ff2fb254054287b801d0212825bd9b10fb64a93b5f087fe1ffe33d 24.12MB / 52.31MB 0.6s
+[2026-06-23 18:16:53] #5 sha256:3c142f572651f90fb95c674eb226e6a09a45da711d2ab3c3e87481685c82d927 1.26MB / 1.26MB 0.4s done
+[2026-06-23 18:16:54] #5 sha256:1ab5d8a304ff2fb254054287b801d0212825bd9b10fb64a93b5f087fe1ffe33d 50.33MB / 52.31MB 0.8s
+[2026-06-23 18:16:54] #5 sha256:8757288416597719bcd6765ede6ab4e21eeec30e81150d2ece0ae9dcec49a1ec 444B / 444B 0.6s done
+[2026-06-23 18:16:54] #5 sha256:1ab5d8a304ff2fb254054287b801d0212825bd9b10fb64a93b5f087fe1ffe33d 52.31MB / 52.31MB 0.8s done
+[2026-06-23 18:16:54] #5 extracting sha256:1ab5d8a304ff2fb254054287b801d0212825bd9b10fb64a93b5f087fe1ffe33d 0.1s
+[2026-06-23 18:16:54] #5 extracting sha256:1ab5d8a304ff2fb254054287b801d0212825bd9b10fb64a93b5f087fe1ffe33d 0.9s done
+[2026-06-23 18:16:55] #5 extracting sha256:3c142f572651f90fb95c674eb226e6a09a45da711d2ab3c3e87481685c82d927 0.0s done
+[2026-06-23 18:16:55] #5 extracting sha256:8757288416597719bcd6765ede6ab4e21eeec30e81150d2ece0ae9dcec49a1ec
+[2026-06-23 18:16:55] #5 extracting sha256:8757288416597719bcd6765ede6ab4e21eeec30e81150d2ece0ae9dcec49a1ec done
+[2026-06-23 18:16:55] #5 DONE 1.9s
+[2026-06-23 18:16:55] 
+[2026-06-23 18:16:55] #6 [deps 2/4] WORKDIR /app
+[2026-06-23 18:16:55] #6 DONE 0.0s
+[2026-06-23 18:16:55] 
+[2026-06-23 18:16:55] #7 [deps 3/4] COPY package.json package-lock.json* ./
+[2026-06-23 18:16:55] #7 DONE 0.0s
+[2026-06-23 18:16:55] 
+[2026-06-23 18:16:55] #8 [runner 3/6] RUN addgroup --system --gid 1001 nodejs   && adduser --system --uid 1001 nextjs
+[2026-06-23 18:16:55] #8 DONE 0.3s
+[2026-06-23 18:16:55] 
+[2026-06-23 18:16:55] #9 [deps 4/4] RUN npm ci
+[2026-06-23 18:16:57] #9 2.230 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+[2026-06-23 18:16:58] #9 3.325 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+[2026-06-23 18:16:58] #9 3.508 npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+[2026-06-23 18:16:59] #9 4.133 npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+[2026-06-23 18:17:00] #9 5.681 npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+[2026-06-23 18:17:01] #9 5.715 npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+[2026-06-23 18:17:23] #9 28.03 
+[2026-06-23 18:17:23] #9 28.03 added 425 packages, and audited 426 packages in 28s
+[2026-06-23 18:17:23] #9 28.03 
+[2026-06-23 18:17:23] #9 28.03 160 packages are looking for funding
+[2026-06-23 18:17:23] #9 28.03   run `npm fund` for details
+[2026-06-23 18:17:23] #9 28.06 
+[2026-06-23 18:17:23] #9 28.06 7 vulnerabilities (3 moderate, 4 high)
+[2026-06-23 18:17:23] #9 28.06 
+[2026-06-23 18:17:23] #9 28.06 To address issues that do not require attention, run:
+[2026-06-23 18:17:23] #9 28.06   npm audit fix
+[2026-06-23 18:17:23] #9 28.06 
+[2026-06-23 18:17:23] #9 28.06 To address all issues (including breaking changes), run:
+[2026-06-23 18:17:23] #9 28.06   npm audit fix --force
+[2026-06-23 18:17:23] #9 28.06 
+[2026-06-23 18:17:23] #9 28.06 Run `npm audit` for details.
+[2026-06-23 18:17:23] #9 28.07 npm notice
+[2026-06-23 18:17:23] #9 28.07 npm notice New major version of npm available! 10.9.8 -> 11.17.0
+[2026-06-23 18:17:23] #9 28.07 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.17.0
+[2026-06-23 18:17:23] #9 28.07 npm notice To update run: npm install -g npm@11.17.0
+[2026-06-23 18:17:23] #9 28.07 npm notice
+[2026-06-23 18:17:23] #9 DONE 28.2s
+[2026-06-23 18:17:24] 
+[2026-06-23 18:17:24] #10 [builder 3/6] COPY --from=deps /app/node_modules ./node_modules
+[2026-06-23 18:17:37] #10 DONE 13.0s
+[2026-06-23 18:17:37] 
+[2026-06-23 18:17:37] #11 [builder 4/6] COPY . .
+[2026-06-23 18:17:37] #11 DONE 0.0s
+[2026-06-23 18:17:37] 
+[2026-06-23 18:17:37] #12 [builder 5/6] RUN mkdir -p public
+[2026-06-23 18:17:38] #12 DONE 0.2s
+[2026-06-23 18:17:38] 
+[2026-06-23 18:17:38] #13 [builder 6/6] RUN npm run build
+[2026-06-23 18:17:38] #13 0.583 
+[2026-06-23 18:17:38] #13 0.583 > ungradu-edu-website@0.1.0 build
+[2026-06-23 18:17:38] #13 0.583 > next build
+[2026-06-23 18:17:38] #13 0.583 
+[2026-06-23 18:17:39] #13 1.721    ▲ Next.js 15.5.19
+[2026-06-23 18:17:39] #13 1.721 
+[2026-06-23 18:17:39] #13 1.751    Creating an optimized production build ...
+[2026-06-23 18:17:51] #13 13.68  ✓ Compiled successfully in 9.4s
+[2026-06-23 18:17:51] #13 13.68    Linting and checking validity of types ...
+[2026-06-23 18:17:55] #13 17.62    Collecting page data ...
+[2026-06-23 18:17:57] #13 19.85    Generating static pages (0/24) ...
+[2026-06-23 18:17:58] #13 20.43    Generating static pages (6/24) 
+[2026-06-23 18:17:58] #13 20.48    Generating static pages (12/24) 
+[2026-06-23 18:17:58] #13 20.67    Generating static pages (18/24) 
+[2026-06-23 18:17:58] #13 20.67  ✓ Generating static pages (24/24)
+[2026-06-23 18:17:59] #13 21.29    Finalizing page optimization ...
+[2026-06-23 18:17:59] #13 21.29    Collecting build traces ...
+[2026-06-23 18:18:14] #13 36.37 
+[2026-06-23 18:18:14] #13 36.38 Route (app)                                 Size  First Load JS
+[2026-06-23 18:18:14] #13 36.38 ┌ ○ /                                      672 B         106 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ○ /_not-found                            994 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /api/auth/logout                       156 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /api/auth/session                      156 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /api/auth/test-login                   156 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /api/contact-exchange                  156 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /api/contact-profile                   156 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /api/conversations                     156 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /api/conversations/[id]                156 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /api/conversations/[id]/messages       156 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /api/parent-needs                      156 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /api/parent-needs/[id]                 156 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /api/tutor-profiles                    156 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /api/tutor-profiles/[id]               156 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /chats/[id]                          3.05 kB         109 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ○ /feedback                              156 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ○ /login                                1.3 kB         104 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ○ /parent-needs                        1.96 kB         108 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /parent-needs/[id]                   2.17 kB         108 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ○ /parent-needs/new                    3.25 kB         106 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ○ /profile                             1.27 kB         107 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ○ /profile/chats                       1.68 kB         107 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ○ /profile/contact                     1.93 kB         104 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ○ /profile/parent-needs                1.67 kB         107 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ○ /profile/tutor-profiles              1.73 kB         108 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ○ /rules                                 156 B         103 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ○ /tutor-profiles                      1.93 kB         108 kB
+[2026-06-23 18:18:14] #13 36.38 ├ ƒ /tutor-profiles/[id]                 2.21 kB         108 kB
+[2026-06-23 18:18:14] #13 36.38 └ ○ /tutor-profiles/new                  3.33 kB         106 kB
+[2026-06-23 18:18:14] #13 36.38 + First Load JS shared by all             102 kB
+[2026-06-23 18:18:14] #13 36.38   ├ chunks/493-dbd4607ff9cca169.js       46.2 kB
+[2026-06-23 18:18:14] #13 36.38   ├ chunks/4bd1b696-c023c6e3521b1417.js  54.2 kB
+[2026-06-23 18:18:14] #13 36.38   └ other shared chunks (total)          1.92 kB
+[2026-06-23 18:18:14] #13 36.38 
+[2026-06-23 18:18:14] #13 36.38 
+[2026-06-23 18:18:14] #13 36.38 ○  (Static)   prerendered as static content
+[2026-06-23 18:18:14] #13 36.38 ƒ  (Dynamic)  server-rendered on demand
+[2026-06-23 18:18:14] #13 36.38 
+[2026-06-23 18:18:14] #13 36.44 npm notice
+[2026-06-23 18:18:14] #13 36.44 npm notice New major version of npm available! 10.9.8 -> 11.17.0
+[2026-06-23 18:18:14] #13 36.44 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.17.0
+[2026-06-23 18:18:14] #13 36.44 npm notice To update run: npm install -g npm@11.17.0
+[2026-06-23 18:18:14] #13 36.44 npm notice
+[2026-06-23 18:18:14] #13 DONE 36.5s
+[2026-06-23 18:18:16] 
+[2026-06-23 18:18:16] #14 [runner 4/6] COPY --from=builder /app/public ./public
+[2026-06-23 18:18:16] #14 DONE 0.0s
+[2026-06-23 18:18:16] 
+[2026-06-23 18:18:16] #15 [runner 5/6] COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+[2026-06-23 18:18:16] #15 DONE 0.2s
+[2026-06-23 18:18:16] 
+[2026-06-23 18:18:16] #16 [runner 6/6] COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+[2026-06-23 18:18:16] #16 DONE 0.0s
+[2026-06-23 18:18:16] 
+[2026-06-23 18:18:16] #17 exporting to image
+[2026-06-23 18:18:16] #17 exporting layers
+[2026-06-23 18:18:17] #17 exporting layers 1.4s done
+[2026-06-23 18:18:17] #17 writing image sha256:e32e8301d925102b1ef0be4301ff407bb85164050245296f5a90b9d1d778fff1 done
+[2026-06-23 18:18:17] #17 naming to ccr.ccs.tencentyun.com/tcb-100050033869-lqqa/ca-hjqymbig_ungradu-edu-m5-test:ungradu-edu-m5-test-002-20260623181639 done
+[2026-06-23 18:18:17] #17 DONE 1.4s
+[2026-06-23 18:18:17] 镜像的大小是：241MB
+[2026-06-23 18:18:17] 优化镜像大小具体可参考： https://docs.cloudbase.net/run/develop/image-optimization
+[2026-06-23 18:18:17] Pushing Docker image to TCR...
+[2026-06-23 18:18:17] The push refers to repository [ccr.ccs.tencentyun.com/tcb-100050033869-lqqa/ca-hjqymbig_ungradu-edu-m5-test]
+[2026-06-23 18:18:17] 148f22938de2: Preparing
+[2026-06-23 18:18:17] 8aa85b724025: Preparing
+[2026-06-23 18:18:17] cf9ac0d041f3: Preparing
+[2026-06-23 18:18:17] 73f31781976a: Preparing
+[2026-06-23 18:18:17] 386039f7b34d: Preparing
+[2026-06-23 18:18:17] 1e1b55dd7f51: Preparing
+[2026-06-23 18:18:17] 61cadb589adf: Preparing
+[2026-06-23 18:18:17] 67d07178115b: Preparing
+[2026-06-23 18:18:17] 34884abbe928: Preparing
+[2026-06-23 18:18:17] 1e1b55dd7f51: Waiting
+[2026-06-23 18:18:17] 61cadb589adf: Waiting
+[2026-06-23 18:18:17] 34884abbe928: Waiting
+[2026-06-23 18:18:17] 67d07178115b: Waiting
+[2026-06-23 18:18:19] cf9ac0d041f3: Pushed
+[2026-06-23 18:18:19] 148f22938de2: Pushed
+[2026-06-23 18:18:19] 73f31781976a: Pushed
+[2026-06-23 18:18:19] 386039f7b34d: Pushed
+[2026-06-23 18:18:20] 1e1b55dd7f51: Pushed
+[2026-06-23 18:18:21] 61cadb589adf: Pushed
+[2026-06-23 18:18:22] 34884abbe928: Pushed
+[2026-06-23 18:18:34] 8aa85b724025: Pushed
+[2026-06-23 18:18:52] 67d07178115b: Pushed
+[2026-06-23 18:18:54] ungradu-edu-m5-test-002-20260623181639: digest: sha256:fbb07ca9789a31d55786ae55188a719444cd1137e1a9a956bf8d6668da4c5a34 size: 2201
+[2026-06-23 18:18:54] Image pushed successfully.

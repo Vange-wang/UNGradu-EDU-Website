@@ -13,6 +13,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV APP_ENV=test
+ENV CLOUDBASE_ENV_ID=ungradu-edu-test-d0ed1mqeceb0ae1
+ENV TENCENTCLOUD_SECRETID=AKIDBUILDPLACEHOLDER
+ENV TENCENTCLOUD_SECRETKEY=build-key-placeholder
+ENV AUTH_SESSION_SECRET=build-session-placeholder-for-next-standalone-output
 RUN mkdir -p public
 RUN npm run build
 

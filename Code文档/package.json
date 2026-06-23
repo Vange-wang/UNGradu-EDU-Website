@@ -9,6 +9,8 @@
     "cloudbase:check": "node scripts/check-cloudbase-connection.mjs",
     "m5:cloudbase:collections": "node scripts/check-m5-cloudbase-collections.mjs",
     "m5:flow": "vitest run m5-server-flow-and-load",
+    "m5:http:flow": "node scripts/m5-http-flow-and-load.mjs",
+    "m5:http:load": "node scripts/m5-http-flow-and-load.mjs --load",
     "m5:load": "vitest run m5-server-flow-and-load",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",

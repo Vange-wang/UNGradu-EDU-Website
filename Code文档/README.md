@@ -145,6 +145,8 @@ M5 发布前验证命令：
 - `npm run m5:cloudbase:collections`：检查 `contact_profiles`、`parent_needs`、`tutor_profiles`、`conversations`、`messages`、`contact_exchange_requests` 均可由服务端读取。
 - `npm run m5:flow`：跑服务端核心流程验证，覆盖登录后身份、发布、筛选、聊天、联系方式交换、二次确认和授权展示。
 - `npm run m5:load`：跑同一服务端核心流程的 50 并发基础压测，用于确认不崩、不乱返回权限数据。
+- `npm run m5:http:flow`：通过 HTTP 调用真实 Next API route 跑核心闭环。默认目标为 `http://127.0.0.1:3000`，可通过 `M5_BASE_URL=https://your-deploy.example.com npm run m5:http:flow` 指向部署地址。
+- `npm run m5:http:load`：通过 HTTP 对真实 API route 跑 50 虚拟用户基础压测。默认目标为 `http://127.0.0.1:3000`，可通过 `M5_BASE_URL=https://your-deploy.example.com npm run m5:http:load` 指向部署地址。
 
 ## 当前服务端接口
 

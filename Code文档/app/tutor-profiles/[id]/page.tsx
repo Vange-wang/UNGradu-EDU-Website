@@ -99,7 +99,10 @@ export default function TutorProfileDetailPage() {
                   .join("；")}
               </p>
               <p>能力说明：{profile.abilityDescription}</p>
-              <p>证明图片：{profile.proofImages.length} 张</p>
+              <p>
+                证明图片：当前仅展示已记录的文件元信息数量（{profile.proofImages.length} 条），
+                不代表平台已完成正式图片上传、查看或审核。
+              </p>
             </section>
 
             <aside className="detail-side">

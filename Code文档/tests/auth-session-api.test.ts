@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { createAuthApiHandlers } from "@/server/auth-api";
+import {
+  createAuthSessionCookie,
+  readAuthSessionFromRequest
+} from "@/server/auth-session";
 import { createContactProfileApiHandlers } from "@/server/contact-profile-api";
 
 type StoredDocument = Record<string, unknown>;
@@ -132,5 +136,63 @@ describe("backend trusted auth session API", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("set-cookie")).toContain("ungradu_auth_session=");
+  });
+
+  it("rejects signed session cookies after the server-side hard expiration window", () => {
+    const env = {
+      AUTH_SESSION_SECRET: "m5-test-secret",
+      NODE_ENV: "test"
+    };
+    const cookie = createAuthSessionCookie({
+      env,
+      now: new Date("2026-06-01T00:00:00.000Z"),
+      phone: "13800138000"
+    }) ?? "";
+
+    const session = readAuthSessionFromRequest(
+      new Request("http://localhost/api/auth/session", {
+        headers: { cookie }
+      }),
+      env,
+      { now: new Date("2026-06-09T00:00:01.000Z") }
+    );
+
+    expect(session).toBeNull();
+  });
+
+  it("rejects signed session cookies with invalid or future createdAt values", () => {
+    const env = {
+      AUTH_SESSION_SECRET: "m5-test-secret",
+      NODE_ENV: "test"
+    };
+    const invalidCreatedAtCookie = createAuthSessionCookie({
+      createdAt: "not-a-date",
+      env,
+      phone: "13800138000"
+    }) ?? "";
+    const futureCreatedAtCookie = createAuthSessionCookie({
+      createdAt: "2026-06-10T00:00:00.000Z",
+      env,
+      phone: "13800138000"
+    }) ?? "";
+
+    expect(
+      readAuthSessionFromRequest(
+        new Request("http://localhost/api/auth/session", {
+          headers: { cookie: invalidCreatedAtCookie }
+        }),
+        env,
+        { now: new Date("2026-06-01T00:00:00.000Z") }
+      )
+    ).toBeNull();
+    expect(
+      readAuthSessionFromRequest(
+        new Request("http://localhost/api/auth/session", {
+          headers: { cookie: futureCreatedAtCookie }
+        }),
+        env,
+        { now: new Date("2026-06-01T00:00:00.000Z") }
+      )
+    ).toBeNull();
   });
 });

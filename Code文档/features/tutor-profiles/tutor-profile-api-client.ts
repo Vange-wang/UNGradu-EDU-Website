@@ -1,21 +1,10 @@
 import type { TutorProfileInput } from "@/features/tutor-profiles/tutor-profile";
+import { parseApiResponse } from "@/features/api/api-client";
 import type {
   PublicServerTutorProfile,
   ServerTutorProfile,
   ServerTutorProfileFilters
 } from "@/server/tutor-profiles";
-
-type ApiResult<T> =
-  | {
-      ok: true;
-      value: T;
-      errors: Record<string, never>;
-    }
-  | {
-      ok: false;
-      value: null;
-      errors: Record<string, string>;
-    };
 
 function createCookieBackedHeaders() {
   return {
@@ -34,10 +23,6 @@ function buildQuery(params: Record<string, string | undefined>) {
 
   const query = searchParams.toString();
   return query ? `?${query}` : "";
-}
-
-async function parseApiResponse<T>(response: Response) {
-  return await response.json() as ApiResult<T>;
 }
 
 export async function listPublicTutorProfilesFromApi({

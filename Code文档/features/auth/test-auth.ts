@@ -53,6 +53,16 @@ export function isTestLoginAllowed({
   return nodeEnv === "development" || allowTestLogin === "true";
 }
 
+export function sanitizeNextPath(nextPath: string | null | undefined) {
+  const normalizedPath = nextPath?.trim();
+
+  if (!normalizedPath || !normalizedPath.startsWith("/") || normalizedPath.startsWith("//")) {
+    return "/";
+  }
+
+  return normalizedPath;
+}
+
 export function validateTestLoginInput(input: TestLoginInput): TestLoginValidation {
   const phone = input.phone.trim();
   const code = input.code.trim();

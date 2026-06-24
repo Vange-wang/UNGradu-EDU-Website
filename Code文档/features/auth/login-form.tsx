@@ -3,26 +3,14 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { parseApiResponse, type ApiResult } from "@/features/api/api-client";
 import {
   isTestLoginAllowed,
+  sanitizeNextPath,
   validateTestLoginInput
 } from "@/features/auth/test-auth";
 
-type LoginApiResult =
-  | {
-      ok: true;
-      value: { phone: string; createdAt: string };
-      errors: Record<string, never>;
-    }
-  | {
-      ok: false;
-      value: null;
-      errors: {
-        code?: string;
-        phone?: string;
-        request?: string;
-      };
-    };
+type LoginApiResult = ApiResult<{ phone: string; createdAt: string }>;
 
 export function LoginForm() {
   const router = useRouter();
@@ -62,7 +50,7 @@ export function LoginForm() {
       headers: { "content-type": "application/json" },
       method: "POST"
     });
-    const result = await response.json() as LoginApiResult;
+    const result = await parseApiResponse(response) as LoginApiResult;
 
     if (!result.ok) {
       setErrors({
@@ -73,7 +61,7 @@ export function LoginForm() {
       return;
     }
 
-    router.push(searchParams.get("next") ?? "/");
+    router.push(sanitizeNextPath(searchParams.get("next")));
   }
 
   return (

@@ -1,21 +1,10 @@
 import type { ParentNeedInput } from "@/features/parent-needs/parent-need";
+import { parseApiResponse } from "@/features/api/api-client";
 import type {
   PublicServerParentNeed,
   ServerParentNeed,
   ServerParentNeedFilters
 } from "@/server/parent-needs";
-
-type ApiResult<T> =
-  | {
-      ok: true;
-      value: T;
-      errors: Record<string, never>;
-    }
-  | {
-      ok: false;
-      value: null;
-      errors: Record<string, string>;
-    };
 
 function createCookieBackedHeaders() {
   return {
@@ -34,10 +23,6 @@ function buildQuery(params: Record<string, string | undefined>) {
 
   const query = searchParams.toString();
   return query ? `?${query}` : "";
-}
-
-async function parseApiResponse<T>(response: Response) {
-  return await response.json() as ApiResult<T>;
 }
 
 export async function listPublicParentNeedsFromApi({

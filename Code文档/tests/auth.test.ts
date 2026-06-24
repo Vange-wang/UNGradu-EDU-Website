@@ -4,6 +4,7 @@ import {
   createTestSession,
   isTestLoginAllowed,
   readTestSession,
+  sanitizeNextPath,
   validateTestLoginInput
 } from "@/features/auth/test-auth";
 import { createMemoryStorage } from "@/lib/memory-storage";
@@ -73,5 +74,22 @@ describe("isTestLoginAllowed", () => {
         nodeEnv: "production"
       })
     ).toBe(false);
+  });
+});
+
+describe("sanitizeNextPath", () => {
+  it("allows only same-site relative paths", () => {
+    expect(sanitizeNextPath("/profile")).toBe("/profile");
+    expect(sanitizeNextPath("/parent-needs/new?subject=%E6%95%B0%E5%AD%A6")).toBe(
+      "/parent-needs/new?subject=%E6%95%B0%E5%AD%A6"
+    );
+  });
+
+  it("falls back to home for external, protocol-relative, empty, or invalid next paths", () => {
+    expect(sanitizeNextPath("https://example.com")).toBe("/");
+    expect(sanitizeNextPath("//example.com")).toBe("/");
+    expect(sanitizeNextPath("")).toBe("/");
+    expect(sanitizeNextPath(null)).toBe("/");
+    expect(sanitizeNextPath("profile")).toBe("/");
   });
 });

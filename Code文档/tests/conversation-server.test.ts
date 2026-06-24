@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  backfillServerConversationIndexes,
   createOrReadServerConversationFromSource,
   listServerConversationMessages,
   listServerConversationsForUser,
@@ -28,16 +29,42 @@ function createFakeCollection(initialValues: Record<string, StoredDocument> = {}
           }
         };
       },
-      where(query: Record<string, unknown>) {
+      async get() {
         return {
+          data: Array.from(documents.entries()).map(([id, document]) => ({
+            ...document,
+            id
+          }))
+        };
+      },
+      where(query: Record<string, unknown>) {
+        if (Object.keys(query).length === 0) {
+          throw new Error("Full collection scans are not allowed in conversation queries.");
+        }
+
+        const matchesQuery = (document: StoredDocument) =>
+          Object.entries(query).every(([key, value]) => {
+            const documentValue = document[key];
+
+            return Array.isArray(documentValue)
+              ? documentValue.includes(value)
+              : documentValue === value;
+          });
+
+        return {
+          orderBy() {
+            return this;
+          },
+          skip() {
+            return this;
+          },
+          limit() {
+            return this;
+          },
           async get() {
             return {
               data: Array.from(documents.entries())
-                .filter(([, document]) =>
-                  Object.entries(query).every(
-                    ([key, value]) => document[key] === value
-                  )
-                )
+                .filter(([, document]) => matchesQuery(document))
                 .map(([id, document]) => ({ ...document, id }))
             };
           }
@@ -233,5 +260,120 @@ describe("server conversations interface", () => {
         authenticatedUserId: "stranger"
       })
     ).resolves.toEqual({ ok: true, value: [], errors: {} });
+  });
+
+  it("finds the current user's conversations when many unrelated historical conversations exist", async () => {
+    const dependencies = createDependencies();
+    Array.from({ length: 120 }).forEach((_, index) => {
+      dependencies.conversations.documents.set(`old-conversation-${index}`, {
+        id: `old-conversation-${index}`,
+        conversationUniqKey: `parent-need:old-source-${index}:old-a-${index}:old-b-${index}`,
+        participantKeys: [`old-a-${index}`, `old-b-${index}`],
+        participantUserIds: [`old-a-${index}`, `old-b-${index}`],
+        sourceId: `old-source-${index}`,
+        sourceKey: `parent-need:old-source-${index}`,
+        sourceType: "parent-need",
+        createdAt: `2026-06-21T00:${String(index).padStart(2, "0")}:00.000Z`
+      });
+    });
+
+    await createOrReadServerConversationFromSource({
+      ...dependencies,
+      authenticatedUserId: "tutor-a",
+      sourceId: "parent-need-a",
+      sourceType: "parent-need",
+      now: "2026-06-22T00:00:00.000Z"
+    });
+
+    await expect(
+      listServerConversationsForUser({
+        ...dependencies,
+        authenticatedUserId: "parent-a"
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      value: [
+        {
+          sourceId: "parent-need-a",
+          sourceType: "parent-need"
+        }
+      ]
+    });
+  });
+
+  it("reuses a legacy conversation that does not yet have index fields", async () => {
+    const dependencies = createDependencies();
+    dependencies.conversations.documents.set("legacy-conversation-a", {
+      id: "legacy-conversation-a",
+      participantUserIds: ["parent-a", "tutor-a"],
+      sourceId: "parent-need-a",
+      sourceType: "parent-need",
+      createdAt: "2026-06-21T00:00:00.000Z"
+    });
+
+    await expect(
+      createOrReadServerConversationFromSource({
+        ...dependencies,
+        authenticatedUserId: "tutor-a",
+        sourceId: "parent-need-a",
+        sourceType: "parent-need",
+        now: "2026-06-22T00:00:00.000Z"
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      value: {
+        id: "legacy-conversation-a",
+        sourceId: "parent-need-a",
+        sourceType: "parent-need"
+      }
+    });
+
+    expect(dependencies.conversations.documents.size).toBe(1);
+  });
+
+  it("backfills legacy conversation index fields before indexed list queries", async () => {
+    const dependencies = createDependencies();
+    dependencies.conversations.documents.set("legacy-conversation-a", {
+      id: "legacy-conversation-a",
+      participantUserIds: ["parent-a", "tutor-a"],
+      sourceId: "parent-need-a",
+      sourceType: "parent-need",
+      createdAt: "2026-06-21T00:00:00.000Z"
+    });
+
+    await expect(
+      listServerConversationsForUser({
+        ...dependencies,
+        authenticatedUserId: "parent-a"
+      })
+    ).resolves.toEqual({ ok: true, value: [], errors: {} });
+
+    await expect(
+      backfillServerConversationIndexes({
+        conversationsCollection: dependencies.conversationsCollection
+      })
+    ).resolves.toEqual({ scanned: 1, updated: 1 });
+
+    expect(dependencies.conversations.documents.get("legacy-conversation-a")).toMatchObject({
+      conversationUniqKey: "parent-need:parent-need-a:parent-a:tutor-a",
+      participantKeys: ["parent-a", "tutor-a"],
+      sourceKey: "parent-need:parent-need-a"
+    });
+
+    await expect(
+      listServerConversationsForUser({
+        ...dependencies,
+        authenticatedUserId: "parent-a"
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      value: [
+        {
+          id: "legacy-conversation-a",
+          sourceId: "parent-need-a",
+          sourceType: "parent-need"
+        }
+      ]
+    });
   });
 });

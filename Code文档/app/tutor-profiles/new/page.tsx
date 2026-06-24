@@ -45,7 +45,7 @@ function toggleValue(values: string[], value: string) {
 
 function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
   const [input, setInput] = useState<TutorProfileInput>(initialInput);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [saved, setSaved] = useState(false);
 
   function updateInput<K extends keyof TutorProfileInput>(
@@ -268,7 +268,9 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
             onChange={(event) => updateProofImages(event.target.files)}
             type="file"
           />
-          <span className="field-hint">当前仅保存文件名、类型和大小。</span>
+          <span className="field-hint">
+            当前仅保存文件名、类型和大小，不提供正式证明图片上传、查看或审核能力。
+          </span>
           <span className="error">{errors.proofImages}</span>
         </div>
 

@@ -50,7 +50,7 @@ function toggleValue(values: string[], value: string) {
 
 function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
   const [input, setInput] = useState<ParentNeedInput>(initialInput);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [saved, setSaved] = useState(false);
 
   function updateInput<K extends keyof ParentNeedInput>(

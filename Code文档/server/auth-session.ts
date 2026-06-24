@@ -13,6 +13,7 @@ export type AuthSession = {
 };
 
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+const MAX_AGE_MILLISECONDS = MAX_AGE_SECONDS * 1000;
 
 function base64UrlEncode(value: string) {
   return Buffer.from(value, "utf8").toString("base64url");
@@ -70,10 +71,14 @@ function verifySignature(expected: string, actual: string) {
 }
 
 export function createAuthSessionCookie({
+  createdAt,
   env,
+  now = new Date(),
   phone
 }: {
+  createdAt?: string;
   env: AuthSessionEnv;
+  now?: Date;
   phone: string;
 }) {
   const secret = readSessionSecret(env);
@@ -84,7 +89,7 @@ export function createAuthSessionCookie({
 
   const session: AuthSession = {
     phone: phone.trim(),
-    createdAt: new Date().toISOString()
+    createdAt: createdAt ?? now.toISOString()
   };
   const payload = base64UrlEncode(JSON.stringify(session));
   const signature = signPayload(payload, secret);
@@ -99,7 +104,8 @@ export function clearAuthSessionCookie() {
 
 export function readAuthSessionFromRequest(
   request: Request,
-  env: AuthSessionEnv
+  env: AuthSessionEnv,
+  options: { now?: Date } = {}
 ) {
   const secret = readSessionSecret(env);
 
@@ -129,6 +135,17 @@ export function readAuthSessionFromRequest(
     const session = JSON.parse(base64UrlDecode(payload)) as Partial<AuthSession>;
 
     if (!session.phone?.trim() || !session.createdAt?.trim()) {
+      return null;
+    }
+
+    const createdAtTime = new Date(session.createdAt).getTime();
+    const nowTime = (options.now ?? new Date()).getTime();
+
+    if (
+      !Number.isFinite(createdAtTime) ||
+      createdAtTime > nowTime ||
+      nowTime - createdAtTime > MAX_AGE_MILLISECONDS
+    ) {
       return null;
     }
 

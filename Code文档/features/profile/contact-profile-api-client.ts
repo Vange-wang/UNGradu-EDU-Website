@@ -1,19 +1,7 @@
 import type { ContactProfileInput } from "@/features/profile/contact-profile";
+import { parseApiResponse, type ApiResult } from "@/features/api/api-client";
 
-type ContactProfileApiResult =
-  | {
-      ok: true;
-      value: ContactProfileInput;
-      errors: Record<string, never>;
-    }
-  | {
-      ok: false;
-      value: null;
-      errors: {
-        request?: string;
-        phone?: string;
-      };
-    };
+type ContactProfileApiResult = ApiResult<ContactProfileInput>;
 
 type ContactProfileApiClientInput = {
   currentUserPhone: string;
@@ -26,10 +14,6 @@ function createCookieBackedHeaders() {
   };
 }
 
-async function parseContactProfileResponse(response: Response) {
-  return await response.json() as ContactProfileApiResult;
-}
-
 export async function readContactProfileFromApi({
   fetcher = fetch
 }: ContactProfileApiClientInput) {
@@ -39,7 +23,7 @@ export async function readContactProfileFromApi({
     method: "GET"
   });
 
-  return parseContactProfileResponse(response);
+  return parseApiResponse<ContactProfileInput>(response) as Promise<ContactProfileApiResult>;
 }
 
 export async function saveContactProfileToApi({
@@ -53,5 +37,5 @@ export async function saveContactProfileToApi({
     method: "PUT"
   });
 
-  return parseContactProfileResponse(response);
+  return parseApiResponse<ContactProfileInput>(response) as Promise<ContactProfileApiResult>;
 }

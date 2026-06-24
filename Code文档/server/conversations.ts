@@ -25,9 +25,12 @@ type SourceDocument = {
 };
 
 type ConversationDocument = {
+  conversationUniqKey?: string;
   id?: string;
+  participantKeys?: string[];
   participantUserIds?: string[];
   sourceId?: string;
+  sourceKey?: string;
   sourceType?: ServerConversationSourceType;
   createdAt?: string;
 };
@@ -45,7 +48,29 @@ type DocumentCollection<T extends Record<string, unknown>> = {
     get: () => Promise<{ data?: unknown[] }>;
     set: (data: T) => Promise<unknown>;
   };
+  get?: () => Promise<{ data?: unknown[] }>;
   where: (query: Record<string, unknown>) => {
+    orderBy?: (field: string, direction: "asc" | "desc") => {
+      skip?: (offset: number) => {
+        limit?: (limit: number) => {
+          get: () => Promise<{ data?: unknown[] }>;
+        };
+        get: () => Promise<{ data?: unknown[] }>;
+      };
+      limit?: (limit: number) => {
+        get: () => Promise<{ data?: unknown[] }>;
+      };
+      get: () => Promise<{ data?: unknown[] }>;
+    };
+    skip?: (offset: number) => {
+      limit?: (limit: number) => {
+        get: () => Promise<{ data?: unknown[] }>;
+      };
+      get: () => Promise<{ data?: unknown[] }>;
+    };
+    limit?: (limit: number) => {
+      get: () => Promise<{ data?: unknown[] }>;
+    };
     get: () => Promise<{ data?: unknown[] }>;
   };
 };
@@ -79,6 +104,50 @@ function createOpaqueId(prefix: string) {
   }
 
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function createConversationUniqKey({
+  participants,
+  sourceId,
+  sourceType
+}: {
+  participants: string[];
+  sourceId: string;
+  sourceType: ServerConversationSourceType;
+}) {
+  return `${sourceType}:${sourceId}:${participants.join(":")}`;
+}
+
+function createSourceKey({
+  sourceId,
+  sourceType
+}: {
+  sourceId: string;
+  sourceType: ServerConversationSourceType;
+}) {
+  return `${sourceType}:${sourceId}`;
+}
+
+function createConversationIndexFields({
+  participantUserIds,
+  sourceId,
+  sourceType
+}: {
+  participantUserIds: string[];
+  sourceId: string;
+  sourceType: ServerConversationSourceType;
+}) {
+  const participants = participantUserIds.map(normalizeUserId).filter(Boolean).sort();
+
+  return {
+    conversationUniqKey: createConversationUniqKey({
+      participants,
+      sourceId,
+      sourceType
+    }),
+    participantKeys: participants,
+    sourceKey: createSourceKey({ sourceId, sourceType })
+  };
 }
 
 function createFailure(message: string): Failure {
@@ -189,8 +258,70 @@ async function readSourceOwnerUserId({
     : null;
 }
 
-async function readAllConversations(conversationsCollection: ConversationDependencies["conversationsCollection"]) {
-  const result = await conversationsCollection.where({}).get();
+async function getQueryResult(query: ReturnType<ConversationDependencies["conversationsCollection"]["where"]>) {
+  const orderedQuery = query.orderBy?.("createdAt", "desc") ?? query;
+  const limitedQuery = orderedQuery.limit?.(100) ?? orderedQuery;
+
+  return limitedQuery.get();
+}
+
+async function readConversationsByUniqueKey({
+  conversationUniqKey,
+  conversationsCollection
+}: Pick<ConversationDependencies, "conversationsCollection"> & {
+  conversationUniqKey: string;
+}) {
+  const result = await getQueryResult(
+    conversationsCollection.where({ conversationUniqKey })
+  );
+
+  return (result.data ?? [])
+    .map((conversation) => normalizeConversation(conversation as ConversationDocument))
+    .filter((conversation): conversation is NonNullable<typeof conversation> =>
+      Boolean(conversation)
+    );
+}
+
+async function readLegacyConversationsBySource({
+  conversationsCollection,
+  participantUserIds,
+  sourceId,
+  sourceType
+}: Pick<ConversationDependencies, "conversationsCollection"> & {
+  participantUserIds: string[];
+  sourceId: string;
+  sourceType: ServerConversationSourceType;
+}) {
+  const expectedParticipants = participantUserIds.map(normalizeUserId).filter(Boolean).sort();
+  const result = await getQueryResult(conversationsCollection.where({ sourceId }));
+
+  return (result.data ?? [])
+    .map((conversation) => conversation as ConversationDocument)
+    .filter((conversation) => {
+      const normalizedConversation = normalizeConversation(conversation);
+
+      if (!normalizedConversation || normalizedConversation.sourceType !== sourceType) {
+        return false;
+      }
+
+      const participants = normalizedConversation.participantUserIds
+        .map(normalizeUserId)
+        .filter(Boolean)
+        .sort();
+
+      return participants.join(":") === expectedParticipants.join(":");
+    });
+}
+
+async function readConversationsByParticipant({
+  conversationsCollection,
+  participantKey
+}: Pick<ConversationDependencies, "conversationsCollection"> & {
+  participantKey: string;
+}) {
+  const result = await getQueryResult(
+    conversationsCollection.where({ participantKeys: participantKey })
+  );
 
   return (result.data ?? [])
     .map((conversation) => normalizeConversation(conversation as ConversationDocument))
@@ -211,6 +342,69 @@ async function readConversation({
   return conversation
     ? normalizeConversation({ ...conversation, id: conversationId })
     : null;
+}
+
+async function writeBackfilledConversationIndexes({
+  conversation,
+  conversationsCollection
+}: Pick<ConversationDependencies, "conversationsCollection"> & {
+  conversation: ConversationDocument;
+}) {
+  const normalizedConversation = normalizeConversation(conversation);
+
+  if (!normalizedConversation) {
+    return false;
+  }
+
+  const indexFields = createConversationIndexFields({
+    participantUserIds: normalizedConversation.participantUserIds,
+    sourceId: normalizedConversation.sourceId,
+    sourceType: normalizedConversation.sourceType
+  });
+
+  if (
+    conversation.conversationUniqKey === indexFields.conversationUniqKey &&
+    conversation.sourceKey === indexFields.sourceKey &&
+    conversation.participantKeys?.join(":") === indexFields.participantKeys.join(":")
+  ) {
+    return false;
+  }
+
+  await conversationsCollection.doc(normalizedConversation.id).set({
+    ...conversation,
+    ...indexFields,
+    id: normalizedConversation.id,
+    participantUserIds: normalizedConversation.participantUserIds,
+    sourceId: normalizedConversation.sourceId,
+    sourceType: normalizedConversation.sourceType,
+    createdAt: normalizedConversation.createdAt
+  });
+
+  return true;
+}
+
+export async function backfillServerConversationIndexes({
+  conversationsCollection
+}: Pick<ConversationDependencies, "conversationsCollection">) {
+  const result = await conversationsCollection.get?.();
+  const conversations = result?.data ?? [];
+  let updated = 0;
+
+  for (const conversation of conversations) {
+    const wasUpdated = await writeBackfilledConversationIndexes({
+      conversation: conversation as ConversationDocument,
+      conversationsCollection
+    });
+
+    if (wasUpdated) {
+      updated += 1;
+    }
+  }
+
+  return {
+    scanned: conversations.length,
+    updated
+  };
 }
 
 export async function createOrReadServerConversationFromSource({
@@ -249,27 +443,45 @@ export async function createOrReadServerConversationFromSource({
   }
 
   const participants = [currentUserId, ownerUserId].sort();
-  const existingConversation = (await readAllConversations(conversationsCollection))
-    .find((conversation) =>
-      conversation.sourceId === sourceId &&
-      conversation.sourceType === sourceType &&
-      conversation.participantUserIds.every((participantUserId) =>
-        participants.includes(participantUserId)
-      )
-    );
+  const conversationUniqKey = createConversationUniqKey({
+    participants,
+    sourceId,
+    sourceType
+  });
+  const existingConversation = (await readConversationsByUniqueKey({
+    conversationUniqKey,
+    conversationsCollection
+  }))[0] ?? (await readLegacyConversationsBySource({
+    conversationsCollection,
+    participantUserIds: participants,
+    sourceId,
+    sourceType
+  }))[0];
 
-  if (existingConversation) {
+  const normalizedExistingConversation = existingConversation
+    ? normalizeConversation(existingConversation)
+    : null;
+
+  if (normalizedExistingConversation) {
+    await writeBackfilledConversationIndexes({
+      conversation: existingConversation,
+      conversationsCollection
+    });
+
     return {
       ok: true,
-      value: toConversationView(existingConversation),
+      value: toConversationView(normalizedExistingConversation),
       errors: {}
     };
   }
 
   const conversation = {
+    conversationUniqKey,
     id: createOpaqueId("conversation"),
+    participantKeys: participants,
     participantUserIds: participants,
     sourceId,
+    sourceKey: createSourceKey({ sourceId, sourceType }),
     sourceType,
     createdAt: now
   };
@@ -320,7 +532,10 @@ export async function listServerConversationsForUser({
     return createAuthFailure();
   }
 
-  const conversations = (await readAllConversations(conversationsCollection))
+  const conversations = (await readConversationsByParticipant({
+    conversationsCollection,
+    participantKey: currentUserId
+  }))
     .filter((conversation) => isParticipant(conversation, currentUserId))
     .sort(
       (left, right) =>

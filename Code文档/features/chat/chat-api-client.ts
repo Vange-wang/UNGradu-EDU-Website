@@ -1,22 +1,11 @@
 import type { ContactProfileInput } from "@/features/profile/contact-profile";
+import { parseApiResponse } from "@/features/api/api-client";
 import type { ServerContactExchangeRequestView } from "@/server/contact-exchange";
 import type {
   ServerConversationMessageView,
   ServerConversationSourceType,
   ServerConversationView
 } from "@/server/conversations";
-
-type ApiResult<T> =
-  | {
-      ok: true;
-      value: T;
-      errors: Record<string, never>;
-    }
-  | {
-      ok: false;
-      value: null;
-      errors: { request?: string };
-    };
 
 type ChatApiClientInput = {
   currentUserPhone: string;
@@ -32,10 +21,6 @@ function createCookieBackedHeaders() {
   return {
     "content-type": "application/json"
   };
-}
-
-async function parseApiResponse<T>(response: Response) {
-  return await response.json() as ApiResult<T>;
 }
 
 function encodePathSegment(value: string) {

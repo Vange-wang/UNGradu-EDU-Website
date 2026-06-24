@@ -179,6 +179,8 @@ Remove-Item Env:\M5_BASE_URL
 - `POST /api/auth/logout`：清除服务端签名 Cookie。
 - 生产边界：`APP_ENV=production` 时，即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true` 或 `M5_ENABLE_HOSTED_TEST_LOGIN=true`，也拒绝创建临时测试登录 Cookie。
 - 安全边界：业务 API 不再依赖浏览器 localStorage 或前端变量传入当前用户身份；前端 API client 默认只携带同源 Cookie。
+- 发布前收口：读取签名 Cookie 时会进行服务端硬过期校验；超过 Cookie 有效期、`createdAt` 非法或异常未来时间的会话会被拒绝。
+- 用户入口：个人页提供可见“退出登录”按钮，调用 `/api/auth/logout` 后回到首页。
 
 ### `/api/contact-profile`
 
@@ -270,6 +272,28 @@ Remove-Item Env:\M5_BASE_URL
 - 缺少临时身份返回 401；生产环境始终拒绝 `x-ungradu-test-user-phone` 临时测试登录身份。
 - 写接口收到 malformed JSON 时统一返回 400 和 `Invalid JSON body.`，避免坏请求在运行时抛出 500。
 - 服务端状态码不再依赖中文错误文案判断，联系方式交换和会话越权保持 403，表单校验类错误保持 400。
+- 前端 API client 统一通过 `features/api/api-client.ts` 解析响应；非 JSON 响应、HTML 错误页、网络失败或非 2xx JSON 错误会转换为可读 `request` 错误，避免页面因 `response.json()` 解析异常直接崩溃。
+
+### MVP 发布前收口
+
+本阶段新增发布前准备文档：
+
+- `规划文档/里程碑文档/发布前准备/MVP产品说明.md`
+- `规划文档/里程碑文档/发布前准备/生产环境变量清单.md`
+- `规划文档/里程碑文档/发布前准备/测试账号管理说明.md`
+- `规划文档/里程碑文档/发布前准备/上线回滚预案.md`
+- `规划文档/里程碑文档/发布前准备/正式生产禁用测试登录确认.md`
+- `规划文档/里程碑文档/发布前准备/架构收口问题修复对照表.md`
+- `规划文档/里程碑文档/发布前准备/发布前浏览器冒烟验收清单.md`
+- `规划文档/产品迭代/2026-06-24-vnext-性能优化与技术债清单.md`
+
+生产发布前仍必须补齐真实生产环境验证证据。M5 测试托管通过不等同于生产已发布。
+
+会话索引收口：
+
+- 新写入会话会保存 `conversationUniqKey`、`participantKeys` 和 `sourceKey`，列表读取按当前用户 `participantKeys` 查询。
+- 重复发起聊天时，如果旧会话缺少新索引字段，服务端会按 `sourceId`、`sourceType` 和双方 `participantUserIds` 兼容复用旧会话，并补写索引字段。
+- 已存在的 CloudBase `conversations` 旧数据可在发布前执行 `npm run m5:backfill:conversations` 进行一次性索引补齐。脚本只输出环境 ID、脱敏 SecretId 和扫描/更新数量，不输出会话内容或真实密钥。
 
 ## 开发前检查清单
 

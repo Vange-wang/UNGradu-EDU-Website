@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { RequireTestSession } from "@/features/auth/require-test-session";
+import { LogoutButton } from "@/features/auth/logout-button";
 
 const profileLinks = [
   ["联系方式管理", "/profile/contact", "维护用于双方授权交换的手机号和微信号。"],
@@ -30,6 +31,8 @@ export default function ProfilePage() {
                 </Link>
               ))}
             </div>
+
+            <LogoutButton />
           </section>
         )}
       </RequireTestSession>

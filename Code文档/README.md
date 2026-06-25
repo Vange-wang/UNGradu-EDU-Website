@@ -112,6 +112,7 @@
 - 代码检查：`npm run lint`
 - 类型检查：`npm run typecheck`
 - 测试：`npm test`
+- 正式生产上线预检：`npm run release:production:preflight`
 
 当前技术栈：
 
@@ -150,6 +151,13 @@ M5 发布前验证命令：
 - `npm run m5:http:load`：通过 HTTP 对真实 API route 跑 50 虚拟用户基础压测。默认目标为 `http://127.0.0.1:3000`，可通过 `M5_BASE_URL=https://your-deploy.example.com npm run m5:http:load` 指向部署地址，并输出请求数、成功率、错误率和 avg/p95/max 延迟。
 - `npm run m5:hosted:verify`：只用于 CloudBase 或等价托管环境复验。必须显式提供非 localhost 的 `M5_BASE_URL`，脚本会连续执行部署地址 HTTP flow 和 50 虚拟用户 load。
 
+正式生产上线预检命令：
+
+- `npm run release:production:preflight`：只做仓库内无密钥预检，检查生产必填环境变量是否存在，确认 `APP_ENV=production` 主闸下 `/api/auth/test-login`、`x-ungradu-test-user-phone` 和前端测试登录入口均保持拒绝或隐藏。
+- 该命令不会连接 CloudBase，不会读取真实数据，不会打印 `AUTH_SESSION_SECRET`、`TENCENTCLOUD_SECRETID` 或 `TENCENTCLOUD_SECRETKEY` 的值。
+- 如果本地模拟时故意设置 `M5_ENABLE_HOSTED_TEST_LOGIN=true` 或 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，命令会输出警告，同时仍验证这些误配不能启用生产测试登录。真实生产配置中必须移除这两个测试开关。
+- 该命令不能替代正式生产 URL 下的生产冒烟、生产禁用测试登录确认、生产登录方案确认或回滚演练。
+
 如果部署平台以 `NODE_ENV=production` 运行隔离测试环境，HTTP 验收脚本需要服务端配置：
 
 - `APP_ENV=test`
@@ -157,6 +165,28 @@ M5 发布前验证命令：
 - `AUTH_SESSION_SECRET=<足够长的服务端随机值>`
 
 正式生产环境必须配置 `APP_ENV=production`，此时即使误配 `M5_ENABLE_HOSTED_TEST_LOGIN=true` 或 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，服务端仍拒绝临时测试登录。
+
+正式生产预检示例：
+
+```powershell
+$env:APP_ENV='production'
+$env:AUTH_SESSION_SECRET='replace-with-production-strong-random-secret'
+$env:CLOUDBASE_ENV_ID='replace-with-production-cloudbase-env-id'
+$env:TENCENTCLOUD_SECRETID='replace-with-production-secret-id'
+$env:TENCENTCLOUD_SECRETKEY='replace-with-production-secret-key'
+$env:M5_ENABLE_HOSTED_TEST_LOGIN='true'
+$env:NEXT_PUBLIC_ALLOW_TEST_LOGIN='true'
+npm run release:production:preflight
+Remove-Item Env:\APP_ENV
+Remove-Item Env:\AUTH_SESSION_SECRET
+Remove-Item Env:\CLOUDBASE_ENV_ID
+Remove-Item Env:\TENCENTCLOUD_SECRETID
+Remove-Item Env:\TENCENTCLOUD_SECRETKEY
+Remove-Item Env:\M5_ENABLE_HOSTED_TEST_LOGIN
+Remove-Item Env:\NEXT_PUBLIC_ALLOW_TEST_LOGIN
+```
+
+上述示例只用于验证生产误配测试开关不会打开测试登录；正式生产环境不得保留 `M5_ENABLE_HOSTED_TEST_LOGIN=true` 或 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`。
 
 托管环境复验示例：
 

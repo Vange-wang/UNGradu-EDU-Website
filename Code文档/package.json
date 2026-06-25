@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/clean-next-build.mjs && next build",
     "cloudbase:check": "node scripts/check-cloudbase-connection.mjs",
     "m5:cloudbase:collections": "node scripts/check-m5-cloudbase-collections.mjs",
     "m5:backfill:conversations": "node scripts/backfill-conversation-indexes.mjs",
@@ -15,6 +15,7 @@
     "m5:hosted:verify": "node scripts/m5-hosted-verify.mjs",
     "m5:load": "vitest run m5-server-flow-and-load",
     "lint": "eslint . --max-warnings=0",
+    "release:production:preflight": "node scripts/production-readiness-check.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

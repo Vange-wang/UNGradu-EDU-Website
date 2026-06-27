@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { createSmsAuthApiHandlers } from "@/server/sms-auth-api";
 import { readAuthSessionFromRequest } from "@/server/auth-session";
 import { createContactProfileApiHandlers } from "@/server/contact-profile-api";
+import { createEmailAuthApiHandlers } from "@/server/email-auth-api";
 
 type StoredDocument = Record<string, unknown>;
 
@@ -38,32 +38,33 @@ function createHandlers(options: {
 } = {}) {
   const sentCodes = options.sentCodes ?? [];
 
-  return createSmsAuthApiHandlers({
+  return createEmailAuthApiHandlers({
     codeGenerator: () => options.code ?? "123456",
-    env: {
-      APP_ENV: "production",
-      AUTH_SESSION_SECRET: "sms-auth-test-secret",
-      NODE_ENV: "production"
-    },
-    now: () => options.now ?? new Date("2026-06-27T10:00:00.000Z"),
-    smsCodeCollection: createFakeCollection(),
-    smsDelivery: {
+    emailCodeCollection: createFakeCollection(),
+    emailDelivery: {
       async send({ code }) {
         sentCodes.push(code);
         return { ok: true };
       }
     },
+    env: {
+      APP_ENV: "production",
+      AUTH_SESSION_SECRET: "email-auth-test-secret",
+      EMAIL_CODE_SECRET: "email-code-test-secret",
+      NODE_ENV: "production"
+    },
+    now: () => options.now ?? new Date("2026-06-27T10:00:00.000Z"),
     userCollection: createFakeCollection()
   });
 }
 
 async function sendCode(
-  handlers: ReturnType<typeof createSmsAuthApiHandlers>,
-  phone = "13800138000"
+  handlers: ReturnType<typeof createEmailAuthApiHandlers>,
+  email = "student@example.com"
 ) {
   return handlers.POST_SEND_CODE(
-    new Request("http://localhost/api/auth/sms/send-code", {
-      body: JSON.stringify({ phone }),
+    new Request("http://localhost/api/auth/email/send-code", {
+      body: JSON.stringify({ email }),
       headers: { "content-type": "application/json" },
       method: "POST"
     })
@@ -71,32 +72,32 @@ async function sendCode(
 }
 
 async function login(
-  handlers: ReturnType<typeof createSmsAuthApiHandlers>,
+  handlers: ReturnType<typeof createEmailAuthApiHandlers>,
   code = "123456",
-  phone = "13800138000"
+  email = "student@example.com"
 ) {
   return handlers.POST_LOGIN(
-    new Request("http://localhost/api/auth/sms/login", {
-      body: JSON.stringify({ code, phone }),
+    new Request("http://localhost/api/auth/email/login", {
+      body: JSON.stringify({ code, email }),
       headers: { "content-type": "application/json" },
       method: "POST"
     })
   );
 }
 
-describe("SMS auth API handlers", () => {
-  it("rejects invalid phone numbers before sending a login code", async () => {
+describe("email auth API handlers", () => {
+  it("rejects invalid email addresses before sending a login code", async () => {
     const handlers = createHandlers();
-    const response = await sendCode(handlers, "123");
+    const response = await sendCode(handlers, "not-email");
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       ok: false,
-      errors: { phone: "请填写有效的 11 位手机号" }
+      errors: { email: "请填写有效的邮箱地址" }
     });
   });
 
-  it("sends a one-time code without returning the code to the client", async () => {
+  it("sends a one-time email code without returning the code or full email", async () => {
     const sentCodes: string[] = [];
     const handlers = createHandlers({ sentCodes });
 
@@ -106,10 +107,10 @@ describe("SMS auth API handlers", () => {
     expect(response.status).toBe(200);
     expect(sentCodes).toEqual(["123456"]);
     expect(JSON.stringify(body)).not.toContain("123456");
-    expect(JSON.stringify(body)).not.toContain("13800138000");
+    expect(JSON.stringify(body)).not.toContain("student@example.com");
     expect(body).toMatchObject({
       ok: true,
-      value: { phoneMasked: "138****8000" }
+      value: { emailMasked: "s***t@example.com" }
     });
   });
 
@@ -123,7 +124,7 @@ describe("SMS auth API handlers", () => {
     expect(sentCodes[0]).not.toBe("000000");
   });
 
-  it("rate limits repeated sends to the same phone", async () => {
+  it("rate limits repeated sends to the same email", async () => {
     const handlers = createHandlers();
 
     const first = await sendCode(handlers);
@@ -157,40 +158,40 @@ describe("SMS auth API handlers", () => {
 
   it("rejects expired codes", async () => {
     const collections = {
-      smsCodeCollection: createFakeCollection(),
+      emailCodeCollection: createFakeCollection(),
       userCollection: createFakeCollection()
     };
-    const sentCodes: string[] = [];
-    const firstHandlers = createSmsAuthApiHandlers({
+    const firstHandlers = createEmailAuthApiHandlers({
       ...collections,
       codeGenerator: () => "123456",
-      env: {
-        APP_ENV: "production",
-        AUTH_SESSION_SECRET: "sms-auth-test-secret",
-        NODE_ENV: "production"
-      },
-      now: () => new Date("2026-06-27T10:00:00.000Z"),
-      smsDelivery: {
-        async send({ code }) {
-          sentCodes.push(code);
-          return { ok: true };
-        }
-      }
-    });
-    const laterHandlers = createSmsAuthApiHandlers({
-      ...collections,
-      codeGenerator: () => "123456",
-      env: {
-        APP_ENV: "production",
-        AUTH_SESSION_SECRET: "sms-auth-test-secret",
-        NODE_ENV: "production"
-      },
-      now: () => new Date("2026-06-27T10:06:00.000Z"),
-      smsDelivery: {
+      emailDelivery: {
         async send() {
           return { ok: true };
         }
-      }
+      },
+      env: {
+        APP_ENV: "production",
+        AUTH_SESSION_SECRET: "email-auth-test-secret",
+        EMAIL_CODE_SECRET: "email-code-test-secret",
+        NODE_ENV: "production"
+      },
+      now: () => new Date("2026-06-27T10:00:00.000Z")
+    });
+    const laterHandlers = createEmailAuthApiHandlers({
+      ...collections,
+      codeGenerator: () => "123456",
+      emailDelivery: {
+        async send() {
+          return { ok: true };
+        }
+      },
+      env: {
+        APP_ENV: "production",
+        AUTH_SESSION_SECRET: "email-auth-test-secret",
+        EMAIL_CODE_SECRET: "email-code-test-secret",
+        NODE_ENV: "production"
+      },
+      now: () => new Date("2026-06-27T10:06:00.000Z")
     });
 
     await sendCode(firstHandlers);
@@ -205,23 +206,24 @@ describe("SMS auth API handlers", () => {
 
   it("creates a new account on first login, reuses it on later login, and prevents code reuse", async () => {
     const collections = {
-      smsCodeCollection: createFakeCollection(),
+      emailCodeCollection: createFakeCollection(),
       userCollection: createFakeCollection()
     };
-    const handlers = createSmsAuthApiHandlers({
+    const handlers = createEmailAuthApiHandlers({
       ...collections,
       codeGenerator: () => "123456",
-      env: {
-        APP_ENV: "production",
-        AUTH_SESSION_SECRET: "sms-auth-test-secret",
-        NODE_ENV: "production"
-      },
-      now: () => new Date("2026-06-27T10:00:00.000Z"),
-      smsDelivery: {
+      emailDelivery: {
         async send() {
           return { ok: true };
         }
-      }
+      },
+      env: {
+        APP_ENV: "production",
+        AUTH_SESSION_SECRET: "email-auth-test-secret",
+        EMAIL_CODE_SECRET: "email-code-test-secret",
+        NODE_ENV: "production"
+      },
+      now: () => new Date("2026-06-27T10:00:00.000Z")
     });
 
     await sendCode(handlers);
@@ -232,29 +234,30 @@ describe("SMS auth API handlers", () => {
     expect(firstLogin.status).toBe(200);
     expect(firstLogin.headers.get("set-cookie")).toContain("ungradu_auth_session=");
     expect(firstBody.value).toMatchObject({
-      phoneMasked: "138****8000"
+      emailMasked: "s***t@example.com"
     });
-    expect(firstBody.value.userId).toMatch(/^user_/);
+    expect(firstBody.value.userId).toMatch(/^email_/);
     expect(reused.status).toBe(400);
     await expect(reused.json()).resolves.toMatchObject({
       ok: false,
       errors: { request: "验证码已使用，请重新获取" }
     });
 
-    const secondHandlers = createSmsAuthApiHandlers({
+    const secondHandlers = createEmailAuthApiHandlers({
       ...collections,
       codeGenerator: () => "234567",
-      env: {
-        APP_ENV: "production",
-        AUTH_SESSION_SECRET: "sms-auth-test-secret",
-        NODE_ENV: "production"
-      },
-      now: () => new Date("2026-06-27T10:02:00.000Z"),
-      smsDelivery: {
+      emailDelivery: {
         async send() {
           return { ok: true };
         }
-      }
+      },
+      env: {
+        APP_ENV: "production",
+        AUTH_SESSION_SECRET: "email-auth-test-secret",
+        EMAIL_CODE_SECRET: "email-code-test-secret",
+        NODE_ENV: "production"
+      },
+      now: () => new Date("2026-06-27T10:02:00.000Z")
     });
 
     await sendCode(secondHandlers);
@@ -275,14 +278,14 @@ describe("SMS auth API handlers", () => {
     const session = readAuthSessionFromRequest(
       new Request("http://localhost/api/auth/session", { headers: { cookie } }),
       {
-        AUTH_SESSION_SECRET: "sms-auth-test-secret",
+        AUTH_SESSION_SECRET: "email-auth-test-secret",
         NODE_ENV: "production"
       }
     );
     const contactProfile = createContactProfileApiHandlers({
       collection: createFakeCollection(),
       env: {
-        AUTH_SESSION_SECRET: "sms-auth-test-secret",
+        AUTH_SESSION_SECRET: "email-auth-test-secret",
         NODE_ENV: "production"
       }
     });
@@ -290,11 +293,12 @@ describe("SMS auth API handlers", () => {
       new Request("http://localhost/api/contact-profile")
     );
 
-    expect(session?.phone).toBe("13800138000");
+    expect(session?.emailMasked).toBe("s***t@example.com");
+    expect(session?.userId).toMatch(/^email_/);
     expect(privateApiAfterLogout.status).toBe(401);
   });
 
-  it("rejects the old fixed test code on the SMS login endpoint in production", async () => {
+  it("rejects the old fixed test code on the email login endpoint in production", async () => {
     const handlers = createHandlers();
     await sendCode(handlers);
 
@@ -303,7 +307,34 @@ describe("SMS auth API handlers", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       ok: false,
-      errors: { code: "请填写短信验证码" }
+      errors: { code: "请填写邮箱验证码" }
+    });
+  });
+
+  it("returns a clear production configuration failure when email delivery is missing", async () => {
+    const handlers = createEmailAuthApiHandlers({
+      codeGenerator: () => "123456",
+      emailCodeCollection: createFakeCollection(),
+      emailDelivery: {
+        async send() {
+          return { ok: false, error: "Email provider is not configured." };
+        }
+      },
+      env: {
+        APP_ENV: "production",
+        AUTH_SESSION_SECRET: "email-auth-test-secret",
+        EMAIL_CODE_SECRET: "email-code-test-secret",
+        NODE_ENV: "production"
+      },
+      userCollection: createFakeCollection()
+    });
+
+    const response = await sendCode(handlers);
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      errors: { request: "邮箱验证码发送失败，请稍后再试" }
     });
   });
 });

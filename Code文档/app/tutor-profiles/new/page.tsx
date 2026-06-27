@@ -288,7 +288,7 @@ export default function NewTutorProfilePage() {
   return (
     <div className="page">
       <RequireTestSession>
-        {(session) => <NewTutorProfileForm ownerPhone={session.phone} />}
+        {(session) => <NewTutorProfileForm ownerPhone={session.userId ?? session.phone ?? ""} />}
       </RequireTestSession>
     </div>
   );

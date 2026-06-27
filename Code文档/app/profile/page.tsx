@@ -20,7 +20,7 @@ export default function ProfilePage() {
           <section className="content-panel">
             <h1 className="section-title">个人页面</h1>
             <p>
-              当前账号：{session.phone}。同一个账号可同时使用家长端和大学生端能力。
+              当前账号：{session.emailMasked ?? session.phone}。同一个账号可同时使用家长端和大学生端能力。
             </p>
 
             <div className="link-list">

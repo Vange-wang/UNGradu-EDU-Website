@@ -23,8 +23,10 @@ type TestLoginFailure = {
 export type TestLoginValidation = TestLoginSuccess | TestLoginFailure;
 
 export type TestSession = {
-  phone: string;
   createdAt: string;
+  emailMasked?: string;
+  phone?: string;
+  userId?: string;
 };
 
 const TEST_SESSION_KEY = "ungradu.testSession";
@@ -113,7 +115,7 @@ export function readTestSession(storage: KeyValueStorage): TestSession | null {
   try {
     const session = JSON.parse(rawSession) as TestSession;
 
-    if (!session.phone || !session.createdAt) {
+    if ((!session.phone && !session.userId) || !session.createdAt) {
       return null;
     }
 

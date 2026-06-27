@@ -8,8 +8,10 @@ export type AuthSessionEnv = {
 };
 
 export type AuthSession = {
-  phone: string;
+  emailMasked?: string;
   createdAt: string;
+  phone?: string;
+  userId?: string;
 };
 
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
@@ -72,14 +74,18 @@ function verifySignature(expected: string, actual: string) {
 
 export function createAuthSessionCookie({
   createdAt,
+  emailMasked,
   env,
   now = new Date(),
-  phone
+  phone,
+  userId
 }: {
   createdAt?: string;
+  emailMasked?: string;
   env: AuthSessionEnv;
   now?: Date;
-  phone: string;
+  phone?: string;
+  userId?: string;
 }) {
   const secret = readSessionSecret(env);
 
@@ -88,9 +94,16 @@ export function createAuthSessionCookie({
   }
 
   const session: AuthSession = {
-    phone: phone.trim(),
-    createdAt: createdAt ?? now.toISOString()
+    createdAt: createdAt ?? now.toISOString(),
+    emailMasked: emailMasked?.trim() || undefined,
+    phone: phone?.trim() || undefined,
+    userId: userId?.trim() || phone?.trim() || undefined
   };
+
+  if (!session.userId) {
+    return null;
+  }
+
   const payload = base64UrlEncode(JSON.stringify(session));
   const signature = signPayload(payload, secret);
   const secure = env.NODE_ENV === "production" ? "; Secure" : "";
@@ -134,7 +147,10 @@ export function readAuthSessionFromRequest(
   try {
     const session = JSON.parse(base64UrlDecode(payload)) as Partial<AuthSession>;
 
-    if (!session.phone?.trim() || !session.createdAt?.trim()) {
+    if (
+      !session.createdAt?.trim() ||
+      (!session.userId?.trim() && !session.phone?.trim())
+    ) {
       return null;
     }
 
@@ -150,8 +166,10 @@ export function readAuthSessionFromRequest(
     }
 
     return {
-      phone: session.phone.trim(),
-      createdAt: session.createdAt
+      createdAt: session.createdAt,
+      emailMasked: session.emailMasked?.trim(),
+      phone: session.phone?.trim(),
+      userId: session.userId?.trim() || session.phone?.trim()
     };
   } catch {
     return null;

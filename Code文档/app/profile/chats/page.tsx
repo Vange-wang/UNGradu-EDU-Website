@@ -68,7 +68,7 @@ export default function MyChatsPage() {
   return (
     <div className="page">
       <RequireTestSession>
-        {(session) => <ChatList currentUserPhone={session.phone} />}
+        {(session) => <ChatList currentUserPhone={session.userId ?? session.phone ?? ""} />}
       </RequireTestSession>
     </div>
   );

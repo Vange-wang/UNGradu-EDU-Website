@@ -49,7 +49,7 @@ export default function ParentNeedDetailPage() {
     }
 
     const result = await createConversationFromSourceToApi({
-      currentUserPhone: session.phone,
+      currentUserPhone: session.userId ?? session.phone ?? "",
       sourceId: need.id,
       sourceType: "parent-need"
     });

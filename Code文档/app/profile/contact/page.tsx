@@ -135,7 +135,7 @@ export default function ContactProfilePage() {
   return (
     <div className="page">
       <RequireTestSession>
-        {(session) => <ContactProfileForm ownerPhone={session.phone} />}
+        {(session) => <ContactProfileForm ownerPhone={session.userId ?? session.phone ?? ""} />}
       </RequireTestSession>
     </div>
   );

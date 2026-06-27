@@ -341,7 +341,7 @@ export default function ChatPage() {
   return (
     <div className="page">
       <RequireTestSession>
-        {(session) => <ChatRoom currentUserPhone={session.phone} />}
+        {(session) => <ChatRoom currentUserPhone={session.userId ?? session.phone ?? ""} />}
       </RequireTestSession>
     </div>
   );

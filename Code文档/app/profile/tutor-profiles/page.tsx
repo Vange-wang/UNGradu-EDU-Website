@@ -77,7 +77,7 @@ export default function MyTutorProfilesPage() {
   return (
     <div className="page">
       <RequireTestSession>
-        {(session) => <TutorProfilesList ownerPhone={session.phone} />}
+        {(session) => <TutorProfilesList ownerPhone={session.userId ?? session.phone ?? ""} />}
       </RequireTestSession>
     </div>
   );

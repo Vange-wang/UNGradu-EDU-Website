@@ -38,7 +38,7 @@ export function readAuthenticatedUserId(
   if (session) {
     return {
       ok: true as const,
-      authenticatedUserId: session.phone
+      authenticatedUserId: session.userId ?? session.phone ?? ""
     };
   }
 

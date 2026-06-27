@@ -247,7 +247,7 @@ export default function NewParentNeedPage() {
   return (
     <div className="page">
       <RequireTestSession>
-        {(session) => <NewParentNeedForm ownerPhone={session.phone} />}
+        {(session) => <NewParentNeedForm ownerPhone={session.userId ?? session.phone ?? ""} />}
       </RequireTestSession>
     </div>
   );

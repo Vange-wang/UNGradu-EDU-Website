@@ -6,9 +6,9 @@ export default function LoginPage() {
   return (
     <div className="page">
       <section className="content-panel">
-        <h1 className="section-title">手机号登录</h1>
+        <h1 className="section-title">邮箱验证码登录</h1>
         <p>
-          使用手机号验证码登录或注册。登录成功后，系统会通过服务端可信 Cookie
+          使用邮箱验证码登录或注册。登录成功后，系统会通过服务端可信 Cookie
           保持登录状态。
         </p>
 

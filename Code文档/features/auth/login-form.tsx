@@ -4,27 +4,27 @@ import { FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { parseApiResponse, type ApiResult } from "@/features/api/api-client";
-import { validateMainlandPhone, validateSmsCode } from "@/features/auth/phone-auth";
+import { validateEmailAddress, validateEmailCode } from "@/features/auth/email-auth";
 import { sanitizeNextPath } from "@/features/auth/test-auth";
 
 type SendCodeApiResult = ApiResult<{
   expiresInSeconds: number;
-  phoneMasked: string;
+  emailMasked: string;
   resendAfterSeconds: number;
 }>;
 type LoginApiResult = ApiResult<{
   createdAt: string;
+  emailMasked: string;
   lastLoginAt: string;
-  phoneMasked: string;
   userId: string;
 }>;
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [errors, setErrors] = useState<{ code?: string; phone?: string }>({});
+  const [errors, setErrors] = useState<{ code?: string; email?: string }>({});
   const [formMessage, setFormMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -38,18 +38,18 @@ export function LoginForm() {
   async function sendCode() {
     setFormMessage("");
 
-    const phoneValidation = validateMainlandPhone(phone);
+    const emailValidation = validateEmailAddress(email);
 
-    if (!phoneValidation.ok) {
-      setErrors(phoneValidation.errors);
+    if (!emailValidation.ok) {
+      setErrors(emailValidation.errors);
       return;
     }
 
     setIsSending(true);
 
     try {
-      const response = await fetch("/api/auth/sms/send-code", {
-        body: JSON.stringify({ phone: phoneValidation.value }),
+      const response = await fetch("/api/auth/email/send-code", {
+        body: JSON.stringify({ email: emailValidation.value }),
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
         method: "POST"
@@ -63,7 +63,7 @@ export function LoginForm() {
 
       setErrors({});
       setResendAvailableAt(Date.now() + result.value.resendAfterSeconds * 1000);
-      setFormMessage(`验证码已发送至 ${result.value.phoneMasked}，请在 5 分钟内完成登录。`);
+      setFormMessage(`验证码已发送至 ${result.value.emailMasked}，请在 5 分钟内完成登录。`);
     } finally {
       setIsSending(false);
     }
@@ -73,13 +73,13 @@ export function LoginForm() {
     event.preventDefault();
     setFormMessage("");
 
-    const phoneValidation = validateMainlandPhone(phone);
-    const codeValidation = validateSmsCode(code);
+    const emailValidation = validateEmailAddress(email);
+    const codeValidation = validateEmailCode(code);
 
-    if (!phoneValidation.ok || !codeValidation.ok) {
+    if (!emailValidation.ok || !codeValidation.ok) {
       setErrors({
         code: codeValidation.ok ? undefined : codeValidation.errors.code,
-        phone: phoneValidation.ok ? undefined : phoneValidation.errors.phone
+        email: emailValidation.ok ? undefined : emailValidation.errors.email
       });
       return;
     }
@@ -87,10 +87,10 @@ export function LoginForm() {
     setIsLoggingIn(true);
 
     try {
-      const response = await fetch("/api/auth/sms/login", {
+      const response = await fetch("/api/auth/email/login", {
         body: JSON.stringify({
           code: codeValidation.value,
-          phone: phoneValidation.value
+          email: emailValidation.value
         }),
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
@@ -101,7 +101,7 @@ export function LoginForm() {
       if (!result.ok) {
         setErrors({
           code: result.errors.code,
-          phone: result.errors.phone
+          email: result.errors.email
         });
         setFormMessage(result.errors.request ?? "登录失败，请稍后再试。");
         return;
@@ -117,22 +117,22 @@ export function LoginForm() {
     <>
       <form className="form" onSubmit={submitLogin}>
         <div className="field">
-          <label htmlFor="phone">Phone</label>
+          <label htmlFor="email">邮箱</label>
           <input
-            id="phone"
-            inputMode="tel"
-            name="phone"
+            id="email"
+            inputMode="email"
+            name="email"
             onChange={(event) => {
-              setPhone(event.target.value);
-              setErrors((current) => ({ ...current, phone: undefined }));
+              setEmail(event.target.value);
+              setErrors((current) => ({ ...current, email: undefined }));
             }}
-            placeholder="请输入 11 位手机号"
-            value={phone}
+            placeholder="请输入邮箱地址"
+            value={email}
           />
-          <span className="error">{errors.phone}</span>
+          <span className="error">{errors.email}</span>
         </div>
         <div className="field">
-          <label htmlFor="code">短信验证码</label>
+          <label htmlFor="code">邮箱验证码</label>
           <input
             id="code"
             inputMode="numeric"
@@ -141,7 +141,7 @@ export function LoginForm() {
               setCode(event.target.value);
               setErrors((current) => ({ ...current, code: undefined }));
             }}
-            placeholder="请输入短信验证码"
+            placeholder="请输入邮箱验证码"
             value={code}
           />
           <span className="error">{errors.code}</span>

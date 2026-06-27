@@ -1,13 +1,13 @@
 import { createHash, createHmac, randomInt } from "node:crypto";
 
 import {
-  maskPhone,
-  validateMainlandPhone,
-  validateSmsCode
-} from "@/features/auth/phone-auth";
+  maskEmail,
+  validateEmailAddress,
+  validateEmailCode
+} from "@/features/auth/email-auth";
 
-export const SMS_LOGIN_CODES_COLLECTION = "sms_login_codes";
-export const SMS_LOGIN_USERS_COLLECTION = "sms_login_users";
+export const EMAIL_LOGIN_CODES_COLLECTION = "email_login_codes";
+export const EMAIL_LOGIN_USERS_COLLECTION = "email_login_users";
 
 const CODE_TTL_MS = 5 * 60 * 1000;
 const SEND_COOLDOWN_MS = 60 * 1000;
@@ -16,13 +16,13 @@ const MAX_VERIFY_ATTEMPTS = 5;
 type RuntimeEnv = {
   APP_ENV?: string;
   AUTH_SESSION_SECRET?: string;
+  EMAIL_CODE_SECRET?: string;
   NODE_ENV?: string;
-  SMS_CODE_SECRET?: string;
 };
 
 type StoredDocument = Record<string, unknown>;
 
-export type SmsAuthCollection = {
+export type EmailAuthCollection = {
   doc: (docId: string) => {
     get: () => Promise<{ data?: unknown[] }>;
     set: (data: StoredDocument) => Promise<unknown>;
@@ -30,39 +30,38 @@ export type SmsAuthCollection = {
   };
 };
 
-export type SmsDelivery = {
-  send: (input: { code: string; phone: string }) => Promise<{ ok: true } | {
-    ok: false;
-    error: string;
-  }>;
+export type EmailDelivery = {
+  send: (input: { code: string; email: string; emailMasked: string }) => Promise<
+    { ok: true } | { ok: false; error: string }
+  >;
 };
 
-export type SmsCodeDocument = {
+export type EmailCodeDocument = {
   attempts: number;
   codeHash: string;
   createdAt: string;
+  emailHash: string;
+  emailMasked: string;
   expiresAt: string;
-  phoneHash: string;
-  phoneMasked: string;
   sentAt: string;
   usedAt?: string;
 };
 
-export type SmsUserDocument = {
+export type EmailUserDocument = {
   createdAt: string;
+  emailHash: string;
+  emailMasked: string;
   lastLoginAt: string;
-  phoneHash: string;
-  phoneMasked: string;
   status: "active" | "disabled";
   userId: string;
 };
 
-export function hashPhone(phone: string) {
-  return createHash("sha256").update(phone).digest("hex");
+export function hashEmail(email: string) {
+  return createHash("sha256").update(email).digest("hex");
 }
 
 function readCodeSecret(env: RuntimeEnv) {
-  const secret = env.SMS_CODE_SECRET?.trim() || env.AUTH_SESSION_SECRET?.trim();
+  const secret = env.EMAIL_CODE_SECRET?.trim() || env.AUTH_SESSION_SECRET?.trim();
 
   if (secret) {
     return secret;
@@ -72,17 +71,17 @@ function readCodeSecret(env: RuntimeEnv) {
     return null;
   }
 
-  return "ungradu-dev-only-sms-code-secret";
+  return "ungradu-dev-only-email-code-secret";
 }
 
 function hashCode({
   code,
-  env,
-  phone
+  email,
+  env
 }: {
   code: string;
+  email: string;
   env: RuntimeEnv;
-  phone: string;
 }) {
   const secret = readCodeSecret(env);
 
@@ -90,7 +89,7 @@ function hashCode({
     return null;
   }
 
-  return createHmac("sha256", secret).update(`${phone}:${code}`).digest("hex");
+  return createHmac("sha256", secret).update(`${email}:${code}`).digest("hex");
 }
 
 function generateSixDigitCode() {
@@ -108,7 +107,7 @@ function normalizeGeneratedCode(code: string) {
 }
 
 async function readDocument<TDocument>(
-  collection: SmsAuthCollection,
+  collection: EmailAuthCollection,
   docId: string
 ) {
   const result = await collection.doc(docId).get();
@@ -116,7 +115,7 @@ async function readDocument<TDocument>(
 }
 
 async function patchDocument(
-  collection: SmsAuthCollection,
+  collection: EmailAuthCollection,
   docId: string,
   data: StoredDocument
 ) {
@@ -131,12 +130,12 @@ async function patchDocument(
   await document.set({ ...(current ?? {}), ...data });
 }
 
-function createUserId(phoneHash: string) {
-  return `user_${phoneHash.slice(0, 24)}`;
+function createUserId(emailHash: string) {
+  return `email_${emailHash.slice(0, 24)}`;
 }
 
 function createFailure(
-  errors: { code?: string; phone?: string; request?: string }
+  errors: { code?: string; email?: string; request?: string }
 ) {
   return {
     ok: false as const,
@@ -145,32 +144,32 @@ function createFailure(
   };
 }
 
-export async function sendSmsLoginCode({
+export async function sendEmailLoginCode({
   codeGenerator = generateSixDigitCode,
+  email,
+  emailCodeCollection,
+  emailDelivery,
   env,
-  now = new Date(),
-  phone,
-  smsCodeCollection,
-  smsDelivery
+  now = new Date()
 }: {
   codeGenerator?: () => string;
+  email: string;
+  emailCodeCollection: EmailAuthCollection;
+  emailDelivery: EmailDelivery;
   env: RuntimeEnv;
   now?: Date;
-  phone: string;
-  smsCodeCollection: SmsAuthCollection;
-  smsDelivery: SmsDelivery;
 }) {
-  const phoneValidation = validateMainlandPhone(phone);
+  const emailValidation = validateEmailAddress(email);
 
-  if (!phoneValidation.ok) {
-    return createFailure(phoneValidation.errors);
+  if (!emailValidation.ok) {
+    return createFailure(emailValidation.errors);
   }
 
-  const normalizedPhone = phoneValidation.value;
-  const phoneHash = hashPhone(normalizedPhone);
-  const existingCode = await readDocument<SmsCodeDocument>(
-    smsCodeCollection,
-    phoneHash
+  const normalizedEmail = emailValidation.value;
+  const emailHash = hashEmail(normalizedEmail);
+  const existingCode = await readDocument<EmailCodeDocument>(
+    emailCodeCollection,
+    emailHash
   );
 
   if (
@@ -181,73 +180,78 @@ export async function sendSmsLoginCode({
   }
 
   const code = normalizeGeneratedCode(codeGenerator());
-  const codeHash = hashCode({ code, env, phone: normalizedPhone });
+  const codeHash = hashCode({ code, email: normalizedEmail, env });
 
   if (!codeHash) {
-    return createFailure({ request: "短信验证码密钥未配置" });
+    return createFailure({ request: "邮箱验证码密钥未配置" });
   }
 
-  const delivery = await smsDelivery.send({ code, phone: normalizedPhone });
+  const emailMasked = maskEmail(normalizedEmail);
+  const delivery = await emailDelivery.send({
+    code,
+    email: normalizedEmail,
+    emailMasked
+  });
 
   if (!delivery.ok) {
-    return createFailure({ request: "验证码发送失败，请稍后再试" });
+    return createFailure({ request: "邮箱验证码发送失败，请稍后再试" });
   }
 
   const createdAt = now.toISOString();
 
-  await smsCodeCollection.doc(phoneHash).set({
+  await emailCodeCollection.doc(emailHash).set({
     attempts: 0,
     codeHash,
     createdAt,
+    emailHash,
+    emailMasked,
     expiresAt: new Date(now.getTime() + CODE_TTL_MS).toISOString(),
-    phoneHash,
-    phoneMasked: maskPhone(normalizedPhone),
     sentAt: createdAt
   });
 
   return {
     ok: true as const,
     value: {
+      emailMasked,
       expiresInSeconds: CODE_TTL_MS / 1000,
-      phoneMasked: maskPhone(normalizedPhone),
       resendAfterSeconds: SEND_COOLDOWN_MS / 1000
     },
     errors: {}
   };
 }
 
-export async function verifySmsLoginCode({
+export async function verifyEmailLoginCode({
   code,
+  email,
+  emailCodeCollection,
   env,
   now = new Date(),
-  phone,
-  smsCodeCollection,
   userCollection
 }: {
   code: string;
+  email: string;
+  emailCodeCollection: EmailAuthCollection;
   env: RuntimeEnv;
   now?: Date;
-  phone: string;
-  smsCodeCollection: SmsAuthCollection;
-  userCollection: SmsAuthCollection;
+  userCollection: EmailAuthCollection;
 }) {
-  const phoneValidation = validateMainlandPhone(phone);
+  const emailValidation = validateEmailAddress(email);
 
-  if (!phoneValidation.ok) {
-    return createFailure(phoneValidation.errors);
+  if (!emailValidation.ok) {
+    return createFailure(emailValidation.errors);
   }
 
-  const codeValidation = validateSmsCode(code);
+  const codeValidation = validateEmailCode(code);
 
   if (!codeValidation.ok) {
     return createFailure(codeValidation.errors);
   }
 
-  const normalizedPhone = phoneValidation.value;
-  const phoneHash = hashPhone(normalizedPhone);
-  const storedCode = await readDocument<SmsCodeDocument>(
-    smsCodeCollection,
-    phoneHash
+  const normalizedEmail = emailValidation.value;
+  const emailHash = hashEmail(normalizedEmail);
+  const storedCode = await readDocument<EmailCodeDocument>(
+    emailCodeCollection,
+    emailHash
   );
 
   if (!storedCode) {
@@ -268,17 +272,17 @@ export async function verifySmsLoginCode({
 
   const incomingCodeHash = hashCode({
     code: codeValidation.value,
-    env,
-    phone: normalizedPhone
+    email: normalizedEmail,
+    env
   });
 
   if (!incomingCodeHash) {
-    return createFailure({ request: "短信验证码密钥未配置" });
+    return createFailure({ request: "邮箱验证码密钥未配置" });
   }
 
   if (incomingCodeHash !== storedCode.codeHash) {
     const attempts = storedCode.attempts + 1;
-    await patchDocument(smsCodeCollection, phoneHash, { attempts });
+    await patchDocument(emailCodeCollection, emailHash, { attempts });
 
     if (attempts >= MAX_VERIFY_ATTEMPTS) {
       return createFailure({ request: "验证码错误次数过多，请重新获取" });
@@ -287,30 +291,30 @@ export async function verifySmsLoginCode({
     return createFailure({ code: "验证码不正确" });
   }
 
-  await patchDocument(smsCodeCollection, phoneHash, {
+  await patchDocument(emailCodeCollection, emailHash, {
     attempts: storedCode.attempts,
     usedAt: now.toISOString()
   });
 
-  const existingUser = await readDocument<SmsUserDocument>(
+  const existingUser = await readDocument<EmailUserDocument>(
     userCollection,
-    phoneHash
+    emailHash
   );
 
   if (existingUser?.status === "disabled") {
     return createFailure({ request: "账号暂不可用，请联系平台处理" });
   }
 
-  const user: SmsUserDocument = existingUser ?? {
+  const user: EmailUserDocument = existingUser ?? {
     createdAt: now.toISOString(),
+    emailHash,
+    emailMasked: maskEmail(normalizedEmail),
     lastLoginAt: now.toISOString(),
-    phoneHash,
-    phoneMasked: maskPhone(normalizedPhone),
     status: "active",
-    userId: createUserId(phoneHash)
+    userId: createUserId(emailHash)
   };
 
-  await userCollection.doc(phoneHash).set({
+  await userCollection.doc(emailHash).set({
     ...user,
     lastLoginAt: now.toISOString()
   });
@@ -319,9 +323,8 @@ export async function verifySmsLoginCode({
     ok: true as const,
     value: {
       createdAt: user.createdAt,
+      emailMasked: user.emailMasked,
       lastLoginAt: now.toISOString(),
-      phone: normalizedPhone,
-      phoneMasked: user.phoneMasked,
       userId: user.userId
     },
     errors: {}

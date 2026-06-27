@@ -158,16 +158,18 @@ M5 发布前验证命令：
 - 如果本地模拟时故意设置 `M5_ENABLE_HOSTED_TEST_LOGIN=true` 或 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，命令会输出警告，同时仍验证这些误配不能启用生产测试登录。真实生产配置中必须移除这两个测试开关。
 - 该命令不能替代正式生产 URL 下的生产冒烟、生产禁用测试登录确认、生产登录方案确认或回滚演练。
 
-正式手机号验证码登录新增环境变量：
+正式邮箱验证码登录新增环境变量：
 
-- `SMS_CODE_SECRET`：服务端验证码哈希密钥。不得暴露到前端，不得写入 Git；生产建议使用独立强随机值。
-- `SMS_PROVIDER`：短信发送适配器，当前预留 `tencent`。
-- `TENCENT_SMS_APP_ID`：腾讯云短信应用 ID。
-- `TENCENT_SMS_REGION`：腾讯云短信地域，默认可使用 `ap-guangzhou`。
-- `TENCENT_SMS_SIGN_NAME`：已审核通过的短信签名。
-- `TENCENT_SMS_TEMPLATE_ID`：已审核通过的短信模板 ID。
+- `EMAIL_CODE_SECRET`：服务端验证码哈希密钥。不得暴露到前端，不得写入 Git；生产建议使用独立强随机值。
+- `EMAIL_PROVIDER`：邮件发送适配器。生产建议配置为 `smtp`；本地或测试环境可配置为 `console`，但不会向前端返回验证码。
+- `SMTP_HOST`：SMTP 服务地址。
+- `SMTP_PORT`：SMTP 服务端口，常见 TLS 端口为 `465`。
+- `SMTP_SECURE`：是否使用 TLS，默认按 `true` 处理；仅在明确使用明文 SMTP 时设置为 `false`。
+- `SMTP_USER`：SMTP 登录账号。
+- `SMTP_PASS`：SMTP 登录密码或应用专用令牌。
+- `EMAIL_FROM`：验证码邮件发件人地址。
 
-正式短信服务账号、签名、模板、额度和真实 Secret 由项目总控制人配置到部署环境。仓库内测试使用 fake 短信发送器，不发送真实短信，不记录验证码明文。
+正式邮件服务账号、发件人、SMTP 密钥、额度、退信告警和试运行邮箱范围由项目总控制人配置到部署环境。仓库内测试使用 fake 邮件发送器，不发送真实邮件，不记录验证码明文。
 
 如果部署平台以 `NODE_ENV=production` 运行隔离测试环境，HTTP 验收脚本需要服务端配置：
 
@@ -183,6 +185,14 @@ M5 发布前验证命令：
 $env:APP_ENV='production'
 $env:AUTH_SESSION_SECRET='replace-with-production-strong-random-secret'
 $env:CLOUDBASE_ENV_ID='replace-with-production-cloudbase-env-id'
+$env:EMAIL_CODE_SECRET='replace-with-production-email-code-secret'
+$env:EMAIL_PROVIDER='smtp'
+$env:EMAIL_FROM='replace-with-production-from-email'
+$env:SMTP_HOST='replace-with-production-smtp-host'
+$env:SMTP_PORT='465'
+$env:SMTP_SECURE='true'
+$env:SMTP_USER='replace-with-production-smtp-user'
+$env:SMTP_PASS='replace-with-production-smtp-password-or-app-token'
 $env:TENCENTCLOUD_SECRETID='replace-with-production-secret-id'
 $env:TENCENTCLOUD_SECRETKEY='replace-with-production-secret-key'
 $env:M5_ENABLE_HOSTED_TEST_LOGIN='true'
@@ -191,6 +201,14 @@ npm run release:production:preflight
 Remove-Item Env:\APP_ENV
 Remove-Item Env:\AUTH_SESSION_SECRET
 Remove-Item Env:\CLOUDBASE_ENV_ID
+Remove-Item Env:\EMAIL_CODE_SECRET
+Remove-Item Env:\EMAIL_PROVIDER
+Remove-Item Env:\EMAIL_FROM
+Remove-Item Env:\SMTP_HOST
+Remove-Item Env:\SMTP_PORT
+Remove-Item Env:\SMTP_SECURE
+Remove-Item Env:\SMTP_USER
+Remove-Item Env:\SMTP_PASS
 Remove-Item Env:\TENCENTCLOUD_SECRETID
 Remove-Item Env:\TENCENTCLOUD_SECRETKEY
 Remove-Item Env:\M5_ENABLE_HOSTED_TEST_LOGIN
@@ -211,17 +229,17 @@ Remove-Item Env:\M5_BASE_URL
 
 ## 当前服务端接口
 
-### `/api/auth/sms/send-code`、`/api/auth/sms/login`、`/api/auth/session`、`/api/auth/logout`
+### `/api/auth/email/send-code`、`/api/auth/email/login`、`/api/auth/session`、`/api/auth/logout`
 
-用途：正式手机号验证码登录。新手机号首次验证码通过后创建账号；老手机号再次验证码通过后复用原账号；登录态继续使用 `ungradu_auth_session` HttpOnly 签名 Cookie。
+用途：正式邮箱验证码登录 / 注册。新邮箱首次验证码通过后创建账号；老邮箱再次验证码通过后复用原账号；登录态继续使用 `ungradu_auth_session` HttpOnly 签名 Cookie。
 
-- `POST /api/auth/sms/send-code`：校验手机号、频控 60 秒重复发送、生成一次性 6 位验证码、保存验证码哈希和 5 分钟过期时间，并调用服务端短信发送适配器。
-- `POST /api/auth/sms/login`：校验手机号和验证码，拒绝固定测试码 `000000`，拒绝过期、已使用、错误次数过多的验证码；通过后写入服务端签名 Cookie。
+- `POST /api/auth/email/send-code`：校验邮箱、频控 60 秒重复发送、生成一次性 6 位验证码、保存验证码哈希和 5 分钟过期时间，并调用服务端邮件发送适配器。
+- `POST /api/auth/email/login`：校验邮箱和验证码，拒绝固定测试码 `000000`，拒绝过期、已使用、错误次数过多的验证码；通过后写入服务端签名 Cookie。
 - `GET /api/auth/session`：从服务端签名 Cookie 读取当前登录态，刷新页面后仍可识别当前用户。
 - `POST /api/auth/logout`：清除服务端签名 Cookie。
-- CloudBase 集合：`sms_login_codes`、`sms_login_users`。
-- 安全边界：验证码只以哈希形式保存；接口响应不返回验证码或完整手机号；短信密钥、验证码密钥和会话密钥只从服务端环境变量读取。
-- 外部依赖：真实腾讯云短信账号、签名、模板 ID、短信 Secret、额度和告警方式由项目总控制人提供。未配置真实短信发送前，仓库内代码和 fake 测试可以通过，但真实公网用户无法收到短信。
+- CloudBase 集合：`email_login_codes`、`email_login_users`。
+- 安全边界：验证码只以哈希形式保存；接口响应不返回验证码或完整邮箱；邮件密钥、验证码密钥和会话密钥只从服务端环境变量读取。
+- 外部依赖：真实 SMTP 或邮件服务商账号、发件人、Secret、额度、退信告警和试运行邮箱范围由项目总控制人提供。未配置真实邮件发送前，仓库内代码和 fake 测试可以通过，但真实公网用户无法收到验证码邮件。
 
 ### `/api/auth/test-login`
 
@@ -247,7 +265,7 @@ Remove-Item Env:\M5_BASE_URL
 - 当前临时认证：非生产环境通过请求头 `x-ungradu-test-user-phone` 承接 M1-M4 本地测试登录态。
 - 生产边界：`APP_ENV=production` 时即使配置了 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true` 或 `M5_ENABLE_HOSTED_TEST_LOGIN=true`，接口也拒绝临时测试登录身份。
 
-该接口只完成联系方式存档迁移。聊天、联系方式交换请求、需求、家教信息和正式短信登录仍待后续 M5 继续迁移，不能视为已经具备完整生产权限模型。
+该接口只完成联系方式存档迁移。聊天、联系方式交换请求、需求、家教信息和正式邮箱登录仍待后续 M5 继续迁移，不能视为已经具备完整生产权限模型。
 
 页面接入状态：联系方式管理页已调用该接口；保存成功后仍临时同步本地镜像，以兼容尚未完全移除的旧测试数据。
 

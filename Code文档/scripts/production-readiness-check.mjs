@@ -2,6 +2,14 @@ const REQUIRED_PRODUCTION_VARIABLES = [
   "APP_ENV",
   "AUTH_SESSION_SECRET",
   "CLOUDBASE_ENV_ID",
+  "EMAIL_CODE_SECRET",
+  "EMAIL_FROM",
+  "EMAIL_PROVIDER",
+  "SMTP_HOST",
+  "SMTP_PASS",
+  "SMTP_PORT",
+  "SMTP_SECURE",
+  "SMTP_USER",
   "TENCENTCLOUD_SECRETID",
   "TENCENTCLOUD_SECRETKEY"
 ];
@@ -46,6 +54,10 @@ function assertProductionPreflight(env) {
 
   for (const name of REQUIRED_PRODUCTION_VARIABLES) {
     requireVariable(env, name, failures);
+  }
+
+  if (String(env.EMAIL_PROVIDER ?? "").trim() !== "smtp") {
+    failures.push("EMAIL_PROVIDER must be smtp in production.");
   }
 
   if (env.APP_ENV !== "production") {

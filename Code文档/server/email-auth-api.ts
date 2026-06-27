@@ -1,22 +1,22 @@
 import { apiError, jsonResponse, readJsonBody, type RuntimeEnv } from "@/server/api-utils";
 import {
-  sendSmsLoginCode,
-  verifySmsLoginCode,
-  type SmsAuthCollection,
-  type SmsDelivery
-} from "@/server/sms-auth";
+  sendEmailLoginCode,
+  verifyEmailLoginCode,
+  type EmailAuthCollection,
+  type EmailDelivery
+} from "@/server/email-auth";
 import { createAuthSessionCookie } from "@/server/auth-session";
 
-type SmsAuthApiDependencies = {
+type EmailAuthApiDependencies = {
   codeGenerator?: () => string;
-  env?: RuntimeEnv & { SMS_CODE_SECRET?: string };
+  emailCodeCollection: EmailAuthCollection;
+  emailDelivery: EmailDelivery;
+  env?: RuntimeEnv & { EMAIL_CODE_SECRET?: string };
   now?: () => Date;
-  smsCodeCollection: SmsAuthCollection;
-  smsDelivery: SmsDelivery;
-  userCollection: SmsAuthCollection;
+  userCollection: EmailAuthCollection;
 };
 
-function statusForSmsFailure(errors: { code?: string; phone?: string; request?: string }) {
+function statusForEmailFailure(errors: { code?: string; email?: string; request?: string }) {
   if (errors.request?.includes("频繁") || errors.request?.includes("次数过多")) {
     return 429;
   }
@@ -32,60 +32,61 @@ function statusForSmsFailure(errors: { code?: string; phone?: string; request?: 
   return 400;
 }
 
-export function createSmsAuthApiHandlers({
+export function createEmailAuthApiHandlers({
   codeGenerator,
+  emailCodeCollection,
+  emailDelivery,
   env = process.env,
   now = () => new Date(),
-  smsCodeCollection,
-  smsDelivery,
   userCollection
-}: SmsAuthApiDependencies) {
+}: EmailAuthApiDependencies) {
   return {
     async POST_SEND_CODE(request: Request) {
-      const body = await readJsonBody<{ phone?: string }>(request);
+      const body = await readJsonBody<{ email?: string }>(request);
 
       if (!body.ok) {
         return body.response;
       }
 
-      const result = await sendSmsLoginCode({
+      const result = await sendEmailLoginCode({
         codeGenerator,
+        email: body.value.email ?? "",
+        emailCodeCollection,
+        emailDelivery,
         env,
-        now: now(),
-        phone: body.value.phone ?? "",
-        smsCodeCollection,
-        smsDelivery
+        now: now()
       });
 
       return jsonResponse(
         result,
-        result.ok ? 200 : statusForSmsFailure(result.errors)
+        result.ok ? 200 : statusForEmailFailure(result.errors)
       );
     },
 
     async POST_LOGIN(request: Request) {
-      const body = await readJsonBody<{ code?: string; phone?: string }>(request);
+      const body = await readJsonBody<{ code?: string; email?: string }>(request);
 
       if (!body.ok) {
         return body.response;
       }
 
-      const result = await verifySmsLoginCode({
+      const result = await verifyEmailLoginCode({
         code: body.value.code ?? "",
+        email: body.value.email ?? "",
+        emailCodeCollection,
         env,
         now: now(),
-        phone: body.value.phone ?? "",
-        smsCodeCollection,
         userCollection
       });
 
       if (!result.ok) {
-        return jsonResponse(result, statusForSmsFailure(result.errors));
+        return jsonResponse(result, statusForEmailFailure(result.errors));
       }
 
       const cookie = createAuthSessionCookie({
+        emailMasked: result.value.emailMasked,
         env,
-        phone: result.value.phone
+        userId: result.value.userId
       });
 
       if (!cookie) {
@@ -97,8 +98,8 @@ export function createSmsAuthApiHandlers({
           ok: true,
           value: {
             createdAt: result.value.createdAt,
+            emailMasked: result.value.emailMasked,
             lastLoginAt: result.value.lastLoginAt,
-            phoneMasked: result.value.phoneMasked,
             userId: result.value.userId
           },
           errors: {}

@@ -71,7 +71,7 @@ export default function MyParentNeedsPage() {
   return (
     <div className="page">
       <RequireTestSession>
-        {(session) => <ParentNeedsList ownerPhone={session.phone} />}
+        {(session) => <ParentNeedsList ownerPhone={session.userId ?? session.phone ?? ""} />}
       </RequireTestSession>
     </div>
   );

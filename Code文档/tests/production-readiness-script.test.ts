@@ -28,8 +28,16 @@ describe("production readiness preflight script", () => {
       APP_ENV: "production",
       AUTH_SESSION_SECRET: "production-secret-placeholder-with-enough-length",
       CLOUDBASE_ENV_ID: "prod-env-id",
+      EMAIL_CODE_SECRET: "production-email-code-secret-placeholder",
+      EMAIL_FROM: "noreply@example.com",
+      EMAIL_PROVIDER: "smtp",
       M5_ENABLE_HOSTED_TEST_LOGIN: "true",
       NEXT_PUBLIC_ALLOW_TEST_LOGIN: "true",
+      SMTP_HOST: "smtp.example.com",
+      SMTP_PASS: "production-smtp-password-placeholder",
+      SMTP_PORT: "465",
+      SMTP_SECURE: "true",
+      SMTP_USER: "smtp-user-placeholder",
       TENCENTCLOUD_SECRETID: "production-secret-id-placeholder",
       TENCENTCLOUD_SECRETKEY: "production-secret-key-placeholder"
     });
@@ -46,6 +54,28 @@ describe("production readiness preflight script", () => {
         APP_ENV: "test",
         AUTH_SESSION_SECRET: "production-secret-placeholder-with-enough-length",
         CLOUDBASE_ENV_ID: "prod-env-id",
+        EMAIL_CODE_SECRET: "production-email-code-secret-placeholder",
+        EMAIL_FROM: "noreply@example.com",
+        EMAIL_PROVIDER: "smtp",
+        SMTP_HOST: "smtp.example.com",
+        SMTP_PASS: "production-smtp-password-placeholder",
+        SMTP_PORT: "465",
+        SMTP_SECURE: "true",
+        SMTP_USER: "smtp-user-placeholder",
+        TENCENTCLOUD_SECRETID: "production-secret-id-placeholder",
+        TENCENTCLOUD_SECRETKEY: "production-secret-key-placeholder"
+      })
+    ).toThrow();
+  });
+
+  it("fails when production email delivery config is missing", () => {
+    expect(() =>
+      runPreflight({
+        APP_ENV: "production",
+        AUTH_SESSION_SECRET: "production-secret-placeholder-with-enough-length",
+        CLOUDBASE_ENV_ID: "prod-env-id",
+        EMAIL_CODE_SECRET: "production-email-code-secret-placeholder",
+        EMAIL_PROVIDER: "console",
         TENCENTCLOUD_SECRETID: "production-secret-id-placeholder",
         TENCENTCLOUD_SECRETKEY: "production-secret-key-placeholder"
       })

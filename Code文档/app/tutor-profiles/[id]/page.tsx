@@ -49,7 +49,7 @@ export default function TutorProfileDetailPage() {
     }
 
     const result = await createConversationFromSourceToApi({
-      currentUserPhone: session.phone,
+      currentUserPhone: session.userId ?? session.phone ?? "",
       sourceId: profile.id,
       sourceType: "tutor-profile"
     });

@@ -60,10 +60,26 @@ textarea {
 }
 
 .top-nav {
+  align-items: center;
   display: flex;
   gap: 22px;
   font-size: 14px;
   font-weight: 650;
+}
+
+.nav-button {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: inherit;
+  padding: 0;
+}
+
+.nav-error {
+  color: var(--danger);
+  font-size: 13px;
 }
 
 .page {
@@ -334,9 +350,19 @@ textarea {
 }
 
 .fee-range {
+  align-items: end;
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+}
+
+.fee-range-list {
+  display: grid;
+  gap: 12px;
+}
+
+.fee-remove-button {
+  min-height: 42px;
 }
 
 .field-hint {
@@ -356,6 +382,11 @@ textarea {
   border-radius: 8px;
   color: #246237;
   padding: 12px 14px;
+}
+
+.login-state-panel {
+  display: grid;
+  gap: 16px;
 }
 
 .link-list {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 import { RequireTestSession } from "@/features/auth/require-test-session";
@@ -88,8 +89,15 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
 
   return (
     <section className="content-panel wide-panel">
-      <h1 className="section-title">发布家教需求</h1>
-      <p>当前测试账号：{ownerPhone}。需求会保存到服务端 parent_needs。</p>
+      <div className="section-heading-row">
+        <div>
+          <h1 className="section-title">发布家教需求</h1>
+          <p>填写孩子情况、科目、预算和可上课时间，发布后老师可在需求广场中查看。</p>
+        </div>
+        <Link className="button secondary" href="/profile/parent-needs">
+          返回我的需求
+        </Link>
+      </div>
 
       <form className="form" onSubmit={submitForm}>
         <div className="field">
@@ -238,7 +246,7 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
         </button>
       </form>
 
-      {saved ? <p className="success">家长需求已保存到服务端。</p> : null}
+      {saved ? <p className="success">家教需求已发布。</p> : null}
     </section>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 
 import { RequireTestSession } from "@/features/auth/require-test-session";
 import {
@@ -37,6 +38,10 @@ const initialInput: TutorProfileInput = {
   proofImages: []
 };
 
+function createEmptyFeeRange() {
+  return { grade: "", subject: "", min: "", max: "" };
+}
+
 function toggleValue(values: string[], value: string) {
   return values.includes(value)
     ? values.filter((item) => item !== value)
@@ -57,8 +62,32 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
     setErrors({});
   }
 
-  function updateFeeRange(field: "grade" | "subject" | "min" | "max", value: string) {
-    updateInput("feeRanges", [{ ...input.feeRanges[0], [field]: value }]);
+  function updateFeeRange(
+    index: number,
+    field: "grade" | "subject" | "min" | "max",
+    value: string
+  ) {
+    updateInput(
+      "feeRanges",
+      input.feeRanges.map((range, rangeIndex) =>
+        rangeIndex === index ? { ...range, [field]: value } : range
+      )
+    );
+  }
+
+  function addFeeRange() {
+    updateInput("feeRanges", [...input.feeRanges, createEmptyFeeRange()]);
+  }
+
+  function removeFeeRange(index: number) {
+    if (input.feeRanges.length === 1) {
+      return;
+    }
+
+    updateInput(
+      "feeRanges",
+      input.feeRanges.filter((_, rangeIndex) => rangeIndex !== index)
+    );
   }
 
   function updateProofImages(files: FileList | null) {
@@ -98,8 +127,15 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
 
   return (
     <section className="content-panel wide-panel">
-      <h1 className="section-title">发布家教信息</h1>
-      <p>当前测试账号：{ownerPhone}。家教信息会保存到服务端 tutor_profiles。</p>
+      <div className="section-heading-row">
+        <div>
+          <h1 className="section-title">发布家教信息</h1>
+          <p>填写可教科目、可教学段和课时费规则，发布后家长可在广场中查看。</p>
+        </div>
+        <Link className="button secondary" href="/profile/tutor-profiles">
+          返回我的家教信息
+        </Link>
+      </div>
 
       <form className="form" onSubmit={submitForm}>
         <div className="field">
@@ -192,59 +228,78 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
           <span className="error">{errors.timeSlots}</span>
         </fieldset>
 
-        <div className="two-column">
-          <div className="field">
-            <label htmlFor="fee-grade">课时费学段</label>
-            <select
-              id="fee-grade"
-              onChange={(event) => updateFeeRange("grade", event.target.value)}
-              value={input.feeRanges[0].grade}
-            >
-              <option value="">请选择</option>
-              {gradeOptions.map((grade) => (
-                <option key={grade} value={grade}>
-                  {grade}
-                </option>
-              ))}
-            </select>
+        <fieldset className="field option-field">
+          <legend>学段与课时费</legend>
+          <div className="fee-range-list">
+            {input.feeRanges.map((range, index) => (
+              <div className="fee-range" key={index}>
+                <div className="field">
+                  <label htmlFor={`fee-grade-${index}`}>学段</label>
+                  <select
+                    id={`fee-grade-${index}`}
+                    onChange={(event) =>
+                      updateFeeRange(index, "grade", event.target.value)
+                    }
+                    value={range.grade}
+                  >
+                    <option value="">请选择</option>
+                    {gradeOptions.map((grade) => (
+                      <option key={grade} value={grade}>
+                        {grade}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor={`fee-subject-${index}`}>科目</label>
+                  <select
+                    id={`fee-subject-${index}`}
+                    onChange={(event) =>
+                      updateFeeRange(index, "subject", event.target.value)
+                    }
+                    value={range.subject}
+                  >
+                    <option value="">请选择</option>
+                    {subjectOptions.map((subject) => (
+                      <option key={subject} value={subject}>
+                        {subject}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor={`fee-min-${index}`}>最低课时费</label>
+                  <input
+                    id={`fee-min-${index}`}
+                    inputMode="numeric"
+                    onChange={(event) => updateFeeRange(index, "min", event.target.value)}
+                    value={range.min}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor={`fee-max-${index}`}>最高课时费</label>
+                  <input
+                    id={`fee-max-${index}`}
+                    inputMode="numeric"
+                    onChange={(event) => updateFeeRange(index, "max", event.target.value)}
+                    value={range.max}
+                  />
+                </div>
+                <button
+                  className="button secondary fee-remove-button"
+                  disabled={input.feeRanges.length === 1}
+                  onClick={() => removeFeeRange(index)}
+                  type="button"
+                >
+                  删除
+                </button>
+              </div>
+            ))}
           </div>
-          <div className="field">
-            <label htmlFor="fee-subject">课时费科目</label>
-            <select
-              id="fee-subject"
-              onChange={(event) => updateFeeRange("subject", event.target.value)}
-              value={input.feeRanges[0].subject}
-            >
-              <option value="">请选择</option>
-              {subjectOptions.map((subject) => (
-                <option key={subject} value={subject}>
-                  {subject}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="two-column">
-          <div className="field">
-            <label htmlFor="fee-min">最低课时费</label>
-            <input
-              id="fee-min"
-              inputMode="numeric"
-              onChange={(event) => updateFeeRange("min", event.target.value)}
-              value={input.feeRanges[0].min}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="fee-max">最高课时费</label>
-            <input
-              id="fee-max"
-              inputMode="numeric"
-              onChange={(event) => updateFeeRange("max", event.target.value)}
-              value={input.feeRanges[0].max}
-            />
-          </div>
-        </div>
+          <button className="button secondary" onClick={addFeeRange} type="button">
+            + 新增一组学段与课时费
+          </button>
+        </fieldset>
         <span className="error">{errors.feeRanges}</span>
 
         <div className="field">
@@ -279,7 +334,7 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
         </button>
       </form>
 
-      {saved ? <p className="success">家教信息已保存到服务端。</p> : null}
+      {saved ? <p className="success">家教信息已发布。</p> : null}
     </section>
   );
 }

@@ -212,7 +212,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
           <p>基础文字沟通；未完成双方同意和二次确认前不展示联系方式。</p>
         </div>
         <Link className="button secondary" href="/profile/chats">
-          我的聊天
+          返回我的聊天
         </Link>
       </div>
 

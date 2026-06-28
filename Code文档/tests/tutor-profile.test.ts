@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   type TutorProfileInput,
+  formatTutorFeeRange,
   validateTutorProfileInput
 } from "@/features/tutor-profiles/tutor-profile";
 
@@ -98,6 +99,33 @@ describe("tutor profile validation", () => {
 
     expect(result.ok).toBe(false);
     expect(result.errors.feeRanges).toBe("课时费区间最低值不能高于最高值");
+  });
+
+  it("keeps multiple grade fee ranges for one tutor profile", () => {
+    const result = validateTutorProfileInput({
+      ...validTutorProfileInput,
+      grades: ["小学", "初中", "高中"],
+      feeRanges: [
+        { grade: "小学", subject: "数学", min: "100", max: "120" },
+        { grade: "初中", subject: "数学", min: "140", max: "160" },
+        { grade: "高中", subject: "数学", min: "180", max: "220" }
+      ]
+    });
+
+    expect(result.ok && result.value.feeRanges).toEqual([
+      { grade: "小学", subject: "数学", min: 100, max: 120 },
+      { grade: "初中", subject: "数学", min: 140, max: 160 },
+      { grade: "高中", subject: "数学", min: 180, max: 220 }
+    ]);
+  });
+
+  it("formats legacy fee ranges without blank technical fragments", () => {
+    expect(
+      formatTutorFeeRange({ grade: "", subject: "", min: 100, max: 150 })
+    ).toBe("学段不限 · 科目不限 · 100-150 元/小时");
+    expect(
+      formatTutorFeeRange({ grade: "初中", subject: "", min: 120, max: 120 })
+    ).toBe("初中 · 科目不限 · 120 元/小时");
   });
 
   it("rejects unsupported proof image types", () => {

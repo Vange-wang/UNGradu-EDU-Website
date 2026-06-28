@@ -32,8 +32,15 @@ function ParentNeedsList({ ownerPhone }: { ownerPhone: string }) {
 
   return (
     <section className="content-panel wide-panel">
-      <h1 className="section-title">我发布的需求</h1>
-      <p>当前测试账号：{ownerPhone}。这里展示服务端 parent_needs 中属于当前账号的需求。</p>
+      <div className="section-heading-row">
+        <div>
+          <h1 className="section-title">我发布的需求</h1>
+          <p>查看自己发布的找家教需求，或继续发布新的需求。</p>
+        </div>
+        <Link className="button secondary" href="/profile">
+          返回个人页
+        </Link>
+      </div>
 
       <div className="action-row">
         <Link className="button primary" href="/parent-needs/new">

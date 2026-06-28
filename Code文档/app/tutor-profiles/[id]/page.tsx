@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { useTestSession } from "@/features/auth/use-test-session";
 import { createConversationFromSourceToApi } from "@/features/chat/chat-api-client";
+import { formatTutorFeeRange } from "@/features/tutor-profiles/tutor-profile";
 import { readPublicTutorProfileFromApi } from "@/features/tutor-profiles/tutor-profile-api-client";
 import type { PublicServerTutorProfile } from "@/server/tutor-profiles";
 
@@ -92,10 +93,7 @@ export default function TutorProfileDetailPage() {
               <p>
                 课时费：
                 {profile.feeRanges
-                  .map(
-                    (range) =>
-                      `${range.grade}${range.subject} ${range.min}-${range.max} 元/小时`
-                  )
+                  .map((range) => formatTutorFeeRange(range))
                   .join("；")}
               </p>
               <p>能力说明：{profile.abilityDescription}</p>

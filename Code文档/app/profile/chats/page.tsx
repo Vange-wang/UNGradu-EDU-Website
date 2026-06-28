@@ -30,8 +30,15 @@ function ChatList({ currentUserPhone }: { currentUserPhone: string }) {
 
   return (
     <section className="content-panel wide-panel">
-      <h1 className="section-title">我的聊天</h1>
-      <p>这里只显示当前测试账号参与的站内会话。</p>
+      <div className="section-heading-row">
+        <div>
+          <h1 className="section-title">我的聊天</h1>
+          <p>这里只显示当前账号参与的站内会话。</p>
+        </div>
+        <Link className="button secondary" href="/profile">
+          返回个人页
+        </Link>
+      </div>
 
       {conversations.length === 0 ? (
         <p className="empty-state">暂无聊天。可从需求详情或家教信息详情发起。</p>
@@ -52,7 +59,11 @@ function ChatList({ currentUserPhone }: { currentUserPhone: string }) {
                       ? "需求沟通"
                       : "家教信息沟通"}
                   </h2>
-                  <p>来源 ID：{conversation.sourceId}</p>
+                  <p>
+                    {conversation.sourceType === "parent-need"
+                      ? "来自一条家教需求"
+                      : "来自一条家教信息"}
+                  </p>
                 </div>
                 <span className="status-pill">进入聊天</span>
               </div>

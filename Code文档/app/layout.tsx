@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { SessionNav } from "@/features/auth/session-nav";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,9 +20,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             UNGradu EDU
           </Link>
           <nav className="top-nav" aria-label="主导航">
-            <Link href="/login">登录</Link>
-            <Link href="/profile">个人页</Link>
-            <Link href="/rules">规则</Link>
+            <SessionNav />
           </nav>
         </header>
         <main>{children}</main>

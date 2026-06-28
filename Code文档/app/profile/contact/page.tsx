@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
 import { RequireTestSession } from "@/features/auth/require-test-session";
@@ -92,8 +93,15 @@ function ContactProfileForm({ ownerPhone }: { ownerPhone: string }) {
 
   return (
     <section className="content-panel">
-      <h1 className="section-title">联系方式管理</h1>
-      <p>当前测试账号：{ownerPhone}。存档联系方式默认不公开，只在双方授权并二次确认后展示。</p>
+      <div className="section-heading-row">
+        <div>
+          <h1 className="section-title">联系方式管理</h1>
+          <p>存档联系方式默认不公开，只在双方授权并二次确认后展示。</p>
+        </div>
+        <Link className="button secondary" href="/profile">
+          返回个人页
+        </Link>
+      </div>
 
       <form className="form" onSubmit={submitForm}>
         <div className="field">
@@ -126,7 +134,7 @@ function ContactProfileForm({ ownerPhone }: { ownerPhone: string }) {
       </form>
 
       {requestError ? <p className="error">{requestError}</p> : null}
-      {saved ? <p className="success">联系方式已保存到服务端 contact_profiles。</p> : null}
+      {saved ? <p className="success">联系方式已保存。</p> : null}
     </section>
   );
 }

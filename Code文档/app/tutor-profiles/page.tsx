@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
+import { formatTutorFeeRange } from "@/features/tutor-profiles/tutor-profile";
 import { listPublicTutorProfilesFromApi } from "@/features/tutor-profiles/tutor-profile-api-client";
 import type {
   PublicServerTutorProfile,
@@ -189,10 +190,7 @@ export default function TutorProfilesPage() {
                 <p>
                   课时费：
                   {profile.feeRanges
-                    .map(
-                      (range) =>
-                        `${range.grade}${range.subject} ${range.min}-${range.max} 元/小时`
-                    )
+                    .map((range) => formatTutorFeeRange(range))
                     .join("；")}
                 </p>
                 <p>能力说明：{profile.abilityDescription}</p>

@@ -28,6 +28,13 @@ export type TutorProfile = Omit<TutorProfileInput, "feeRanges"> & {
   }>;
 };
 
+export type TutorFeeRangeView = {
+  grade?: string;
+  subject?: string;
+  min: number;
+  max: number;
+};
+
 type TutorProfileErrors = {
   gender?: string;
   school?: string;
@@ -69,6 +76,16 @@ function trimList(values: string[]) {
 function toPositiveNumber(value: string) {
   const parsed = Number(value.trim());
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+export function formatTutorFeeRange(range: TutorFeeRangeView) {
+  const grade = range.grade?.trim() || "学段不限";
+  const subject = range.subject?.trim() || "科目不限";
+  const fee = range.min === range.max
+    ? `${range.min} 元/小时`
+    : `${range.min}-${range.max} 元/小时`;
+
+  return `${grade} · ${subject} · ${fee}`;
 }
 
 export function validateTutorProfileInput(

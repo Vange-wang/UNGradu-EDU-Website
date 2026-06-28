@@ -89,9 +89,14 @@ export default function TutorProfilesPage() {
             <h1 className="section-title">家教信息广场</h1>
             <p>按科目、学段、课时费和性别筛选大学生家教信息；公开详情不展示联系方式。</p>
           </div>
-          <Link className="button primary" href="/tutor-profiles/new">
-            发布家教信息
-          </Link>
+          <div className="action-row compact-actions">
+            <Link className="button secondary" href="/">
+              返回首页
+            </Link>
+            <Link className="button primary" href="/tutor-profiles/new">
+              发布家教信息
+            </Link>
+          </div>
         </div>
 
         <form className="filter-bar" onSubmit={applyFilters}>

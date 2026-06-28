@@ -118,6 +118,10 @@ textarea {
   margin-top: 32px;
 }
 
+.compact-actions {
+  margin-top: 0;
+}
+
 .button {
   align-items: center;
   border: 0;
@@ -258,6 +262,42 @@ textarea {
   display: grid;
   gap: 18px;
   margin-top: 24px;
+}
+
+.embedded-form {
+  background: var(--surface-soft);
+  border-radius: 8px;
+  margin-top: 24px;
+  padding: 18px;
+}
+
+.embedded-form h2 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.auth-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.auth-tab {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--accent-strong);
+  cursor: pointer;
+  font-weight: 750;
+  min-height: 40px;
+  padding: 0 14px;
+}
+
+.auth-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 .field {

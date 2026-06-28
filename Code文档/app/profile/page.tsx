@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { RequireTestSession } from "@/features/auth/require-test-session";
 import { LogoutButton } from "@/features/auth/logout-button";
+import { PasswordSettingsForm } from "@/features/auth/password-settings-form";
 
 const profileLinks = [
   ["联系方式管理", "/profile/contact", "维护用于双方授权交换的手机号和微信号。"],
@@ -18,7 +19,14 @@ export default function ProfilePage() {
       <RequireTestSession>
         {(session) => (
           <section className="content-panel">
-            <h1 className="section-title">个人页面</h1>
+            <div className="section-heading-row">
+              <div>
+                <h1 className="section-title">个人页面</h1>
+              </div>
+              <Link className="button secondary" href="/">
+                返回首页
+              </Link>
+            </div>
             <p>
               当前账号：{session.emailMasked ?? session.phone}。同一个账号可同时使用家长端和大学生端能力。
             </p>
@@ -31,6 +39,8 @@ export default function ProfilePage() {
                 </Link>
               ))}
             </div>
+
+            <PasswordSettingsForm emailMasked={session.emailMasked} />
 
             <LogoutButton />
           </section>

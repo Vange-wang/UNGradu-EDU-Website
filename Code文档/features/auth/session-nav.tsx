@@ -14,6 +14,12 @@ export function SessionNav() {
   async function logout() {
     setMessage("");
 
+    const confirmed = window.confirm("确认退出登录吗？退出后需要重新登录。");
+
+    if (!confirmed) {
+      return;
+    }
+
     const response = await fetch("/api/auth/logout", {
       credentials: "same-origin",
       method: "POST"
@@ -40,7 +46,7 @@ export function SessionNav() {
   if (!session) {
     return (
       <>
-        <Link href="/login">登录</Link>
+        <Link href="/login">登录 / 注册</Link>
         <Link href="/rules">规则</Link>
       </>
     );

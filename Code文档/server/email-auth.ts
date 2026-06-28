@@ -1,4 +1,11 @@
-import { createHash, createHmac, randomInt } from "node:crypto";
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  randomInt,
+  scryptSync,
+  timingSafeEqual
+} from "node:crypto";
 
 import {
   maskEmail,
@@ -12,6 +19,9 @@ export const EMAIL_LOGIN_USERS_COLLECTION = "email_login_users";
 const CODE_TTL_MS = 5 * 60 * 1000;
 const SEND_COOLDOWN_MS = 60 * 1000;
 const MAX_VERIFY_ATTEMPTS = 5;
+const MAX_PASSWORD_ATTEMPTS = 5;
+const PASSWORD_LOCK_MS = 15 * 60 * 1000;
+const SCRYPT_KEY_LENGTH = 64;
 
 type RuntimeEnv = {
   APP_ENV?: string;
@@ -51,9 +61,21 @@ export type EmailUserDocument = {
   createdAt: string;
   emailHash: string;
   emailMasked: string;
+  failedPasswordAttempts?: number;
   lastLoginAt: string;
+  passwordHash?: string;
+  passwordLockedUntil?: string;
+  passwordUpdatedAt?: string;
   status: "active" | "disabled";
   userId: string;
+};
+
+type EmailAuthErrors = {
+  code?: string;
+  email?: string;
+  password?: string;
+  passwordConfirm?: string;
+  request?: string;
 };
 
 export function hashEmail(email: string) {
@@ -134,13 +156,64 @@ function createUserId(emailHash: string) {
   return `email_${emailHash.slice(0, 24)}`;
 }
 
-function createFailure(
-  errors: { code?: string; email?: string; request?: string }
-) {
+function createFailure(errors: EmailAuthErrors) {
   return {
     ok: false as const,
     value: null,
     errors
+  };
+}
+
+function validatePasswordInput(password: string, passwordConfirm?: string) {
+  const normalized = password.trim();
+
+  if (
+    normalized.length < 8 ||
+    normalized.length > 72 ||
+    !/[A-Za-z]/.test(normalized) ||
+    !/\d/.test(normalized)
+  ) {
+    return createFailure({
+      password: "密码至少 8 位，并同时包含字母和数字"
+    });
+  }
+
+  if (passwordConfirm !== undefined && password !== passwordConfirm) {
+    return createFailure({ passwordConfirm: "两次输入的密码不一致" });
+  }
+
+  return {
+    ok: true as const,
+    value: normalized,
+    errors: {}
+  };
+}
+
+function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, SCRYPT_KEY_LENGTH).toString("hex");
+  return `scrypt$${salt}$${hash}`;
+}
+
+function verifyPassword(password: string, storedHash: string) {
+  const [scheme, salt, hash] = storedHash.split("$");
+
+  if (scheme !== "scrypt" || !salt || !hash) {
+    return false;
+  }
+
+  const actual = Buffer.from(hash, "hex");
+  const expected = scryptSync(password, salt, actual.length);
+
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+function publicUserValue(user: EmailUserDocument, lastLoginAt: string) {
+  return {
+    createdAt: user.createdAt,
+    emailMasked: user.emailMasked,
+    lastLoginAt,
+    userId: user.userId
   };
 }
 
@@ -291,11 +364,6 @@ export async function verifyEmailLoginCode({
     return createFailure({ code: "验证码不正确" });
   }
 
-  await patchDocument(emailCodeCollection, emailHash, {
-    attempts: storedCode.attempts,
-    usedAt: now.toISOString()
-  });
-
   const existingUser = await readDocument<EmailUserDocument>(
     userCollection,
     emailHash
@@ -321,12 +389,235 @@ export async function verifyEmailLoginCode({
 
   return {
     ok: true as const,
-    value: {
-      createdAt: user.createdAt,
-      emailMasked: user.emailMasked,
-      lastLoginAt: now.toISOString(),
-      userId: user.userId
-    },
+    value: publicUserValue(user, now.toISOString()),
+    errors: {}
+  };
+}
+
+export async function markEmailLoginCodeUsed({
+  email,
+  emailCodeCollection,
+  now = new Date()
+}: {
+  email: string;
+  emailCodeCollection: EmailAuthCollection;
+  now?: Date;
+}) {
+  const emailValidation = validateEmailAddress(email);
+
+  if (!emailValidation.ok) {
+    return createFailure(emailValidation.errors);
+  }
+
+  const emailHash = hashEmail(emailValidation.value);
+  const storedCode = await readDocument<EmailCodeDocument>(
+    emailCodeCollection,
+    emailHash
+  );
+
+  if (!storedCode) {
+    return createFailure({ request: "请先获取验证码" });
+  }
+
+  if (storedCode.usedAt) {
+    return createFailure({ request: "验证码已使用，请重新获取" });
+  }
+
+  await patchDocument(emailCodeCollection, emailHash, {
+    attempts: storedCode.attempts,
+    usedAt: now.toISOString()
+  });
+
+  return {
+    ok: true as const,
+    value: null,
+    errors: {}
+  };
+}
+
+export async function setEmailUserPassword({
+  email,
+  now = new Date(),
+  password,
+  passwordConfirm,
+  userCollection
+}: {
+  email: string;
+  now?: Date;
+  password: string;
+  passwordConfirm: string;
+  userCollection: EmailAuthCollection;
+}) {
+  const emailValidation = validateEmailAddress(email);
+
+  if (!emailValidation.ok) {
+    return createFailure(emailValidation.errors);
+  }
+
+  const passwordValidation = validatePasswordInput(password, passwordConfirm);
+
+  if (!passwordValidation.ok) {
+    return passwordValidation;
+  }
+
+  const emailHash = hashEmail(emailValidation.value);
+  const existingUser = await readDocument<EmailUserDocument>(
+    userCollection,
+    emailHash
+  );
+
+  if (!existingUser || existingUser.status === "disabled") {
+    return createFailure({ request: "账号暂不可用，请稍后重试" });
+  }
+
+  const passwordHash = hashPassword(passwordValidation.value);
+
+  await userCollection.doc(emailHash).set({
+    ...existingUser,
+    failedPasswordAttempts: 0,
+    passwordHash,
+    passwordLockedUntil: undefined,
+    passwordUpdatedAt: now.toISOString()
+  });
+
+  return {
+    ok: true as const,
+    value: { passwordUpdatedAt: now.toISOString() },
+    errors: {}
+  };
+}
+
+export async function loginWithEmailPassword({
+  email,
+  now = new Date(),
+  password,
+  userCollection
+}: {
+  email: string;
+  now?: Date;
+  password: string;
+  userCollection: EmailAuthCollection;
+}) {
+  const emailValidation = validateEmailAddress(email);
+
+  if (!emailValidation.ok) {
+    return createFailure({ request: "邮箱或密码不正确" });
+  }
+
+  const normalizedPassword = password.trim();
+
+  if (!normalizedPassword) {
+    return createFailure({ request: "邮箱或密码不正确" });
+  }
+
+  const emailHash = hashEmail(emailValidation.value);
+  const existingUser = await readDocument<EmailUserDocument>(
+    userCollection,
+    emailHash
+  );
+
+  if (!existingUser || existingUser.status === "disabled" || !existingUser.passwordHash) {
+    return createFailure({ request: "邮箱或密码不正确" });
+  }
+
+  if (
+    existingUser.passwordLockedUntil &&
+    new Date(existingUser.passwordLockedUntil).getTime() > now.getTime()
+  ) {
+    return createFailure({ request: "密码错误次数过多，请稍后再试" });
+  }
+
+  if (!verifyPassword(normalizedPassword, existingUser.passwordHash)) {
+    const failedPasswordAttempts = (existingUser.failedPasswordAttempts ?? 0) + 1;
+    const passwordLockedUntil =
+      failedPasswordAttempts >= MAX_PASSWORD_ATTEMPTS
+        ? new Date(now.getTime() + PASSWORD_LOCK_MS).toISOString()
+        : undefined;
+
+    await patchDocument(userCollection, emailHash, {
+      failedPasswordAttempts,
+      passwordLockedUntil
+    });
+
+    return createFailure({
+      request:
+        failedPasswordAttempts >= MAX_PASSWORD_ATTEMPTS
+          ? "密码错误次数过多，请稍后再试"
+          : "邮箱或密码不正确"
+    });
+  }
+
+  await userCollection.doc(emailHash).set({
+    ...existingUser,
+    failedPasswordAttempts: 0,
+    lastLoginAt: now.toISOString(),
+    passwordLockedUntil: undefined
+  });
+
+  return {
+    ok: true as const,
+    value: publicUserValue(existingUser, now.toISOString()),
+    errors: {}
+  };
+}
+
+export async function resetEmailPasswordWithCode({
+  code,
+  email,
+  emailCodeCollection,
+  env,
+  now = new Date(),
+  password,
+  passwordConfirm,
+  userCollection
+}: {
+  code: string;
+  email: string;
+  emailCodeCollection: EmailAuthCollection;
+  env: RuntimeEnv;
+  now?: Date;
+  password: string;
+  passwordConfirm: string;
+  userCollection: EmailAuthCollection;
+}) {
+  const verified = await verifyEmailLoginCode({
+    code,
+    email,
+    emailCodeCollection,
+    env,
+    now,
+    userCollection
+  });
+
+  if (!verified.ok) {
+    return verified;
+  }
+
+  const passwordResult = await setEmailUserPassword({
+    email,
+    now,
+    password,
+    passwordConfirm,
+    userCollection
+  });
+
+  if (!passwordResult.ok) {
+    return passwordResult;
+  }
+
+  const consumed = await markEmailLoginCodeUsed({
+    email,
+    emailCodeCollection,
+    now
+  });
+
+  if (!consumed.ok) {
+    return consumed;
+  }
+
+  return {
+    ok: true as const,
+    value: passwordResult.value,
     errors: {}
   };
 }

@@ -10,6 +10,12 @@ export function LogoutButton() {
   async function logout() {
     setMessage("");
 
+    const confirmed = window.confirm("确认退出登录吗？退出后需要重新登录。");
+
+    if (!confirmed) {
+      return;
+    }
+
     const response = await fetch("/api/auth/logout", {
       credentials: "same-origin",
       method: "POST"

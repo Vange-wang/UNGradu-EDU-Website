@@ -1,6 +1,16 @@
-import { apiError, jsonResponse, readJsonBody, type RuntimeEnv } from "@/server/api-utils";
 import {
+  jsonResponse,
+  readAuthenticatedUserId,
+  readJsonBody,
+  type RuntimeEnv
+} from "@/server/api-utils";
+import {
+  hashEmail,
+  loginWithEmailPassword,
+  markEmailLoginCodeUsed,
+  resetEmailPasswordWithCode,
   sendEmailLoginCode,
+  setEmailUserPassword,
   verifyEmailLoginCode,
   type EmailAuthCollection,
   type EmailDelivery
@@ -16,7 +26,15 @@ type EmailAuthApiDependencies = {
   userCollection: EmailAuthCollection;
 };
 
-function statusForEmailFailure(errors: { code?: string; email?: string; request?: string }) {
+type EmailAuthErrors = {
+  code?: string;
+  email?: string;
+  password?: string;
+  passwordConfirm?: string;
+  request?: string;
+};
+
+function statusForEmailFailure(errors: EmailAuthErrors) {
   if (errors.request?.includes("频繁") || errors.request?.includes("次数过多")) {
     return 429;
   }
@@ -90,7 +108,20 @@ export function createEmailAuthApiHandlers({
       });
 
       if (!cookie) {
-        return apiError(500, "Auth session secret is not configured.");
+        return jsonResponse(
+          createEmailAuthFailure({ request: "登录服务暂时不可用，请稍后重试" }),
+          503
+        );
+      }
+
+      const consumed = await markEmailLoginCodeUsed({
+        email: body.value.email ?? "",
+        emailCodeCollection,
+        now: now()
+      });
+
+      if (!consumed.ok) {
+        return jsonResponse(consumed, statusForEmailFailure(consumed.errors));
       }
 
       return Response.json(
@@ -109,6 +140,128 @@ export function createEmailAuthApiHandlers({
           status: 200
         }
       );
+    },
+
+    async POST_PASSWORD_LOGIN(request: Request) {
+      const body = await readJsonBody<{ email?: string; password?: string }>(request);
+
+      if (!body.ok) {
+        return body.response;
+      }
+
+      const result = await loginWithEmailPassword({
+        email: body.value.email ?? "",
+        now: now(),
+        password: body.value.password ?? "",
+        userCollection
+      });
+
+      if (!result.ok) {
+        return jsonResponse(result, statusForEmailFailure(result.errors));
+      }
+
+      const cookie = createAuthSessionCookie({
+        emailMasked: result.value.emailMasked,
+        env,
+        userId: result.value.userId
+      });
+
+      if (!cookie) {
+        return jsonResponse(
+          createEmailAuthFailure({ request: "登录服务暂时不可用，请稍后重试" }),
+          503
+        );
+      }
+
+      return Response.json(
+        {
+          ok: true,
+          value: result.value,
+          errors: {}
+        },
+        {
+          headers: { "set-cookie": cookie },
+          status: 200
+        }
+      );
+    },
+
+    async POST_SET_PASSWORD(request: Request) {
+      const body = await readJsonBody<{
+        email?: string;
+        password?: string;
+        passwordConfirm?: string;
+      }>(request);
+
+      if (!body.ok) {
+        return body.response;
+      }
+
+      const auth = readAuthenticatedUserId(request, env);
+
+      if (!auth.ok) {
+        return auth.response;
+      }
+
+      const email = body.value.email ?? "";
+      const expectedUserId = `email_${hashEmail(email.trim().toLowerCase()).slice(0, 24)}`;
+
+      if (auth.authenticatedUserId !== expectedUserId) {
+        return jsonResponse(
+          createEmailAuthFailure({ request: "只能为当前登录邮箱设置密码" }),
+          403
+        );
+      }
+
+      const result = await setEmailUserPassword({
+        email,
+        now: now(),
+        password: body.value.password ?? "",
+        passwordConfirm: body.value.passwordConfirm ?? "",
+        userCollection
+      });
+
+      return jsonResponse(
+        result,
+        result.ok ? 200 : statusForEmailFailure(result.errors)
+      );
+    },
+
+    async POST_RESET_PASSWORD(request: Request) {
+      const body = await readJsonBody<{
+        code?: string;
+        email?: string;
+        password?: string;
+        passwordConfirm?: string;
+      }>(request);
+
+      if (!body.ok) {
+        return body.response;
+      }
+
+      const result = await resetEmailPasswordWithCode({
+        code: body.value.code ?? "",
+        email: body.value.email ?? "",
+        emailCodeCollection,
+        env,
+        now: now(),
+        password: body.value.password ?? "",
+        passwordConfirm: body.value.passwordConfirm ?? "",
+        userCollection
+      });
+
+      return jsonResponse(
+        result,
+        result.ok ? 200 : statusForEmailFailure(result.errors)
+      );
     }
+  };
+}
+
+function createEmailAuthFailure(errors: EmailAuthErrors) {
+  return {
+    ok: false as const,
+    value: null,
+    errors
   };
 }

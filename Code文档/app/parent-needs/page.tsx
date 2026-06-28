@@ -96,9 +96,14 @@ export default function ParentNeedsPage() {
             <h1 className="section-title">需求广场</h1>
             <p>按科目、学段、预算区间和性别偏好筛选家长需求；公开详情不展示联系方式。</p>
           </div>
-          <Link className="button primary" href="/parent-needs/new">
-            发布需求
-          </Link>
+          <div className="action-row compact-actions">
+            <Link className="button secondary" href="/">
+              返回首页
+            </Link>
+            <Link className="button primary" href="/parent-needs/new">
+              发布需求
+            </Link>
+          </div>
         </div>
 
         <form className="filter-bar" onSubmit={applyFilters}>

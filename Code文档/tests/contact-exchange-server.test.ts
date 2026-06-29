@@ -11,6 +11,16 @@ import {
 
 type StoredDocument = Record<string, unknown>;
 
+function activeExchangeTimes() {
+  const createdAt = new Date();
+  const approvedAt = new Date(createdAt.getTime() + 5 * 60 * 1000);
+
+  return {
+    approvedAt: approvedAt.toISOString(),
+    createdAt: createdAt.toISOString()
+  };
+}
+
 function createFakeCollection(initialValues: Record<string, StoredDocument> = {}) {
   const documents = new Map(Object.entries(initialValues));
 
@@ -84,12 +94,13 @@ function createDependencies() {
 describe("server contact exchange interface", () => {
   it("keeps contact profiles unreadable until a participant approves with second confirmation", async () => {
     const dependencies = createDependencies();
+    const activeTimes = activeExchangeTimes();
 
     const request = await createServerContactExchangeRequest({
       ...dependencies,
       authenticatedUserId: "parent-a",
       conversationId: "conversation-a",
-      now: "2026-06-22T00:00:00.000Z"
+      now: activeTimes.createdAt
     });
 
     expect(request).toMatchObject({
@@ -112,7 +123,7 @@ describe("server contact exchange interface", () => {
     const approved = await approveServerContactExchangeRequest({
       ...dependencies,
       authenticatedUserId: "tutor-a",
-      now: "2026-06-22T00:05:00.000Z",
+      now: activeTimes.approvedAt,
       requestId: request.ok ? request.value.id : "",
       secondConfirmation: true
     });
@@ -122,7 +133,7 @@ describe("server contact exchange interface", () => {
       value: {
         direction: "received",
         status: "approved",
-        secondConfirmedAt: "2026-06-22T00:05:00.000Z"
+        secondConfirmedAt: activeTimes.approvedAt
       }
     });
 

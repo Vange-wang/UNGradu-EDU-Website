@@ -4,6 +4,16 @@ import { createContactExchangeApiHandlers } from "@/server/contact-exchange-api"
 
 type StoredDocument = Record<string, unknown>;
 
+function activeExchangeTimes() {
+  const createdAt = new Date();
+  const approvedAt = new Date(createdAt.getTime() + 5 * 60 * 1000);
+
+  return {
+    approvedAt: approvedAt.toISOString(),
+    createdAt: createdAt.toISOString()
+  };
+}
+
 function createFakeCollection(initialValues: Record<string, StoredDocument> = {}) {
   const documents = new Map(Object.entries(initialValues));
 
@@ -68,13 +78,14 @@ function createHandlers(env = { NODE_ENV: "test", NEXT_PUBLIC_ALLOW_TEST_LOGIN: 
 describe("contact exchange API handlers", () => {
   it("creates, approves, and then returns authorized contact profiles", async () => {
     const handlers = createHandlers();
+    const activeTimes = activeExchangeTimes();
 
     const created = await handlers.POST(
       new Request("http://localhost/api/contact-exchange", {
         body: JSON.stringify({
           action: "create",
           conversationId: "conversation-a",
-          now: "2026-06-22T00:00:00.000Z"
+          now: activeTimes.createdAt
         }),
         headers: { "x-ungradu-test-user-phone": "parent-a" },
         method: "POST"
@@ -93,7 +104,7 @@ describe("contact exchange API handlers", () => {
       new Request("http://localhost/api/contact-exchange", {
         body: JSON.stringify({
           action: "approve",
-          now: "2026-06-22T00:05:00.000Z",
+          now: activeTimes.approvedAt,
           requestId: createdBody.value.id,
           secondConfirmation: true
         }),

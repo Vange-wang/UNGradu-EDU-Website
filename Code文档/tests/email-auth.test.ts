@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { readAuthSessionFromRequest } from "@/server/auth-session";
+import { createAuthSessionCookie, readAuthSessionFromRequest } from "@/server/auth-session";
 import { createContactProfileApiHandlers } from "@/server/contact-profile-api";
 import { createEmailAuthApiHandlers } from "@/server/email-auth-api";
 import { hashEmail } from "@/server/email-auth";
@@ -558,6 +558,54 @@ describe("email auth API handlers", () => {
     expect(String(user?.passwordHash)).toMatch(/^scrypt\$/);
   });
 
+  it("sets a password for existing CloudBase email users without writing the document _id", async () => {
+    const email = "student@example.com";
+    const emailHash = hashEmail(email);
+    const collections = {
+      emailCodeCollection: createFakeCollection(),
+      userCollection: createFakeCollection({
+        [emailHash]: {
+          _id: emailHash,
+          createdAt: "2026-06-26T10:00:00.000Z",
+          emailHash,
+          emailMasked: "s***t@example.com",
+          lastLoginAt: "2026-06-27T10:00:00.000Z",
+          status: "active",
+          userId: `email_${emailHash.slice(0, 24)}`
+        }
+      })
+    };
+    const handlers = createEmailAuthApiHandlers({
+      ...collections,
+      emailDelivery: {
+        async send() {
+          return { ok: true };
+        }
+      },
+      env: {
+        APP_ENV: "production",
+        AUTH_SESSION_SECRET: "email-auth-test-secret",
+        EMAIL_CODE_SECRET: "email-code-test-secret",
+        NODE_ENV: "production"
+      },
+      now: () => new Date("2026-06-27T10:00:00.000Z")
+    });
+    const realCookie =
+      createAuthSessionCookie({
+        emailMasked: "s***t@example.com",
+        env: {
+          AUTH_SESSION_SECRET: "email-auth-test-secret",
+          NODE_ENV: "production"
+        },
+        userId: `email_${emailHash.slice(0, 24)}`
+      }) ?? "";
+
+    const response = await setPassword(handlers, realCookie);
+
+    expect(response.status).toBe(200);
+    expect(collections.userCollection.documents.get(emailHash)).not.toHaveProperty("_id");
+  });
+
   it("rejects weak or mismatched passwords before saving them", async () => {
     const collections = {
       emailCodeCollection: createFakeCollection(),
@@ -607,6 +655,62 @@ describe("email auth API handlers", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("set-cookie")).toContain("ungradu_auth_session=");
+  });
+
+  it("logs in with password for existing CloudBase users without writing the document _id", async () => {
+    const email = "student@example.com";
+    const emailHash = hashEmail(email);
+    const collections = {
+      emailCodeCollection: createFakeCollection(),
+      userCollection: createFakeCollection()
+    };
+    const setupHandlers = createEmailAuthApiHandlers({
+      ...collections,
+      codeGenerator: () => "123456",
+      emailDelivery: {
+        async send() {
+          return { ok: true };
+        }
+      },
+      env: {
+        APP_ENV: "production",
+        AUTH_SESSION_SECRET: "email-auth-test-secret",
+        EMAIL_CODE_SECRET: "email-code-test-secret",
+        NODE_ENV: "production"
+      },
+      now: () => new Date("2026-06-27T10:00:00.000Z")
+    });
+    await sendCode(setupHandlers, email);
+    const loggedIn = await login(setupHandlers, "123456", email);
+    await setPassword(setupHandlers, loggedIn.headers.get("set-cookie") ?? "", "Tutor12345");
+    const storedUser = collections.userCollection.documents.get(emailHash);
+    collections.userCollection.documents.set(emailHash, {
+      ...storedUser,
+      _id: emailHash
+    });
+    const loginHandlers = createEmailAuthApiHandlers({
+      ...collections,
+      emailDelivery: {
+        async send() {
+          return { ok: true };
+        }
+      },
+      env: {
+        APP_ENV: "production",
+        AUTH_SESSION_SECRET: "email-auth-test-secret",
+        EMAIL_CODE_SECRET: "email-code-test-secret",
+        NODE_ENV: "production"
+      },
+      now: () => new Date("2026-06-27T10:05:00.000Z")
+    });
+
+    const response = await passwordLogin(loginHandlers, "Tutor12345", email);
+
+    expect(response.status).toBe(200);
+    expect(collections.userCollection.documents.get(emailHash)).not.toHaveProperty("_id");
+    expect(collections.userCollection.documents.get(emailHash)?.lastLoginAt).toBe(
+      "2026-06-27T10:05:00.000Z"
+    );
   });
 
   it("rejects wrong password with a generic message", async () => {

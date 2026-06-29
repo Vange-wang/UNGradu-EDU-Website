@@ -485,9 +485,10 @@ export async function setEmailUserPassword({
   }
 
   const passwordHash = hashPassword(passwordValidation.value);
+  const writableUser = sanitizeEmailUserForWrite(existingUser);
 
   await userCollection.doc(emailHash).set({
-    ...existingUser,
+    ...writableUser,
     failedPasswordAttempts: 0,
     passwordHash,
     passwordLockedUntil: undefined,
@@ -561,8 +562,10 @@ export async function loginWithEmailPassword({
     });
   }
 
+  const writableUser = sanitizeEmailUserForWrite(existingUser);
+
   await userCollection.doc(emailHash).set({
-    ...existingUser,
+    ...writableUser,
     failedPasswordAttempts: 0,
     lastLoginAt: now.toISOString(),
     passwordLockedUntil: undefined

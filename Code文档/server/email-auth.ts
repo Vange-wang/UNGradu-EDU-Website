@@ -217,6 +217,18 @@ function publicUserValue(user: EmailUserDocument, lastLoginAt: string) {
   };
 }
 
+function sanitizeEmailUserForWrite(user: EmailUserDocument) {
+  const writableUser = { ...user } as EmailUserDocument & {
+    _id?: unknown;
+    id?: unknown;
+  };
+
+  delete writableUser._id;
+  delete writableUser.id;
+
+  return writableUser;
+}
+
 export async function sendEmailLoginCode({
   codeGenerator = generateSixDigitCode,
   email,
@@ -382,14 +394,16 @@ export async function verifyEmailLoginCode({
     userId: createUserId(emailHash)
   };
 
+  const writableUser = sanitizeEmailUserForWrite(user);
+
   await userCollection.doc(emailHash).set({
-    ...user,
+    ...writableUser,
     lastLoginAt: now.toISOString()
   });
 
   return {
     ok: true as const,
-    value: publicUserValue(user, now.toISOString()),
+    value: publicUserValue(writableUser, now.toISOString()),
     errors: {}
   };
 }

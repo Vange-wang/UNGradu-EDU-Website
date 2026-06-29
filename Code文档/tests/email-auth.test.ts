@@ -19,10 +19,18 @@ function createFakeCollection(initialValues: Record<string, StoredDocument> = {}
           return { data: data ? [{ ...data, id: docId }] : [] };
         },
         async set(data: StoredDocument) {
+          if ("_id" in data) {
+            throw new Error("不能更新 _id 的值");
+          }
+
           documents.set(docId, data);
           return { updated: 1 };
         },
         async update(data: StoredDocument) {
+          if ("_id" in data) {
+            throw new Error("不能更新 _id 的值");
+          }
+
           const current = documents.get(docId) ?? {};
           documents.set(docId, { ...current, ...data });
           return { updated: 1 };
@@ -399,6 +407,50 @@ describe("email auth API handlers", () => {
 
     expect(loggedIn.status).toBe(200);
     expect(collections.emailCodeCollection.documents.get(emailHash)?.usedAt).toBe(
+      "2026-06-27T10:00:00.000Z"
+    );
+  });
+
+  it("logs in existing CloudBase email users without writing the document _id", async () => {
+    const email = "student@example.com";
+    const emailHash = hashEmail(email);
+    const collections = {
+      emailCodeCollection: createFakeCollection(),
+      userCollection: createFakeCollection({
+        [emailHash]: {
+          _id: emailHash,
+          createdAt: "2026-06-26T10:00:00.000Z",
+          emailHash,
+          emailMasked: "s***t@example.com",
+          lastLoginAt: "2026-06-26T10:00:00.000Z",
+          status: "active",
+          userId: `email_${emailHash.slice(0, 24)}`
+        }
+      })
+    };
+    const handlers = createEmailAuthApiHandlers({
+      ...collections,
+      codeGenerator: () => "123456",
+      emailDelivery: {
+        async send() {
+          return { ok: true };
+        }
+      },
+      env: {
+        APP_ENV: "production",
+        AUTH_SESSION_SECRET: "email-auth-test-secret",
+        EMAIL_CODE_SECRET: "email-code-test-secret",
+        NODE_ENV: "production"
+      },
+      now: () => new Date("2026-06-27T10:00:00.000Z")
+    });
+
+    await sendCode(handlers, email);
+    const loggedIn = await login(handlers, "123456", email);
+
+    expect(loggedIn.status).toBe(200);
+    expect(collections.userCollection.documents.get(emailHash)).not.toHaveProperty("_id");
+    expect(collections.userCollection.documents.get(emailHash)?.lastLoginAt).toBe(
       "2026-06-27T10:00:00.000Z"
     );
   });

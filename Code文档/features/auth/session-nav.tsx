@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { notifyAuthSessionAnonymous } from "@/features/auth/auth-session-events";
 import { useTestSession } from "@/features/auth/use-test-session";
 
 export function SessionNav() {
@@ -30,6 +31,7 @@ export function SessionNav() {
       return;
     }
 
+    notifyAuthSessionAnonymous();
     router.push("/");
     router.refresh();
   }

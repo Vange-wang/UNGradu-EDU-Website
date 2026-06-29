@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { notifyAuthSessionAnonymous } from "@/features/auth/auth-session-events";
+
 export function LogoutButton() {
   const router = useRouter();
   const [message, setMessage] = useState("");
@@ -26,6 +28,7 @@ export function LogoutButton() {
       return;
     }
 
+    notifyAuthSessionAnonymous();
     router.push("/");
     router.refresh();
   }

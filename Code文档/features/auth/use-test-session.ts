@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { subscribeAuthSessionChanged } from "@/features/auth/auth-session-events";
 import type { TestSession } from "@/features/auth/test-auth";
 
 type SessionApiResult =
@@ -46,9 +47,20 @@ export function useTestSession() {
     }
 
     void loadSession();
+    const unsubscribe = subscribeAuthSessionChanged((event) => {
+      if (event.detail.status === "anonymous") {
+        setSession(null);
+        setLoaded(true);
+      } else {
+        setLoaded(false);
+      }
+
+      void loadSession();
+    });
 
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, []);
 

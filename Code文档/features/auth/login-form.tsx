@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { parseApiResponse, type ApiResult } from "@/features/api/api-client";
+import { notifyAuthSessionAuthenticated } from "@/features/auth/auth-session-events";
 import { validateEmailAddress, validateEmailCode } from "@/features/auth/email-auth";
 import { sanitizeNextPath } from "@/features/auth/test-auth";
 
@@ -122,7 +123,9 @@ export function LoginForm() {
         return;
       }
 
+      notifyAuthSessionAuthenticated();
       router.push(sanitizeNextPath(searchParams.get("next")));
+      router.refresh();
     } finally {
       setIsLoggingIn(false);
     }
@@ -165,7 +168,9 @@ export function LoginForm() {
         return;
       }
 
+      notifyAuthSessionAuthenticated();
       router.push(sanitizeNextPath(searchParams.get("next")));
+      router.refresh();
     } finally {
       setIsLoggingIn(false);
     }

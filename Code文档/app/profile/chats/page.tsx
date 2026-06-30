@@ -29,26 +29,34 @@ function ChatList({ currentUserPhone }: { currentUserPhone: string }) {
   }, [currentUserPhone]);
 
   return (
-    <section className="content-panel wide-panel">
-      <div className="section-heading-row">
+    <section className="wide-panel">
+      <div className="workspace-header">
         <div>
+          <span className="eyebrow">Profile Workspace</span>
           <h1 className="section-title">我的聊天</h1>
-          <p>这里只显示当前账号参与的站内会话。</p>
+          <p>这里仅显示当前账号参与的站内会话。</p>
         </div>
         <Link className="button secondary" href="/profile">
-          返回个人页
+          返回个人中心
         </Link>
+      </div>
+
+      <div className="profile-list-toolbar">
+        <div>
+          <strong>{conversations.length}</strong>
+          <span>个会话</span>
+        </div>
       </div>
 
       {conversations.length === 0 ? (
         <p className="empty-state">暂无聊天。可从需求详情或家教信息详情发起。</p>
       ) : null}
 
-      <div className="record-list">
+      <div className="record-list profile-record-list">
         {conversations.map((conversation) => {
           return (
             <Link
-              className="record-card"
+              className="record-card profile-record-card"
               href={`/chats/${conversation.id}`}
               key={conversation.id}
             >

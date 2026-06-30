@@ -32,18 +32,23 @@ function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
   }, [ownerPhone]);
 
   return (
-    <section className="content-panel wide-panel">
-      <div className="section-heading-row">
+    <section className="wide-panel">
+      <div className="workspace-header">
         <div>
+          <span className="eyebrow">Profile Workspace</span>
           <h1 className="section-title">我的家教信息</h1>
           <p>查看自己发布的家教信息，或继续补充新的授课信息。</p>
         </div>
         <Link className="button secondary" href="/profile">
-          返回个人页
+          返回个人中心
         </Link>
       </div>
 
-      <div className="action-row">
+      <div className="profile-list-toolbar">
+        <div>
+          <strong>{profiles.length}</strong>
+          <span>条家教信息</span>
+        </div>
         <Link className="button primary" href="/tutor-profiles/new">
           发布新家教信息
         </Link>
@@ -52,13 +57,18 @@ function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
       {profiles.length === 0 ? (
         <p className="empty-state">还没有发布家教信息。</p>
       ) : (
-        <div className="record-list">
+        <div className="record-list profile-record-list">
           {profiles.map((profile) => (
-            <article className="record-card" key={profile.id}>
-              <h2>
-                {profile.school} · {profile.major}
-              </h2>
-              <p>性别：{profile.gender}</p>
+            <article className="record-card profile-record-card" key={profile.id}>
+              <div className="record-card-header">
+                <div>
+                  <h2>
+                    {profile.school} / {profile.major}
+                  </h2>
+                  <p>性别：{profile.gender}</p>
+                </div>
+                <span className="status-pill">家教信息</span>
+              </div>
               <p>可教科目：{profile.subjects.join("、")}</p>
               <p>可教学段：{profile.grades.join("、")}</p>
               <p>可上课时间：{profile.timeSlots.join("、")}</p>

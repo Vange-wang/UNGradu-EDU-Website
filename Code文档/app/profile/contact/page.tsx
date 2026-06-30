@@ -92,49 +92,60 @@ function ContactProfileForm({ ownerPhone }: { ownerPhone: string }) {
   }
 
   return (
-    <section className="content-panel">
-      <div className="section-heading-row">
+    <section className="wide-panel">
+      <div className="workspace-header">
         <div>
+          <span className="eyebrow">Profile Workspace</span>
           <h1 className="section-title">联系方式管理</h1>
           <p>存档联系方式默认不公开，只在双方授权并二次确认后展示。</p>
         </div>
         <Link className="button secondary" href="/profile">
-          返回个人页
+          返回个人中心
         </Link>
       </div>
 
-      <form className="form" onSubmit={submitForm}>
-        <div className="field">
-          <label htmlFor="contact-phone">手机号</label>
-          <input
-            id="contact-phone"
-            inputMode="tel"
-            name="phone"
-            onChange={(event) => updateField("phone", event.target.value)}
-            placeholder="请输入用于交换的手机号"
-            value={input.phone}
-          />
-          <span className="error">{phoneError}</span>
-        </div>
+      <div className="profile-workspace">
+        <aside className="profile-side-note">
+          <span className="eyebrow">隐私边界</span>
+          <h2>未授权前不展示</h2>
+          <p>这里保存的手机号和微信号仅用于联系方式交换流程，不会直接出现在公开页面。</p>
+        </aside>
 
-        <div className="field">
-          <label htmlFor="contact-wechat">微信号</label>
-          <input
-            id="contact-wechat"
-            name="wechat"
-            onChange={(event) => updateField("wechat", event.target.value)}
-            placeholder="选填"
-            value={input.wechat}
-          />
-        </div>
+        <section className="profile-panel">
+          <form className="form" onSubmit={submitForm}>
+            <div className="field">
+              <label htmlFor="contact-phone">手机号</label>
+              <input
+                id="contact-phone"
+                inputMode="tel"
+                name="phone"
+                onChange={(event) => updateField("phone", event.target.value)}
+                placeholder="请输入用于交换的手机号"
+                value={input.phone}
+              />
+              <span className="error">{phoneError}</span>
+            </div>
 
-        <button className="button primary" type="submit">
-          保存联系方式
-        </button>
-      </form>
+            <div className="field">
+              <label htmlFor="contact-wechat">微信号</label>
+              <input
+                id="contact-wechat"
+                name="wechat"
+                onChange={(event) => updateField("wechat", event.target.value)}
+                placeholder="选填"
+                value={input.wechat}
+              />
+            </div>
 
-      {requestError ? <p className="error">{requestError}</p> : null}
-      {saved ? <p className="success">联系方式已保存。</p> : null}
+            <button className="button primary" type="submit">
+              保存联系方式
+            </button>
+          </form>
+
+          {requestError ? <p className="error">{requestError}</p> : null}
+          {saved ? <p className="success">联系方式已保存。</p> : null}
+        </section>
+      </div>
     </section>
   );
 }

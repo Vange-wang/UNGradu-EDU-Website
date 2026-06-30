@@ -205,19 +205,50 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
   }
 
   return (
-    <section className="content-panel wide-panel">
-      <div className="section-heading-row">
+    <section className="wide-panel">
+      <div className="workspace-header">
         <div>
+          <span className="eyebrow">Conversation Workspace</span>
           <h1 className="section-title">站内聊天</h1>
-          <p>基础文字沟通；未完成双方同意和二次确认前不展示联系方式。</p>
+          <p>
+            先在站内完成基础沟通；未完成双方同意和二次确认前，不展示任何联系方式。
+          </p>
         </div>
         <Link className="button secondary" href="/profile/chats">
           返回我的聊天
         </Link>
       </div>
 
-      <div className="chat-layout">
-        <section className="chat-main">
+      <div className="conversation-workspace">
+        <aside className="conversation-context">
+          <span className="eyebrow">会话状态</span>
+          <h2>
+            {conversation.sourceType === "parent-need"
+              ? "需求沟通"
+              : "家教信息沟通"}
+          </h2>
+          <p>消息会自动轮询刷新；联系方式交换集中在右侧状态区处理。</p>
+          <div className="context-stat">
+            <strong>{messages.length}</strong>
+            <span>条消息</span>
+          </div>
+          <div className="context-stat">
+            <strong>{requests.length}</strong>
+            <span>次交换请求</span>
+          </div>
+        </aside>
+
+        <section className="chat-main conversation-main" aria-label="聊天消息">
+          <div className="conversation-main-header">
+            <div>
+              <h2>消息区</h2>
+              <p>请勿直接发送手机号、微信号或详细地址。</p>
+            </div>
+            <span className="status-pill">
+              {authorizedProfiles ? "联系方式已授权" : "联系方式未授权"}
+            </span>
+          </div>
+
           <div className="message-list">
             {messages.length === 0 ? (
               <p className="empty-state">暂无消息，先发一句问候吧。</p>
@@ -255,8 +286,11 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
           </form>
         </section>
 
-        <aside className="chat-side">
-          <h2>联系方式交换</h2>
+        <aside className="chat-side contact-status-panel" aria-label="联系方式交换状态">
+          <div>
+            <span className="eyebrow">Contact Exchange</span>
+            <h2>联系方式交换</h2>
+          </div>
 
           {authorizedProfiles ? (
             <div className="contact-panel">
@@ -267,7 +301,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
               <p>对方微信号：{authorizedProfiles.otherUser.wechat || "未填写"}</p>
             </div>
           ) : (
-            <p>当前未完成交换授权，联系方式不会展示。</p>
+            <p className="privacy-note">当前未完成交换授权，双方联系方式不会展示。</p>
           )}
 
           <button
@@ -294,7 +328,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
                   <div>
                     <strong>{statusLabels[request.status]}</strong>
                     <p>
-                      {isRequester ? "我发起的请求" : "对方发起的请求"} ·{" "}
+                      {isRequester ? "我发起的请求" : "对方发起的请求"} /{" "}
                       {new Date(request.createdAt).toLocaleDateString("zh-CN")}
                     </p>
                   </div>

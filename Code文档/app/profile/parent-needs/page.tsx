@@ -31,18 +31,23 @@ function ParentNeedsList({ ownerPhone }: { ownerPhone: string }) {
   }, [ownerPhone]);
 
   return (
-    <section className="content-panel wide-panel">
-      <div className="section-heading-row">
+    <section className="wide-panel">
+      <div className="workspace-header">
         <div>
+          <span className="eyebrow">Profile Workspace</span>
           <h1 className="section-title">我发布的需求</h1>
           <p>查看自己发布的找家教需求，或继续发布新的需求。</p>
         </div>
         <Link className="button secondary" href="/profile">
-          返回个人页
+          返回个人中心
         </Link>
       </div>
 
-      <div className="action-row">
+      <div className="profile-list-toolbar">
+        <div>
+          <strong>{needs.length}</strong>
+          <span>条需求记录</span>
+        </div>
         <Link className="button primary" href="/parent-needs/new">
           发布新需求
         </Link>
@@ -51,15 +56,20 @@ function ParentNeedsList({ ownerPhone }: { ownerPhone: string }) {
       {needs.length === 0 ? (
         <p className="empty-state">还没有发布需求。</p>
       ) : (
-        <div className="record-list">
+        <div className="record-list profile-record-list">
           {needs.map((need) => (
-            <article className="record-card" key={need.id}>
-              <h2>
-                {need.grade} · {need.subjects.join("、")}
-              </h2>
-              <p>
-                {need.region.city} / {need.region.district} / {need.community}
-              </p>
+            <article className="record-card profile-record-card" key={need.id}>
+              <div className="record-card-header">
+                <div>
+                  <h2>
+                    {need.grade} / {need.subjects.join("、")}
+                  </h2>
+                  <p>
+                    {need.region.city} / {need.region.district} / {need.community}
+                  </p>
+                </div>
+                <span className="status-pill">需求</span>
+              </div>
               <p>
                 预算：{need.budgetMin}-{need.budgetMax} 元/小时；老师性别：
                 {need.teacherGenderPreference}

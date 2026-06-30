@@ -231,7 +231,12 @@ export function LoginForm() {
   }
 
   return (
-    <>
+    <div className="auth-form-shell">
+      <div className="auth-form-heading">
+        <span className="eyebrow">选择方式</span>
+        <h2>继续使用平台</h2>
+      </div>
+
       <div className="auth-tabs" role="tablist" aria-label="登录方式">
         <button
           className={mode === "code" ? "auth-tab active" : "auth-tab"}
@@ -435,7 +440,7 @@ export function LoginForm() {
         </form>
       ) : null}
 
-      {formMessage ? <p className="error">{formMessage}</p> : null}
-    </>
+      {formMessage ? <p className="error auth-message">{formMessage}</p> : null}
+    </div>
   );
 }

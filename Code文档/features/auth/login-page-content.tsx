@@ -11,12 +11,13 @@ export function LoginPageContent() {
   const { loaded, session } = useTestSession();
 
   if (!loaded) {
-    return <p>正在读取登录状态...</p>;
+    return <p className="auth-loading">正在读取登录状态...</p>;
   }
 
   if (session) {
     return (
       <div className="login-state-panel">
+        <span className="eyebrow">已登录</span>
         <p>
           当前已登录：{session.emailMasked ?? "当前账号"}。如需注册或登录另一个账号，请先退出。
         </p>
@@ -31,7 +32,7 @@ export function LoginPageContent() {
   }
 
   return (
-    <Suspense fallback={<p>正在准备登录表单...</p>}>
+    <Suspense fallback={<p className="auth-loading">正在准备登录表单...</p>}>
       <LoginForm />
     </Suspense>
   );

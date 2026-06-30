@@ -65,60 +65,90 @@ export default function TutorProfileDetailPage() {
 
   return (
     <div className="page">
-      <section className="content-panel wide-panel">
-        <div className="section-heading-row">
-          <div>
-            <h1 className="section-title">家教信息详情</h1>
-            <p>详情页仅展示大学生家教信息，不展示存档联系方式。</p>
-          </div>
-          <Link className="button secondary" href="/tutor-profiles">
-            返回家教信息广场
-          </Link>
+      <section className="detail-hero">
+        <div className="market-copy">
+          <span className="eyebrow">家教详情</span>
+          <h1 className="section-title">结构化老师资料</h1>
+          <p>详情页仅展示可公开的授课信息，不展示存档联系方式。</p>
         </div>
+        <Link className="button secondary" href="/tutor-profiles">
+          返回家教信息广场
+        </Link>
+      </section>
 
-        {loaded && !profile ? (
-          <p className="empty-state">未找到该家教信息。</p>
-        ) : null}
+      {loaded && !profile ? (
+        <p className="empty-state">未找到该家教信息。</p>
+      ) : null}
 
-        {profile ? (
-          <div className="detail-layout">
-            <section className="detail-section">
-              <h2>
-                {profile.school} · {profile.major}
-              </h2>
-              <p>性别：{profile.gender}</p>
-              <p>可教科目：{profile.subjects.join("、")}</p>
-              <p>可教学段：{profile.grades.join("、")}</p>
-              <p>可上课时间：{profile.timeSlots.join("、")}</p>
+      {profile ? (
+        <div className="detail-sheet">
+          <article className="detail-main">
+            <span className="eyebrow">老师资料</span>
+            <h2>
+              {profile.school} · {profile.major}
+            </h2>
+
+            <div className="detail-facts">
+              <div>
+                <span>性别</span>
+                <strong>{profile.gender}</strong>
+              </div>
+              <div>
+                <span>可教科目</span>
+                <strong>{profile.subjects.join("、")}</strong>
+              </div>
+              <div>
+                <span>可教学段</span>
+                <strong>{profile.grades.join("、")}</strong>
+              </div>
+              <div>
+                <span>可上课时间</span>
+                <strong>{profile.timeSlots.join("、")}</strong>
+              </div>
+            </div>
+
+            <section className="detail-card">
+              <h3>课时费</h3>
               <p>
-                课时费：
                 {profile.feeRanges
                   .map((range) => formatTutorFeeRange(range))
                   .join("；")}
               </p>
-              <p>能力说明：{profile.abilityDescription}</p>
+            </section>
+
+            <section className="detail-card">
+              <h3>能力说明</h3>
+              <p>{profile.abilityDescription}</p>
+            </section>
+
+            <section className="detail-card">
+              <h3>证明图片</h3>
               <p>
-                证明图片：当前仅展示已记录的文件元信息数量（{profile.proofImages.length} 条），
+                当前仅展示已记录的文件元信息数量（{profile.proofImages.length} 条），
                 不代表平台已完成正式图片上传、查看或审核。
               </p>
             </section>
+          </article>
 
-            <aside className="detail-side">
-              <h2>沟通入口</h2>
-              <p>先通过站内文字聊天沟通，双方同意并二次确认后才展示联系方式。</p>
-              <button
-                className="button primary full-width"
-                disabled={!sessionLoaded || !profile}
-                onClick={() => void startChat()}
-                type="button"
-              >
-                发起站内聊天
-              </button>
-              {chatError ? <p className="error">{chatError}</p> : null}
-            </aside>
-          </div>
-        ) : null}
-      </section>
+          <aside className="detail-actions">
+            <span className="eyebrow">沟通入口</span>
+            <h2>先站内聊天，再授权交换联系方式</h2>
+            <p>
+              先通过站内文字聊天沟通，双方同意并二次确认后才展示联系方式。
+            </p>
+            <button
+              className="button primary full-width"
+              disabled={!sessionLoaded || !profile}
+              onClick={() => void startChat()}
+              type="button"
+            >
+              发起站内聊天
+            </button>
+            {chatError ? <p className="error">{chatError}</p> : null}
+            <p className="detail-note">公开详情不会展示手机号、微信号或内部账号标识。</p>
+          </aside>
+        </div>
+      ) : null}
     </div>
   );
 }

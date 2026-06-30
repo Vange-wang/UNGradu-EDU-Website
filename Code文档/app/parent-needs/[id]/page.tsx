@@ -64,53 +64,78 @@ export default function ParentNeedDetailPage() {
 
   return (
     <div className="page">
-      <section className="content-panel wide-panel">
-        <div className="section-heading-row">
-          <div>
-            <h1 className="section-title">需求详情</h1>
-            <p>详情页仅展示结构化需求信息，不展示家长联系方式。</p>
-          </div>
-          <Link className="button secondary" href="/parent-needs">
-            返回需求广场
-          </Link>
+      <section className="detail-hero">
+        <div className="market-copy">
+          <span className="eyebrow">需求详情</span>
+          <h1 className="section-title">结构化需求信息</h1>
+          <p>详情页仅展示学习需求、区域和预算等公开信息，不展示家长联系方式。</p>
         </div>
-
-        {loaded && !need ? (
-          <p className="empty-state">未找到该需求。</p>
-        ) : null}
-
-        {need ? (
-          <div className="detail-layout">
-            <section className="detail-section">
-              <h2>{need.grade} · {need.subjects.join("、")}</h2>
-              <p>
-                区域：{need.region.province} / {need.region.city} /{" "}
-                {need.region.district} / {need.community}
-              </p>
-              <p>
-                预算：{need.budgetMin}-{need.budgetMax} 元/小时
-              </p>
-              <p>希望老师性别：{need.teacherGenderPreference}</p>
-              <p>可上课时间：{need.timeSlots.join("、")}</p>
-              <p>孩子简介：{need.childIntro}</p>
-            </section>
-
-            <aside className="detail-side">
-              <h2>沟通入口</h2>
-              <p>先通过站内文字聊天沟通，双方同意并二次确认后才展示联系方式。</p>
-              <button
-                className="button primary full-width"
-                disabled={!sessionLoaded || !need}
-                onClick={() => void startChat()}
-                type="button"
-              >
-                发起站内聊天
-              </button>
-              {chatError ? <p className="error">{chatError}</p> : null}
-            </aside>
-          </div>
-        ) : null}
+        <Link className="button secondary" href="/parent-needs">
+          返回需求广场
+        </Link>
       </section>
+
+      {loaded && !need ? (
+        <p className="empty-state">未找到该需求。</p>
+      ) : null}
+
+      {need ? (
+        <div className="detail-sheet">
+          <article className="detail-main">
+            <span className="eyebrow">找老师需求</span>
+            <h2>
+              {need.grade} · {need.subjects.join("、")}
+            </h2>
+
+            <div className="detail-facts">
+              <div>
+                <span>区域</span>
+                <strong>
+                  {need.region.province} / {need.region.city} / {need.region.district}
+                </strong>
+                <p>{need.community}</p>
+              </div>
+              <div>
+                <span>预算</span>
+                <strong>
+                  {need.budgetMin}-{need.budgetMax} 元/小时
+                </strong>
+              </div>
+              <div>
+                <span>老师性别</span>
+                <strong>{need.teacherGenderPreference}</strong>
+              </div>
+              <div>
+                <span>可上课时间</span>
+                <strong>{need.timeSlots.join("、")}</strong>
+              </div>
+            </div>
+
+            <section className="detail-card">
+              <h3>孩子情况</h3>
+              <p>{need.childIntro}</p>
+            </section>
+          </article>
+
+          <aside className="detail-actions">
+            <span className="eyebrow">沟通入口</span>
+            <h2>先站内聊天，再授权交换联系方式</h2>
+            <p>
+              先通过站内文字聊天沟通，双方同意并二次确认后才展示联系方式。
+            </p>
+            <button
+              className="button primary full-width"
+              disabled={!sessionLoaded || !need}
+              onClick={() => void startChat()}
+              type="button"
+            >
+              发起站内聊天
+            </button>
+            {chatError ? <p className="error">{chatError}</p> : null}
+            <p className="detail-note">公开详情不会展示手机号、微信号或内部账号标识。</p>
+          </aside>
+        </div>
+      ) : null}
     </div>
   );
 }

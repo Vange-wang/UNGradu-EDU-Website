@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { FormEvent, useState } from "react";
 
 import { RequireTestSession } from "@/features/auth/require-test-session";
 import {
@@ -126,215 +126,305 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
   }
 
   return (
-    <section className="content-panel wide-panel">
-      <div className="section-heading-row">
-        <div>
+    <section className="wide-panel">
+      <div className="publish-hero">
+        <div className="publish-copy">
+          <span className="eyebrow">发布资料</span>
           <h1 className="section-title">发布家教信息</h1>
-          <p>填写可教科目、可教学段和课时费规则，发布后家长可在广场中查看。</p>
+          <p>
+            将学校专业、可教范围、课时费和能力说明分组填写。发布后，家长可在家教信息广场中查看。
+          </p>
         </div>
         <Link className="button secondary" href="/profile/tutor-profiles">
           返回我的家教信息
         </Link>
       </div>
 
-      <form className="form" onSubmit={submitForm}>
-        <div className="field">
-          <label htmlFor="tutor-gender">性别</label>
-          <select
-            id="tutor-gender"
-            onChange={(event) => updateInput("gender", event.target.value)}
-            value={input.gender}
-          >
-            {genderOptions.map((gender) => (
-              <option key={gender} value={gender}>
-                {gender}
-              </option>
-            ))}
-          </select>
-          <span className="error">{errors.gender}</span>
-        </div>
-
-        <div className="two-column">
-          <div className="field">
-            <label htmlFor="school">学校</label>
-            <input
-              id="school"
-              onChange={(event) => updateInput("school", event.target.value)}
-              value={input.school}
-            />
-            <span className="error">{errors.school}</span>
+      <div className="step-form-layout">
+        <aside className="step-rail" aria-label="发布家教信息填写步骤">
+          <div>
+            <span className="eyebrow">Step Form</span>
+            <h2>把资料整理成可读档案</h2>
           </div>
-          <div className="field">
-            <label htmlFor="major">专业</label>
-            <input
-              id="major"
-              onChange={(event) => updateInput("major", event.target.value)}
-              value={input.major}
-            />
-            <span className="error">{errors.major}</span>
-          </div>
-        </div>
-
-        <fieldset className="field option-field">
-          <legend>可教科目</legend>
-          <div className="choice-grid">
-            {subjectOptions.map((subject) => (
-              <label key={subject} className="choice-item">
-                <input
-                  checked={input.subjects.includes(subject)}
-                  onChange={() => updateInput("subjects", toggleValue(input.subjects, subject))}
-                  type="checkbox"
-                />
-                {subject}
-              </label>
-            ))}
-          </div>
-          <span className="error">{errors.subjects}</span>
-        </fieldset>
-
-        <fieldset className="field option-field">
-          <legend>可教学段</legend>
-          <div className="choice-grid">
-            {gradeOptions.map((grade) => (
-              <label key={grade} className="choice-item">
-                <input
-                  checked={input.grades.includes(grade)}
-                  onChange={() => updateInput("grades", toggleValue(input.grades, grade))}
-                  type="checkbox"
-                />
-                {grade}
-              </label>
-            ))}
-          </div>
-          <span className="error">{errors.grades}</span>
-        </fieldset>
-
-        <fieldset className="field option-field">
-          <legend>可上课时间段</legend>
-          <div className="choice-grid">
-            {timeSlotOptions.map((timeSlot) => (
-              <label key={timeSlot} className="choice-item">
-                <input
-                  checked={input.timeSlots.includes(timeSlot)}
-                  onChange={() =>
-                    updateInput("timeSlots", toggleValue(input.timeSlots, timeSlot))
-                  }
-                  type="checkbox"
-                />
-                {timeSlot}
-              </label>
-            ))}
-          </div>
-          <span className="error">{errors.timeSlots}</span>
-        </fieldset>
-
-        <fieldset className="field option-field">
-          <legend>学段与课时费</legend>
-          <div className="fee-range-list">
-            {input.feeRanges.map((range, index) => (
-              <div className="fee-range" key={index}>
-                <div className="field">
-                  <label htmlFor={`fee-grade-${index}`}>学段</label>
-                  <select
-                    id={`fee-grade-${index}`}
-                    onChange={(event) =>
-                      updateFeeRange(index, "grade", event.target.value)
-                    }
-                    value={range.grade}
-                  >
-                    <option value="">请选择</option>
-                    {gradeOptions.map((grade) => (
-                      <option key={grade} value={grade}>
-                        {grade}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="field">
-                  <label htmlFor={`fee-subject-${index}`}>科目</label>
-                  <select
-                    id={`fee-subject-${index}`}
-                    onChange={(event) =>
-                      updateFeeRange(index, "subject", event.target.value)
-                    }
-                    value={range.subject}
-                  >
-                    <option value="">请选择</option>
-                    {subjectOptions.map((subject) => (
-                      <option key={subject} value={subject}>
-                        {subject}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="field">
-                  <label htmlFor={`fee-min-${index}`}>最低课时费</label>
-                  <input
-                    id={`fee-min-${index}`}
-                    inputMode="numeric"
-                    onChange={(event) => updateFeeRange(index, "min", event.target.value)}
-                    value={range.min}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor={`fee-max-${index}`}>最高课时费</label>
-                  <input
-                    id={`fee-max-${index}`}
-                    inputMode="numeric"
-                    onChange={(event) => updateFeeRange(index, "max", event.target.value)}
-                    value={range.max}
-                  />
-                </div>
-                <button
-                  className="button secondary fee-remove-button"
-                  disabled={input.feeRanges.length === 1}
-                  onClick={() => removeFeeRange(index)}
-                  type="button"
-                >
-                  删除
-                </button>
+          <p>多组“学段 + 科目 + 课时费”仍可继续添加，证明文件只记录当前已有元信息。</p>
+          <ol className="step-list">
+            <li className="step-item">
+              <span>1</span>
+              <div>
+                <strong>学校专业</strong>
+                <small>基础身份信息</small>
               </div>
-            ))}
-          </div>
-          <button className="button secondary" onClick={addFeeRange} type="button">
-            + 新增一组学段与课时费
-          </button>
-        </fieldset>
-        <span className="error">{errors.feeRanges}</span>
+            </li>
+            <li className="step-item">
+              <span>2</span>
+              <div>
+                <strong>可教范围</strong>
+                <small>科目、学段和时间</small>
+              </div>
+            </li>
+            <li className="step-item">
+              <span>3</span>
+              <div>
+                <strong>课时费组</strong>
+                <small>支持多组组合</small>
+              </div>
+            </li>
+            <li className="step-item">
+              <span>4</span>
+              <div>
+                <strong>证明与说明</strong>
+                <small>文件元信息与能力描述</small>
+              </div>
+            </li>
+          </ol>
+        </aside>
 
-        <div className="field">
-          <label htmlFor="ability-description">能力说明</label>
-          <textarea
-            id="ability-description"
-            onChange={(event) => updateInput("abilityDescription", event.target.value)}
-            placeholder="说明教学优势，不填写手机号或微信号"
-            rows={4}
-            value={input.abilityDescription}
-          />
-          <span className="error">{errors.abilityDescription}</span>
-        </div>
+        <form className="step-form" onSubmit={submitForm}>
+          <section className="form-section">
+            <div className="form-section-heading">
+              <div className="form-section-title-row">
+                <span className="form-section-number">01</span>
+                <h2>学校专业</h2>
+              </div>
+              <p>保留原有性别、学校和专业字段，用于形成基础资料。</p>
+            </div>
 
-        <div className="field">
-          <label htmlFor="proof-images">证明图片</label>
-          <input
-            accept="image/jpeg,image/png,image/webp"
-            id="proof-images"
-            multiple
-            onChange={(event) => updateProofImages(event.target.files)}
-            type="file"
-          />
-          <span className="field-hint">
-            当前仅保存文件名、类型和大小，不提供正式证明图片上传、查看或审核能力。
-          </span>
-          <span className="error">{errors.proofImages}</span>
-        </div>
+            <div className="field">
+              <label htmlFor="tutor-gender">性别</label>
+              <select
+                id="tutor-gender"
+                onChange={(event) => updateInput("gender", event.target.value)}
+                value={input.gender}
+              >
+                {genderOptions.map((gender) => (
+                  <option key={gender} value={gender}>
+                    {gender}
+                  </option>
+                ))}
+              </select>
+              <span className="error">{errors.gender}</span>
+            </div>
 
-        <button className="button primary" type="submit">
-          发布家教信息
-        </button>
-      </form>
+            <div className="two-column">
+              <div className="field">
+                <label htmlFor="school">学校</label>
+                <input
+                  id="school"
+                  onChange={(event) => updateInput("school", event.target.value)}
+                  value={input.school}
+                />
+                <span className="error">{errors.school}</span>
+              </div>
+              <div className="field">
+                <label htmlFor="major">专业</label>
+                <input
+                  id="major"
+                  onChange={(event) => updateInput("major", event.target.value)}
+                  value={input.major}
+                />
+                <span className="error">{errors.major}</span>
+              </div>
+            </div>
+          </section>
 
-      {saved ? <p className="success">家教信息已发布。</p> : null}
+          <section className="form-section">
+            <div className="form-section-heading">
+              <div className="form-section-title-row">
+                <span className="form-section-number">02</span>
+                <h2>可教范围</h2>
+              </div>
+              <p>科目、学段和时间继续使用原有多选方式，不改变提交结构。</p>
+            </div>
+
+            <fieldset className="field option-field">
+              <legend>可教科目</legend>
+              <div className="choice-grid">
+                {subjectOptions.map((subject) => (
+                  <label key={subject} className="choice-item">
+                    <input
+                      checked={input.subjects.includes(subject)}
+                      onChange={() =>
+                        updateInput("subjects", toggleValue(input.subjects, subject))
+                      }
+                      type="checkbox"
+                    />
+                    {subject}
+                  </label>
+                ))}
+              </div>
+              <span className="error">{errors.subjects}</span>
+            </fieldset>
+
+            <fieldset className="field option-field">
+              <legend>可教学段</legend>
+              <div className="choice-grid">
+                {gradeOptions.map((grade) => (
+                  <label key={grade} className="choice-item">
+                    <input
+                      checked={input.grades.includes(grade)}
+                      onChange={() => updateInput("grades", toggleValue(input.grades, grade))}
+                      type="checkbox"
+                    />
+                    {grade}
+                  </label>
+                ))}
+              </div>
+              <span className="error">{errors.grades}</span>
+            </fieldset>
+
+            <fieldset className="field option-field">
+              <legend>可上课时间段</legend>
+              <div className="choice-grid">
+                {timeSlotOptions.map((timeSlot) => (
+                  <label key={timeSlot} className="choice-item">
+                    <input
+                      checked={input.timeSlots.includes(timeSlot)}
+                      onChange={() =>
+                        updateInput("timeSlots", toggleValue(input.timeSlots, timeSlot))
+                      }
+                      type="checkbox"
+                    />
+                    {timeSlot}
+                  </label>
+                ))}
+              </div>
+              <span className="error">{errors.timeSlots}</span>
+            </fieldset>
+          </section>
+
+          <section className="form-section">
+            <div className="form-section-heading">
+              <div className="form-section-title-row">
+                <span className="form-section-number">03</span>
+                <h2>课时费组</h2>
+              </div>
+              <p>每组仍由学段、科目、最低课时费和最高课时费组成，可继续新增或删除。</p>
+            </div>
+
+            <fieldset className="field option-field">
+              <legend>学段与课时费</legend>
+              <div className="fee-range-list">
+                {input.feeRanges.map((range, index) => (
+                  <div className="fee-range fee-range-card" key={index}>
+                    <div className="field">
+                      <label htmlFor={`fee-grade-${index}`}>学段</label>
+                      <select
+                        id={`fee-grade-${index}`}
+                        onChange={(event) =>
+                          updateFeeRange(index, "grade", event.target.value)
+                        }
+                        value={range.grade}
+                      >
+                        <option value="">请选择</option>
+                        {gradeOptions.map((grade) => (
+                          <option key={grade} value={grade}>
+                            {grade}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label htmlFor={`fee-subject-${index}`}>科目</label>
+                      <select
+                        id={`fee-subject-${index}`}
+                        onChange={(event) =>
+                          updateFeeRange(index, "subject", event.target.value)
+                        }
+                        value={range.subject}
+                      >
+                        <option value="">请选择</option>
+                        {subjectOptions.map((subject) => (
+                          <option key={subject} value={subject}>
+                            {subject}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label htmlFor={`fee-min-${index}`}>最低课时费</label>
+                      <input
+                        id={`fee-min-${index}`}
+                        inputMode="numeric"
+                        onChange={(event) => updateFeeRange(index, "min", event.target.value)}
+                        value={range.min}
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor={`fee-max-${index}`}>最高课时费</label>
+                      <input
+                        id={`fee-max-${index}`}
+                        inputMode="numeric"
+                        onChange={(event) => updateFeeRange(index, "max", event.target.value)}
+                        value={range.max}
+                      />
+                    </div>
+                    <button
+                      className="button secondary fee-remove-button"
+                      disabled={input.feeRanges.length === 1}
+                      onClick={() => removeFeeRange(index)}
+                      type="button"
+                    >
+                      删除
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button className="button secondary" onClick={addFeeRange} type="button">
+                + 新增一组学段与课时费
+              </button>
+            </fieldset>
+            <span className="error">{errors.feeRanges}</span>
+          </section>
+
+          <section className="form-section">
+            <div className="form-section-heading">
+              <div className="form-section-title-row">
+                <span className="form-section-number">04</span>
+                <h2>证明与能力说明</h2>
+              </div>
+              <p>证明文件仍只处理文件名、类型和大小；能力说明不填写联系方式。</p>
+            </div>
+
+            <div className="field">
+              <label htmlFor="proof-images">证明图片</label>
+              <input
+                accept="image/jpeg,image/png,image/webp"
+                id="proof-images"
+                multiple
+                onChange={(event) => updateProofImages(event.target.files)}
+                type="file"
+              />
+              <span className="field-hint">
+                当前仅保存文件名、类型和大小，不提供正式证明图片上传、查看或审核能力。
+              </span>
+              <span className="error">{errors.proofImages}</span>
+            </div>
+
+            <div className="field">
+              <label htmlFor="ability-description">能力说明</label>
+              <textarea
+                id="ability-description"
+                onChange={(event) => updateInput("abilityDescription", event.target.value)}
+                placeholder="说明教学优势，不填写手机号或微信号"
+                rows={4}
+                value={input.abilityDescription}
+              />
+              <span className="error">{errors.abilityDescription}</span>
+            </div>
+
+            <p className="privacy-note">
+              隐私提示：请勿在公开资料中填写手机号、微信号、详细住址等联系方式或精确位置。
+            </p>
+          </section>
+
+          <section className="submit-section">
+            <button className="button primary" type="submit">
+              发布家教信息
+            </button>
+            {saved ? <p className="success">家教信息已发布。</p> : null}
+          </section>
+        </form>
+      </div>
     </section>
   );
 }

@@ -88,165 +88,245 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
   }
 
   return (
-    <section className="content-panel wide-panel">
-      <div className="section-heading-row">
-        <div>
+    <section className="wide-panel">
+      <div className="publish-hero">
+        <div className="publish-copy">
+          <span className="eyebrow">发布需求</span>
           <h1 className="section-title">发布家教需求</h1>
-          <p>填写孩子情况、科目、预算和可上课时间，发布后老师可在需求广场中查看。</p>
+          <p>
+            按任务分组填写孩子情况、科目、预算和可上课时间。发布后，老师可在需求广场中查看。
+          </p>
         </div>
         <Link className="button secondary" href="/profile/parent-needs">
           返回我的需求
         </Link>
       </div>
 
-      <form className="form" onSubmit={submitForm}>
-        <div className="field">
-          <label htmlFor="teacher-gender">希望老师性别</label>
-          <select
-            id="teacher-gender"
-            onChange={(event) =>
-              updateInput("teacherGenderPreference", event.target.value)
-            }
-            value={input.teacherGenderPreference}
-          >
-            {teacherGenderOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-          <span className="error">{errors.teacherGenderPreference}</span>
-        </div>
+      <div className="step-form-layout">
+        <aside className="step-rail" aria-label="发布需求填写步骤">
+          <div>
+            <span className="eyebrow">Step Form</span>
+            <h2>把需求拆成四件小事</h2>
+          </div>
+          <p>信息越清晰，老师越容易判断是否合适；隐私内容仍按现有规则保护。</p>
+          <ol className="step-list">
+            <li className="step-item">
+              <span>1</span>
+              <div>
+                <strong>基础信息</strong>
+                <small>老师偏好、科目和年级</small>
+              </div>
+            </li>
+            <li className="step-item">
+              <span>2</span>
+              <div>
+                <strong>预算时间</strong>
+                <small>课时预算和可上课时段</small>
+              </div>
+            </li>
+            <li className="step-item">
+              <span>3</span>
+              <div>
+                <strong>区域位置</strong>
+                <small>只填写到小区或村</small>
+              </div>
+            </li>
+            <li className="step-item">
+              <span>4</span>
+              <div>
+                <strong>隐私提示</strong>
+                <small>不填写手机号、微信号或门牌号</small>
+              </div>
+            </li>
+          </ol>
+        </aside>
 
-        <fieldset className="field option-field">
-          <legend>所需科目</legend>
-          <div className="choice-grid">
-            {subjectOptions.map((subject) => (
-              <label key={subject} className="choice-item">
+        <form className="step-form" onSubmit={submitForm}>
+          <section className="form-section">
+            <div className="form-section-heading">
+              <div className="form-section-title-row">
+                <span className="form-section-number">01</span>
+                <h2>基础信息</h2>
+              </div>
+              <p>先说明需要什么老师、补哪些科目，以及孩子当前所在学段。</p>
+            </div>
+
+            <div className="field">
+              <label htmlFor="teacher-gender">希望老师性别</label>
+              <select
+                id="teacher-gender"
+                onChange={(event) =>
+                  updateInput("teacherGenderPreference", event.target.value)
+                }
+                value={input.teacherGenderPreference}
+              >
+                {teacherGenderOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              <span className="error">{errors.teacherGenderPreference}</span>
+            </div>
+
+            <fieldset className="field option-field">
+              <legend>所需科目</legend>
+              <div className="choice-grid">
+                {subjectOptions.map((subject) => (
+                  <label key={subject} className="choice-item">
+                    <input
+                      checked={input.subjects.includes(subject)}
+                      onChange={() =>
+                        updateInput("subjects", toggleValue(input.subjects, subject))
+                      }
+                      type="checkbox"
+                    />
+                    {subject}
+                  </label>
+                ))}
+              </div>
+              <span className="error">{errors.subjects}</span>
+            </fieldset>
+
+            <div className="field">
+              <label htmlFor="grade">学段/年级</label>
+              <select
+                id="grade"
+                onChange={(event) => updateInput("grade", event.target.value)}
+                value={input.grade}
+              >
+                <option value="">请选择</option>
+                {gradeOptions.map((grade) => (
+                  <option key={grade} value={grade}>
+                    {grade}
+                  </option>
+                ))}
+              </select>
+              <span className="error">{errors.grade}</span>
+            </div>
+          </section>
+
+          <section className="form-section">
+            <div className="form-section-heading">
+              <div className="form-section-title-row">
+                <span className="form-section-number">02</span>
+                <h2>预算与时间</h2>
+              </div>
+              <p>保留原有预算区间和多选时段，方便老师快速判断匹配度。</p>
+            </div>
+
+            <div className="two-column">
+              <div className="field">
+                <label htmlFor="budget-min">预算最低值（元/小时）</label>
                 <input
-                  checked={input.subjects.includes(subject)}
-                  onChange={() => updateInput("subjects", toggleValue(input.subjects, subject))}
-                  type="checkbox"
+                  id="budget-min"
+                  inputMode="numeric"
+                  onChange={(event) => updateInput("budgetMin", event.target.value)}
+                  value={input.budgetMin}
                 />
-                {subject}
-              </label>
-            ))}
-          </div>
-          <span className="error">{errors.subjects}</span>
-        </fieldset>
-
-        <div className="field">
-          <label htmlFor="grade">学段/年级</label>
-          <select
-            id="grade"
-            onChange={(event) => updateInput("grade", event.target.value)}
-            value={input.grade}
-          >
-            <option value="">请选择</option>
-            {gradeOptions.map((grade) => (
-              <option key={grade} value={grade}>
-                {grade}
-              </option>
-            ))}
-          </select>
-          <span className="error">{errors.grade}</span>
-        </div>
-
-        <div className="two-column">
-          <div className="field">
-            <label htmlFor="budget-min">预算最低值（元/小时）</label>
-            <input
-              id="budget-min"
-              inputMode="numeric"
-              onChange={(event) => updateInput("budgetMin", event.target.value)}
-              value={input.budgetMin}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="budget-max">预算最高值（元/小时）</label>
-            <input
-              id="budget-max"
-              inputMode="numeric"
-              onChange={(event) => updateInput("budgetMax", event.target.value)}
-              value={input.budgetMax}
-            />
-          </div>
-        </div>
-        <span className="error">{errors.budget}</span>
-
-        <fieldset className="field option-field">
-          <legend>可上课时间段</legend>
-          <div className="choice-grid">
-            {timeSlotOptions.map((timeSlot) => (
-              <label key={timeSlot} className="choice-item">
+              </div>
+              <div className="field">
+                <label htmlFor="budget-max">预算最高值（元/小时）</label>
                 <input
-                  checked={input.timeSlots.includes(timeSlot)}
-                  onChange={() =>
-                    updateInput("timeSlots", toggleValue(input.timeSlots, timeSlot))
+                  id="budget-max"
+                  inputMode="numeric"
+                  onChange={(event) => updateInput("budgetMax", event.target.value)}
+                  value={input.budgetMax}
+                />
+              </div>
+            </div>
+            <span className="error">{errors.budget}</span>
+
+            <fieldset className="field option-field">
+              <legend>可上课时间段</legend>
+              <div className="choice-grid">
+                {timeSlotOptions.map((timeSlot) => (
+                  <label key={timeSlot} className="choice-item">
+                    <input
+                      checked={input.timeSlots.includes(timeSlot)}
+                      onChange={() =>
+                        updateInput("timeSlots", toggleValue(input.timeSlots, timeSlot))
+                      }
+                      type="checkbox"
+                    />
+                    {timeSlot}
+                  </label>
+                ))}
+              </div>
+              <span className="error">{errors.timeSlots}</span>
+            </fieldset>
+          </section>
+
+          <section className="form-section">
+            <div className="form-section-heading">
+              <div className="form-section-title-row">
+                <span className="form-section-number">03</span>
+                <h2>区域与隐私</h2>
+              </div>
+              <p>位置只需要到大致区域，孩子简介用于说明学习情况。</p>
+            </div>
+
+            <div className="two-column">
+              <div className="field">
+                <label htmlFor="district">地址区域</label>
+                <select
+                  id="district"
+                  onChange={(event) =>
+                    updateInput("region", {
+                      ...input.region,
+                      district: event.target.value
+                    })
                   }
-                  type="checkbox"
+                  value={input.region.district}
+                >
+                  {districtOptions.map((district) => (
+                    <option key={district} value={district}>
+                      广东省 / 东莞市 / {district}
+                    </option>
+                  ))}
+                </select>
+                <span className="error">{errors.region}</span>
+              </div>
+              <div className="field">
+                <label htmlFor="community">具体位置</label>
+                <input
+                  id="community"
+                  onChange={(event) => updateInput("community", event.target.value)}
+                  placeholder="最多填写到小区或村"
+                  value={input.community}
                 />
-                {timeSlot}
-              </label>
-            ))}
-          </div>
-          <span className="error">{errors.timeSlots}</span>
-        </fieldset>
+                <span className="error">{errors.community}</span>
+              </div>
+            </div>
 
-        <div className="two-column">
-          <div className="field">
-            <label htmlFor="district">地址区域</label>
-            <select
-              id="district"
-              onChange={(event) =>
-                updateInput("region", {
-                  ...input.region,
-                  district: event.target.value
-                })
-              }
-              value={input.region.district}
-            >
-              {districtOptions.map((district) => (
-                <option key={district} value={district}>
-                  广东省 / 东莞市 / {district}
-                </option>
-              ))}
-            </select>
-            <span className="error">{errors.region}</span>
-          </div>
-          <div className="field">
-            <label htmlFor="community">具体位置</label>
-            <input
-              id="community"
-              onChange={(event) => updateInput("community", event.target.value)}
-              placeholder="最多填写到小区或村"
-              value={input.community}
-            />
-            <span className="error">{errors.community}</span>
-          </div>
-        </div>
+            <div className="field">
+              <label htmlFor="child-intro">孩子简介</label>
+              <textarea
+                id="child-intro"
+                maxLength={120}
+                onChange={(event) => updateInput("childIntro", event.target.value)}
+                placeholder="100 字以内，不填写手机号、微信号或门牌号"
+                required
+                rows={4}
+                value={input.childIntro}
+              />
+              <span className="field-hint">{input.childIntro.length}/100</span>
+              <span className="error">{errors.childIntro}</span>
+            </div>
 
-        <div className="field">
-          <label htmlFor="child-intro">孩子简介</label>
-          <textarea
-            id="child-intro"
-            maxLength={120}
-            onChange={(event) => updateInput("childIntro", event.target.value)}
-            placeholder="100 字以内，不填写手机号、微信号或门牌号"
-            required
-            rows={4}
-            value={input.childIntro}
-          />
-          <span className="field-hint">{input.childIntro.length}/100</span>
-          <span className="error">{errors.childIntro}</span>
-        </div>
+            <p className="privacy-note">
+              隐私提示：请勿在公开简介中填写手机号、微信号、详细门牌号等联系方式或精确住址。
+            </p>
+          </section>
 
-        <button className="button primary" type="submit">
-          发布家教需求
-        </button>
-      </form>
-
-      {saved ? <p className="success">家教需求已发布。</p> : null}
+          <section className="submit-section">
+            <button className="button primary" type="submit">
+              发布家教需求
+            </button>
+            {saved ? <p className="success">家教需求已发布。</p> : null}
+          </section>
+        </form>
+      </div>
     </section>
   );
 }

@@ -35,7 +35,7 @@ function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
     <section className="wide-panel">
       <div className="workspace-header">
         <div>
-          <span className="eyebrow">Profile Workspace</span>
+          <span className="eyebrow">我的记录</span>
           <h1 className="section-title">我的家教信息</h1>
           <p>查看自己发布的家教信息，或继续补充新的授课信息。</p>
         </div>

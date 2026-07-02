@@ -95,7 +95,7 @@ function ContactProfileForm({ ownerPhone }: { ownerPhone: string }) {
     <section className="wide-panel">
       <div className="workspace-header">
         <div>
-          <span className="eyebrow">Profile Workspace</span>
+          <span className="eyebrow">个人资料管理</span>
           <h1 className="section-title">联系方式管理</h1>
           <p>存档联系方式默认不公开，只在双方授权并二次确认后展示。</p>
         </div>

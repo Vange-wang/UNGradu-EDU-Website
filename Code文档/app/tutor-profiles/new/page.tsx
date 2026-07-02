@@ -143,7 +143,7 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
       <div className="step-form-layout">
         <aside className="step-rail" aria-label="发布家教信息填写步骤">
           <div>
-            <span className="eyebrow">Step Form</span>
+            <span className="eyebrow">分步填写</span>
             <h2>把资料整理成可读档案</h2>
           </div>
           <p>多组“学段 + 科目 + 课时费”仍可继续添加，证明文件只记录当前已有元信息。</p>

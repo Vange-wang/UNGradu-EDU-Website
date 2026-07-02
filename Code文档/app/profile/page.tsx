@@ -41,7 +41,7 @@ export default function ProfilePage() {
           <section className="wide-panel">
             <div className="workspace-header">
               <div>
-                <span className="eyebrow">Account Dashboard</span>
+                <span className="eyebrow">个人中心</span>
                 <h1 className="section-title">个人中心</h1>
                 <p>管理账号、联系方式、发布记录和站内沟通入口。</p>
               </div>

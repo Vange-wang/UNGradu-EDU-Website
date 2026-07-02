@@ -208,7 +208,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
     <section className="wide-panel">
       <div className="workspace-header">
         <div>
-          <span className="eyebrow">Conversation Workspace</span>
+          <span className="eyebrow">站内沟通</span>
           <h1 className="section-title">站内聊天</h1>
           <p>
             先在站内完成基础沟通；未完成双方同意和二次确认前，不展示任何联系方式。
@@ -288,7 +288,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
 
         <aside className="chat-side contact-status-panel" aria-label="联系方式交换状态">
           <div>
-            <span className="eyebrow">Contact Exchange</span>
+            <span className="eyebrow">联系方式交换</span>
             <h2>联系方式交换</h2>
           </div>
 

@@ -105,7 +105,7 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
       <div className="step-form-layout">
         <aside className="step-rail" aria-label="发布需求填写步骤">
           <div>
-            <span className="eyebrow">Step Form</span>
+            <span className="eyebrow">分步填写</span>
             <h2>把需求拆成四件小事</h2>
           </div>
           <p>信息越清晰，老师越容易判断是否合适；隐私内容仍按现有规则保护。</p>

@@ -34,7 +34,7 @@ function ParentNeedsList({ ownerPhone }: { ownerPhone: string }) {
     <section className="wide-panel">
       <div className="workspace-header">
         <div>
-          <span className="eyebrow">Profile Workspace</span>
+          <span className="eyebrow">我的记录</span>
           <h1 className="section-title">我发布的需求</h1>
           <p>查看自己发布的找家教需求，或继续发布新的需求。</p>
         </div>

@@ -32,7 +32,7 @@ function ChatList({ currentUserPhone }: { currentUserPhone: string }) {
     <section className="wide-panel">
       <div className="workspace-header">
         <div>
-          <span className="eyebrow">Profile Workspace</span>
+          <span className="eyebrow">我的记录</span>
           <h1 className="section-title">我的聊天</h1>
           <p>这里仅显示当前账号参与的站内会话。</p>
         </div>

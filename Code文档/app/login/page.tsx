@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 import { LoginPageContent } from "@/features/auth/login-page-content";
 
@@ -11,11 +11,21 @@ export default function LoginPage() {
             返回首页
           </Link>
           <div>
-            <span className="eyebrow">账号入口</span>
+            <span className="eyebrow">邮箱账号入口</span>
             <h1>登录 / 注册</h1>
             <p>
-              可使用邮箱验证码登录或注册；设置密码后，也可以使用邮箱和密码登录。
+              当前仅支持邮箱验证码登录或注册；设置密码后，也可以使用邮箱和密码登录。这里不提供实名认证或第三方认证入口。
             </p>
+          </div>
+          <div className="dplus-comic-stage" aria-hidden="true">
+            <div className="dplus-comic-duo">
+              <div className="dplus-person parent" />
+              <div className="dplus-chat-card">
+                <strong>进入平台</strong>
+                <span>登录后再发布、筛选和站内沟通</span>
+              </div>
+              <div className="dplus-person tutor" />
+            </div>
           </div>
           <div className="auth-note-list" aria-label="登录说明">
             <span>首次验证码登录会创建账号</span>

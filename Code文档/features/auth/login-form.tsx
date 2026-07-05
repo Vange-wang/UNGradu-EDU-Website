@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -234,7 +234,8 @@ export function LoginForm() {
     <div className="auth-form-shell">
       <div className="auth-form-heading">
         <span className="eyebrow">选择方式</span>
-        <h2>继续使用平台</h2>
+        <h2>用邮箱进入平台</h2>
+        <p className="field-hint">验证码登录用于注册 / 登录；密码登录仅在你已设置密码后可用。</p>
       </div>
 
       <div className="auth-tabs" role="tablist" aria-label="登录方式">

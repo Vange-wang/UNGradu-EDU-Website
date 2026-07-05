@@ -64,12 +64,13 @@ export default function TutorProfileDetailPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page dplus-business-page">
       <section className="detail-hero">
         <div className="market-copy">
           <span className="eyebrow">家教详情</span>
           <h1 className="section-title">结构化老师资料</h1>
           <p>详情页仅展示可公开的授课信息，不展示存档联系方式。</p>
+          <p className="dplus-panel-note">下一步是站内沟通，不是认证、担保或自动推荐。</p>
         </div>
         <Link className="button secondary" href="/tutor-profiles">
           返回家教信息广场
@@ -84,6 +85,7 @@ export default function TutorProfileDetailPage() {
         <div className="detail-sheet">
           <article className="detail-main">
             <span className="eyebrow">老师资料</span>
+            <span className="status-pill">公开资料 · 联系方式未公开</span>
             <h2>
               {profile.school} · {profile.major}
             </h2>
@@ -133,6 +135,10 @@ export default function TutorProfileDetailPage() {
           <aside className="detail-actions">
             <span className="eyebrow">沟通入口</span>
             <h2>先站内聊天，再授权交换联系方式</h2>
+            <div className="contact-state-card">
+              <strong>联系方式未公开</strong>
+              <span>当前只展示授课资料，手机号、微信号和内部账号标识均不会出现在公开详情中。</span>
+            </div>
             <p>
               先通过站内文字聊天沟通，双方同意并二次确认后才展示联系方式。
             </p>

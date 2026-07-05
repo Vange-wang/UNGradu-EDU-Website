@@ -63,12 +63,13 @@ export default function ParentNeedDetailPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page dplus-business-page">
       <section className="detail-hero">
         <div className="market-copy">
           <span className="eyebrow">需求详情</span>
           <h1 className="section-title">结构化需求信息</h1>
           <p>详情页仅展示学习需求、区域和预算等公开信息，不展示家长联系方式。</p>
+          <p className="dplus-panel-note">下一步是站内沟通，不是支付、担保或平台仲裁。</p>
         </div>
         <Link className="button secondary" href="/parent-needs">
           返回需求广场
@@ -83,6 +84,7 @@ export default function ParentNeedDetailPage() {
         <div className="detail-sheet">
           <article className="detail-main">
             <span className="eyebrow">找老师需求</span>
+            <span className="status-pill">公开信息 · 联系方式未公开</span>
             <h2>
               {need.grade} · {need.subjects.join("、")}
             </h2>
@@ -120,6 +122,10 @@ export default function ParentNeedDetailPage() {
           <aside className="detail-actions">
             <span className="eyebrow">沟通入口</span>
             <h2>先站内聊天，再授权交换联系方式</h2>
+            <div className="contact-state-card">
+              <strong>联系方式未公开</strong>
+              <span>当前只展示需求信息，手机号、微信号和内部账号标识均不会出现在公开详情中。</span>
+            </div>
             <p>
               先通过站内文字聊天沟通，双方同意并二次确认后才展示联系方式。
             </p>

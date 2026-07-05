@@ -89,14 +89,19 @@ export default function ParentNeedsPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page dplus-business-page">
       <section className="market-header">
         <div className="market-copy">
           <span className="eyebrow">家长需求</span>
           <h1 className="section-title">需求广场</h1>
           <p>
-            按科目、学段、预算区间和性别偏好筛选家长需求；公开详情不展示联系方式。
+            按科目、学段、预算区间和性别偏好筛选家长需求；公开详情不展示联系方式，先站内沟通再决定是否交换。
           </p>
+          <div className="market-safety-strip" aria-label="需求广场隐私规则">
+            <span>公开信息</span>
+            <span>站内沟通</span>
+            <span>双方同意后交换</span>
+          </div>
         </div>
         <div className="action-row compact-actions">
           <Link className="button secondary" href="/">
@@ -114,6 +119,7 @@ export default function ParentNeedsPage() {
             <span className="eyebrow">筛选需求</span>
             <h2>缩小查找范围</h2>
             <p>先筛出匹配的科目、年级和预算，再进入详情发起站内聊天。</p>
+            <p className="dplus-panel-note">公开列表只展示需求信息，不展示手机号、微信号或邮箱。</p>
           </div>
 
           <form className="filter-stack" onSubmit={applyFilters}>
@@ -217,9 +223,12 @@ export default function ParentNeedsPage() {
                         {need.grade} · {need.subjects.join("、")}
                       </h2>
                     </div>
-                    <Link className="button secondary" href={`/parent-needs/${need.id}`}>
-                      查看详情
-                    </Link>
+                    <div className="listing-action-stack">
+                      <span className="status-pill privacy-status">联系方式未公开</span>
+                      <Link className="button secondary" href={`/parent-needs/${need.id}`}>
+                        查看详情
+                      </Link>
+                    </div>
                   </div>
                   <p>
                     区域：{need.region.city} / {need.region.district} / {need.community}
@@ -229,6 +238,7 @@ export default function ParentNeedsPage() {
                     {need.teacherGenderPreference}
                   </p>
                   <p>简介：{need.childIntro}</p>
+                  <p className="listing-note">先进入详情发起站内沟通，确认合适后再申请交换联系方式。</p>
                 </article>
               ))}
             </div>

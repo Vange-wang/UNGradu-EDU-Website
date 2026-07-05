@@ -94,7 +94,7 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
           <span className="eyebrow">发布需求</span>
           <h1 className="section-title">发布家教需求</h1>
           <p>
-            按任务分组填写孩子情况、科目、预算和可上课时间。发布后，老师可在需求广场中查看。
+            按任务分组填写孩子情况、科目、预算和可上课时间。发布后，老师可在需求广场中查看；公开说明不要填写联系方式。
           </p>
         </div>
         <Link className="button secondary" href="/profile/parent-needs">
@@ -109,6 +109,9 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
             <h2>把需求拆成四件小事</h2>
           </div>
           <p>信息越清晰，老师越容易判断是否合适；隐私内容仍按现有规则保护。</p>
+          <p className="rail-note">
+            公开说明只写学习情况和上课安排，不写联系方式或精确门牌号。
+          </p>
           <ol className="step-list">
             <li className="step-item">
               <span>1</span>
@@ -317,6 +320,9 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
             <p className="privacy-note">
               隐私提示：请勿在公开简介中填写手机号、微信号、详细门牌号等联系方式或精确住址。
             </p>
+            <p className="privacy-note privacy-note-strong">
+              发布后公开页仍不会展示联系方式；后续需先站内沟通，再由双方同意交换。
+            </p>
           </section>
 
           <section className="submit-section">
@@ -333,7 +339,7 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
 
 export default function NewParentNeedPage() {
   return (
-    <div className="page">
+    <div className="page dplus-business-page">
       <RequireTestSession>
         {(session) => <NewParentNeedForm ownerPhone={session.userId ?? session.phone ?? ""} />}
       </RequireTestSession>

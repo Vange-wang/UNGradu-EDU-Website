@@ -1,5 +1,7 @@
 ﻿# ISSUE 管理员工作记录
 
+当前 ISSUE 管理员 Agent 会话 ID：`019f2319-3809-73c2-81de-1899fc3b92a3`。
+
 ## 2026-06-25
 
 操作类型：身份注册与 ISSUE 管理入口搭建
@@ -124,3 +126,430 @@
 - `ISSUE-0004` 已从 open 更新为 closed，并移入 `Close_Issue`。
 - 关闭依据统一记录为：代码开发员已推送 `ba24ccabc4c38303e4806979aef6f453ee7cf963`，产品经理第二次审查通过，Claude Code 第二次复核确认关闭。
 - 新增 `ISSUE-0005`：历次审查报告未纳入远端仓库版本控制导致远端追溯链条不完整，状态为 open。
+
+## 2026-06-28
+
+操作类型：登记正式环境试用反馈 Open ISSUE
+
+来源：
+
+- 总负责人转交的正式环境试用反馈。
+
+背景：
+
+- 项目总控制人确认正式环境中邮箱注册登录成功。
+- 发布家教需求、发布家教信息、联系方式保存均已可用。
+- 聊天窗暂时无法验证，因为当前只有一个账号。
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0006-老师资料多组学段课时费.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0007-已登录仍显示登录入口.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0008-表单详情页缺少返回按钮.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0009-普通用户可见技术字段.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0010-聊天窗缺少第二账号验收.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+登记摘要：
+
+- `ISSUE-0006`：P1，发布家教信息时课时费/学段只能填写一组，需要支持多组“学段 + 课时费”。
+- `ISSUE-0007`：P1，已登录后仍可点击登录按钮并看到空白登录/注册表单，容易误操作。
+- `ISSUE-0008`：P2，UI 缺少返回按钮，表单页/详情页返回不方便。
+- `ISSUE-0009`：P1，UI 出现过多杂乱无序的字母数字字段，内部 ID/技术字段不应裸露给普通用户。
+- `ISSUE-0010`：P2，聊天窗暂无法验证，需要至少两个邮箱账号分别模拟家长和老师；归因为验收条件缺失，不直接判定代码问题。
+- 本批 Issue 均登记为 open。
+
+## 2026-06-28
+
+操作类型：关闭登录与发布体验优化第一次最终审查通过的 ISSUE，并保留聊天双账号验收 Open ISSUE
+
+任务 ID：
+
+- `UX-PUBLISH-2026-06-28-001-ISSUE-CLOSE-1`
+
+来源报告：
+
+- `规划文档/里程碑文档/登录与发布体验优化阶段验收报告/2026-06-28-登录与发布体验优化第一次最终审查报告.md`
+- `规划文档/里程碑文档/登录与发布体验优化阶段验收报告/2026-06-28-登录与发布体验优化第一次产品审查报告.md`
+- `规划文档/里程碑文档/登录与发布体验优化阶段验收报告/2026-06-28-登录与发布体验优化第一次Zcode复核报告.md`
+
+代码闭环依据：
+
+- 目标 commit：`987d59aad58ca50e2194232692dfd43835abced7`（`feat: improve login and tutor publishing UX`）。
+- 最终审查结论：允许验收。
+- 产品经理与 ZCode 结论一致。
+- 代码开发员无需返工。
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/Close_Issue/ISSUE-0006-老师资料多组学段课时费.md`
+- `协同工作文档/ISSUE/Close_Issue/ISSUE-0007-已登录仍显示登录入口.md`
+- `协同工作文档/ISSUE/Close_Issue/ISSUE-0008-表单详情页缺少返回按钮.md`
+- `协同工作文档/ISSUE/Close_Issue/ISSUE-0009-普通用户可见技术字段.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0010-聊天窗缺少第二账号验收.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+- `协同工作文档/ISSUE/钦定ISSUE管理员.md`
+
+状态更新摘要：
+
+- `ISSUE-0006` 已从 open 更新为 closed，并移入 `Close_Issue`。
+- `ISSUE-0007` 已从 open 更新为 closed，并移入 `Close_Issue`。
+- `ISSUE-0008` 已从 open 更新为 closed，并移入 `Close_Issue`。
+- `ISSUE-0009` 已从 open 更新为 closed，并移入 `Close_Issue`。
+- `ISSUE-0010` 继续保持 open，等待项目总控制人提供第二个可用邮箱账号后补充双账号聊天验收。
+- `ISSUE-0010` 已补充说明：当前属于外部验收条件缺口，不属于本轮代码返工项。
+
+关闭依据统一记录为：目标 commit 已覆盖对应修复；产品经理第一次审查确认通过；ZCode 第一次复核确认 `ISSUE-0006` 至 `ISSUE-0009` 已修复并允许验收；最终审查报告建议交由 ISSUE 管理员关闭。
+
+## 2026-06-28
+
+操作类型：登记生产试运行继续反馈 Open ISSUE，并重开返回入口生产回归 ISSUE
+
+任务 ID：
+
+- `PROD-UX-AUTH-2026-06-28-001-ISSUE-REGISTER-1`
+
+来源：
+
+- 项目总控制人在正式环境继续试用后的新反馈。
+
+背景说明：
+
+- 项目已进入正式部署 / 生产试运行阶段。
+- 后续代码修复任务不再默认沿用 `codex/m5-security-preflight`，应由代码开发员后续新建语义化分支。
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0008-表单详情页缺少返回按钮.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0011-未登录状态显示退出缺少登录入口.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0012-退出登录缺少二次确认.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0013-验证码服务不可用后仍标记已使用.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0014-首次注册后设置密码登录.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+- `协同工作文档/ISSUE/钦定ISSUE管理员.md`
+
+登记摘要：
+
+- `ISSUE-0008`：P2，重开。用户反馈“依旧没有返回键”，与原 Issue 同题同范围，按生产回归继续追踪，不另建重复 Issue。
+- `ISSUE-0011`：P1，新登记。未登录状态显示“退出登录”但缺少“登录”入口，属于新的生产回归登录导航 bug，不直接重开 `ISSUE-0007`，理由是该反馈与 `ISSUE-0007` 的“已登录仍显示登录入口”方向相反，需单独追踪。
+- `ISSUE-0012`：P2，新登记。退出登录缺少二次确认，归因为体验 / 安全确认缺口。
+- `ISSUE-0013`：P0，新登记。验证码登录服务不可用后验证码仍被标记已使用，归因为登录主链路高优先级生产 bug。
+- `ISSUE-0014`：P2，新登记。首次注册后设置密码并使用密码登录，归因为新功能 / 产品需求，不直接视为当前代码 bug。
+
+当前状态：
+
+- 上述 Issue 均为 open。
+- `ISSUE-0008` 已从 `Close_Issue` 移回 `Open_Issue`。
+- `ISSUE-0011` 至 `ISSUE-0014` 已创建 Open Issue 文件。
+
+## 2026-06-29
+
+操作类型：预同步生产试运行修复代码状态，等待产品经理验收报告
+
+关联任务：
+
+- 开发任务：`PROD-UX-AUTH-2026-06-28-001-DEV-1`
+- 待验收报告：`PROD-UX-AUTH-2026-06-28-001-PM-REVIEW-1`
+
+预同步状态：
+
+- 分支：`codex/prod-ux-auth-fixes-20260628`
+- 生产基线：`987d59aad58ca50e2194232692dfd43835abced7`
+- 开发员主修复 commit：`b6ff351e2f68ee18fe769a231233a4b710bdb1ac`
+- 总负责人追加测试稳定性补丁 / 当前远端 head：`3b52d09e test: stabilize contact exchange expiry fixtures`
+
+总负责人复核验证：
+
+- `npm run typecheck`：通过。
+- `npm test`：通过，33 files / 137 tests。
+- `npm run lint`：通过。
+- `npm run build`：通过。
+
+待处理 Issue 范围：
+
+- `ISSUE-0008`
+- `ISSUE-0011`
+- `ISSUE-0012`
+- `ISSUE-0013`
+- `ISSUE-0014`
+
+当前处理原则：
+
+- 暂不关闭上述 Issue。
+- 等待产品经理验收报告 `PROD-UX-AUTH-2026-06-28-001-PM-REVIEW-1`。
+- 若 PM 允许验收，再按仓库 Issue 规范关闭或标记完成。
+- 若 PM 要求返工，则保持 open 并记录返工原因。
+- 本次仅记录等待状态，不修改业务代码、不修改产品报告、不暂存提交。
+
+## 2026-06-29
+
+操作类型：关闭生产试运行登录与基础体验修复 Issue
+
+任务 ID：
+
+- `PROD-UX-AUTH-2026-06-28-001-ISSUE-CLOSE-1`
+
+来源报告：
+
+- `规划文档/里程碑文档/生产试运行体验修复阶段验收报告/2026-06-29-生产试运行登录与基础体验修复第一次产品审查报告.md`
+
+代码闭环依据：
+
+- 分支：`codex/prod-ux-auth-fixes-20260628`
+- 生产基线：`987d59aad58ca50e2194232692dfd43835abced7`
+- 开发员主修复 commit：`b6ff351e2f68ee18fe769a231233a4b710bdb1ac`
+- 当前远端 head / 总负责人测试稳定性补丁：`3b52d09e test: stabilize contact exchange expiry fixtures`
+- 总负责人复核验证：`npm run typecheck`、`npm test`（33 个测试文件，137 个测试）、`npm run lint`、`npm run build` 均通过。
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/Close_Issue/ISSUE-0008-表单详情页缺少返回按钮.md`
+- `协同工作文档/ISSUE/Close_Issue/ISSUE-0011-未登录状态显示退出缺少登录入口.md`
+- `协同工作文档/ISSUE/Close_Issue/ISSUE-0012-退出登录缺少二次确认.md`
+- `协同工作文档/ISSUE/Close_Issue/ISSUE-0013-验证码服务不可用后仍标记已使用.md`
+- `协同工作文档/ISSUE/Close_Issue/ISSUE-0014-首次注册后设置密码登录.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+- `协同工作文档/ISSUE/钦定ISSUE管理员.md`
+
+状态更新摘要：
+
+- `ISSUE-0013` 已从 open 更新为 closed，并移入 `Close_Issue`。
+- `ISSUE-0011` 已从 open 更新为 closed，并移入 `Close_Issue`。
+- `ISSUE-0012` 已从 open 更新为 closed，并移入 `Close_Issue`。
+- `ISSUE-0008` 已从 open 更新为 closed，并移入 `Close_Issue`。
+- `ISSUE-0014` 已从 open 更新为 closed，并移入 `Close_Issue`；关闭口径为本轮 MVP 已完成。
+
+关闭依据统一记录为：产品审查报告结论为允许进入 ISSUE 管理员关闭 / 流转，代码开发员无需返工；分支 `codex/prod-ux-auth-fixes-20260628` 当前 head 为 `3b52d09e`；主修复提交为 `b6ff351e`；总负责人四项验证通过。
+
+## 2026-06-29
+
+操作类型：登记生产体验缺陷 Open ISSUE
+
+任务 ID：
+
+- `PROD-AUTH-SESSION-UI-2026-06-29-001-ISSUE-REGISTER-1`
+
+来源：
+
+- 项目总控制人正式环境继续试用反馈。
+- 总负责人初步分析。
+
+登记摘要：
+
+- 新增 `ISSUE-0015`：登录退出后右上角导航登录状态 UI 不及时同步。
+- 类型：`production regression / auth ui state`。
+- 状态：open。
+- 优先级：P1。
+- owner_agent：代码开发员 / 产品经理。
+- 初步归因：`SessionNav` 使用的 `useTestSession()` 只在客户端组件首次挂载时请求一次 `/api/auth/session`，登录 / 退出后 Cookie 已变化，但导航组件本地 session state 没有主动刷新。
+- 边界说明：不涉及新增数据库集合，不涉及聊天、联系方式交换、密码保存主链路；产品经理仅轻量验收口径，当前先不阻塞代码修复。
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0015-登录退出后右上角导航登录状态UI不及时同步.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+- `协同工作文档/ISSUE/钦定ISSUE管理员.md`
+
+## 2026-06-29
+
+操作类型：关闭生产体验缺陷 Issue
+
+任务 ID：
+
+- `PROD-AUTH-SESSION-UI-2026-06-29-001-ISSUE-CLOSE-1`
+
+关闭对象：
+
+- `ISSUE-0015`：登录退出后右上角导航登录状态 UI 不及时同步。
+
+关闭依据：
+
+- 修复分支：`codex/prod-ux-auth-fixes-20260628`
+- 修复提交：`2d409faf820d76a497a33a77e11045bc0e2d6b07`
+- 提交信息：`fix: refresh auth nav after session changes`
+- 总负责人本地验证：`npm test -- auth-session-events`、`npm run typecheck`、`npm test`（34 个测试文件，143 个测试）、`npm run lint`、`npm run build` 均通过。
+- 项目总控制人正式环境验收反馈：登录状态和 UI 不匹配问题已解决。
+
+状态更新摘要：
+
+- `ISSUE-0015` 已从 open 更新为 closed。
+- `ISSUE-0015` 已从 `Open_Issue` 归档至 `Close_Issue`。
+- `ISSUE总表.md` 已从 Open 区移除 `ISSUE-0015`，并在 Closed 区写入关闭依据。
+- 本轮关闭不新增数据库集合，不涉及聊天、联系方式交换、验证码登录、密码保存或密码登录主逻辑变更。
+
+## 2026-06-29
+
+操作类型：关闭外部验收条件 Issue
+
+关闭对象：
+
+- `ISSUE-0010`：聊天窗暂无法验证：当前只有一个账号，需要至少两个邮箱账号分别模拟家长和老师。
+
+关闭依据：
+
+- 项目总控制人正式环境验收反馈：聊天功能正常。
+- 同轮反馈已确认：交换联系方式正常、保存密码正常、密码登录正常。
+- `ISSUE-0010` 原关闭条件为补充双账号聊天窗流程验收；当前用户反馈已满足该验收口径。
+
+状态更新摘要：
+
+- `ISSUE-0010` 已从 open 更新为 closed。
+- `ISSUE-0010` 已从 `Open_Issue` 归档至 `Close_Issue`。
+- `ISSUE总表.md` 已从 Open 区移除 `ISSUE-0010`，并在 Closed 区写入关闭依据。
+
+## 2026-06-30
+
+操作类型：关闭流程追溯类 Issue
+
+关闭对象：
+
+- `ISSUE-0005`：发布阶段 S1 审查报告远端追溯链条规范化。
+
+关闭依据：
+
+- 项目总控制人明确：S1 阶段已完成，后续应规划 S2、S3 等阶段。
+- 已新增 / 修订发布阶段固定 Spec：`规划文档/Spec文档/Release_version_Spec/2026-06-29-release-s1-发布阶段-spec.md`。
+- 已更新 `协同工作文档/阶段任务闭环工作流.md`，补充 S1 / S2+ 规则与远端追溯规则。
+- 已明确只有文档提交并推送后，才能表述为“远端可追溯”；本地未提交 / 未推送时只能表述为“本地工作区已更新”。
+
+状态更新摘要：
+
+- `ISSUE-0005` 已从 open 更新为 closed。
+- `ISSUE-0005` 已从 `Open_Issue` 归档至 `Close_Issue`。
+- `ISSUE总表.md` 已从 Open 区移除 `ISSUE-0005`，并在 Closed 区写入关闭依据。
+- 当前 Open Issue 列表为空；后续若出现生产运行、风控审核或公开推广前问题，应按 S2+ 新阶段重新登记新 Issue，不复用 `ISSUE-0005`。
+
+## 2026-06-30
+
+操作类型：S2 生产运行观察与运维基线 Issue 规则确认
+
+任务 ID：`RELEASE-S2-OPS-2026-06-30-001-ISSUE-1`
+
+涉及文档：
+- `规划文档/里程碑文档/生产运行观察与运维基线准备/S2生产运行观察与运维基线执行包.md`
+- `规划文档/里程碑文档/生产运行观察与运维基线准备/生产问题分级与响应规则.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+
+记录摘要：
+- ISSUE 管理员后台线程已完成只读核验，确认当前 `Open_Issue` 目录为空。
+- `ISSUE总表.md` 的 Open Issue 区当前为 `_当前无 Open Issue_`。
+- S2 新问题不得复用 S1 已关闭 Issue。
+- S2 若从生产运行观察、部署核对、环境配置核对、数据库集合检查或用户反馈中发现新问题，应从 `ISSUE-0016` 起继续编号。
+- 当前无新问题时，不创建空 Issue。
+- ISSUE 管理员确认：Issue 侧可认定已为 S2 验收准备就绪。
+- 因 ISSUE 管理员后台线程为只读权限，未能自行追加本记录；由总负责人在前台完全访问线程代落地。
+
+## 2026-06-30
+
+操作类型：S3 风控审核与可信度增强 Issue 规则确认
+
+任务 ID：`RELEASE-S3-TRUST-2026-06-30-001-ISSUE-1`
+
+涉及文档：
+- `规划文档/里程碑文档/风控审核与可信度增强准备/S3风控审核与可信度增强执行包.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+
+记录摘要：
+- 已核对 S3 执行包，S3 阶段为“风控、审核与可信度增强”，目标是建立可信边界，不新增复杂后台、客服系统或业务主链路能力。
+- 已核对 `ISSUE总表.md`，当前 Open Issue 区为 `_当前无 Open Issue_`。
+- S3 新问题不得复用 S1 / S2 已关闭 Issue。
+- 若 S3 发现新的风控、隐私、审核或举报入口缺口，应从 `ISSUE-0016` 起继续编号。
+- 新 Issue 来源应按实际发现渠道写明，例如风控审核核查、隐私保护核查、审核规则核查、举报入口核查、生产运行观察或用户反馈。
+- 当前无新问题时，不创建空 Issue。
+- ISSUE 管理员确认：Issue 侧可认定已为 S3 验收准备就绪。
+
+## 2026-06-30
+
+操作类型：S4 公开推广前发布评审 Issue 规则确认
+
+任务 ID：`RELEASE-S4-PROMOTION-2026-06-30-001-ISSUE-1`
+
+涉及文档：
+- `规划文档/里程碑文档/公开推广前发布评审准备/S4公开推广前发布评审执行包.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+
+记录摘要：
+- 已核对 S4 执行包，S4 阶段为“公开推广前发布评审”，目标是在扩大访问前判断是否适合公开推广及哪些风险必须先补齐。
+- 已核对 `ISSUE总表.md`，当前 Open Issue 区为 `_当前无 Open Issue_`。
+- S4 新问题不得复用 S1 / S2 / S3 已关闭 Issue。
+- 若 S4 发现公开推广前阻塞风险，应从 `ISSUE-0016` 起继续编号。
+- 当前无新问题时，不创建空 Issue。
+- ISSUE 管理员确认：Issue 侧可认定已为 S4 验收准备就绪。
+
+## 2026-06-30
+
+操作类型：S5 vNext 产品能力拆解 Issue 规则确认
+
+任务 ID：`RELEASE-S5-VNEXT-2026-06-30-001-ISSUE-1`
+
+涉及文档：
+- `规划文档/里程碑文档/vNext产品能力准备/S5vNext产品能力拆解执行包.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+
+记录摘要：
+- 已核对 S5 执行包，S5 阶段为“vNext 产品能力拆解”，目标是把 S4 列出的 vNext 候选能力拆成可立项、可评审、可验收的专项。
+- 已核对 `ISSUE总表.md`，当前 Open Issue 区为 `_当前无 Open Issue_`。
+- S5 新问题不得复用 S1 / S2 / S3 / S4 已关闭 Issue。
+- S5 若发现智能 Agent 客服、举报投诉闭环、风险提示、审核状态等明确缺口，应从 `ISSUE-0016` 起继续编号。
+- 当前仅做 vNext 候选专项拆解时，不创建空 Issue。
+- 若只是产品能力候选，不登记为 bug；只有明确阻塞小范围试运行或已确认实现缺陷时才登记 Open Issue。
+- ISSUE 管理员确认：Issue 侧可认定已为 S5 验收准备就绪。
+## 2026-07-02
+
+操作类型：ISSUE 管理员 Agent v2.1.0 新会话线程迁移
+
+涉及文档：
+
+- `协同工作文档/ISSUE/钦定ISSUE管理员.md`
+- `协同工作文档/AGENT身份注册信息/ISSUE管理员Agent-019f2319-3809-73c2-81de-1899fc3b92a3.md`
+- `协同工作文档/AGENT身份注册信息/AGENT注册状态总览.md`
+
+记录摘要：
+
+- 根据业务方要求，ISSUE 管理员 Agent 已迁移到 v2.1.0 新会话线程。
+- 当前 ISSUE 管理员 Agent 会话 ID 更新为 `019f2319-3809-73c2-81de-1899fc3b92a3`。
+- 历史会话 ID `019f0d74-8e93-7242-b6fb-910d8e2e7d71` 仅作为旧线程归档参考，不再作为当前调度入口。
+- 新线程已收到只读初始化指令，需读取 `AGENTS.md`、钦定 ISSUE 管理员、ISSUE 管理员工作记录、Issue 总表和注册信息，熟悉职责、边界和权限规则。
+- 新规则：后台线程默认只读汇报；写 Issue 文件、移动 Open/Close Issue、commit、push 仅在用户明确确认的前台完全访问线程执行。
+
+## 2026-07-05
+
+操作类型：D+ 第 2 批核心业务页 UI 落地 Issue 扫描
+
+任务 ID：`UI-DPLUS-IMPLEMENT-2026-07-05-002`
+
+扫描范围：
+
+- `/parent-needs`
+- `/tutor-profiles`
+- `/parent-needs/[id]`
+- `/tutor-profiles/[id]`
+- `/parent-needs/new`
+- `/tutor-profiles/new`
+
+输入证据：
+
+- 前台验证摘要显示：`git diff --check` 通过，仅 CRLF 提示。
+- `npm run typecheck`、`npm run lint`、`npm test`、`npm run build` 已通过。
+- `npm run build` 首次因 Windows `.next` 短暂占用出现 `ENOTEMPTY`，复跑通过。
+- 浏览器验证显示：桌面广场与 missing 详情路由、移动端广场、筛选交互均无 console error/warn、无横向溢出；发布页未登录守卫正常。
+- 总负责人前台补充同步：广场卡片标题旁重复的“联系方式未公开”状态已删除，仅保留行动区状态 pill；展示层去重未改变业务逻辑；补充复跑 `npm run typecheck`、`npm run lint` 通过。
+
+扫描结论：
+
+- 当前 `ISSUE总表.md` 的 Open Issue 区为空，本轮不新增 Open Issue。
+- 不复开旧 Issue。
+- 公开列表与详情页均有“公开详情不展示联系方式 / 联系方式未公开 / 先站内沟通再交换”的提示，未发现公开页联系方式泄露证据。
+- 发布页对隐私提示较充分，明确要求不填写手机号、微信号、详细门牌号、精确住址等信息，并说明发布后公开页仍不会展示联系方式。
+- 详情页文案明确排除支付、担保、平台仲裁、认证、自动推荐等未实现能力；证明图片区域说明仅保存文件元信息，不代表正式上传、查看或审核。
+- 服务端公开查询通过 `toPublicParentNeed` / `toPublicTutorProfile` 返回公开字段，未返回 `ownerUserId`；本轮未发现公开 API 直接暴露 owner/contact 字段的证据。
+- Windows `.next` 首次 `ENOTEMPTY` 属于本地构建目录短暂占用的环境类非阻塞风险，因复跑 `npm run build` 已通过，不建议登记 Open Issue；建议仅在阶段验收备注中保留观察口径。
+
+后续提醒：
+
+- 本轮 UI 实现如后续进入验收闭环，仍需补齐提交 / 推送等 Git 闭环证据；在未提交 / 未推送前，不得将相关实现表述为远端已闭环。

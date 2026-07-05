@@ -2166,6 +2166,96 @@ body {
   margin-right: 10px;
 }
 
+.dplus-business-page .market-header,
+.dplus-business-page .detail-hero,
+.dplus-business-page .publish-hero {
+  background: var(--dplus-paper);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 30px;
+  box-shadow: var(--dplus-card-shadow);
+  padding: clamp(20px, 4vw, 30px);
+}
+
+.market-safety-strip,
+.listing-action-stack,
+.contact-state-card {
+  display: flex;
+  gap: 10px;
+}
+
+.market-safety-strip {
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.market-safety-strip span,
+.contact-state-card {
+  background: var(--dplus-lime);
+  border: 3px solid var(--dplus-ink);
+  box-shadow: 4px 4px 0 var(--dplus-ink);
+  color: var(--dplus-ink);
+}
+
+.market-safety-strip span {
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.2;
+  padding: 8px 12px;
+}
+
+.market-safety-strip span:nth-child(2) {
+  background: var(--dplus-cream);
+}
+
+.market-safety-strip span:nth-child(3) {
+  background: var(--dplus-orange);
+}
+
+.dplus-panel-note,
+.listing-note {
+  background: var(--dplus-cream);
+  border: 2px solid var(--dplus-ink);
+  border-radius: 16px;
+  color: var(--dplus-ink);
+  font-weight: 750;
+  padding: 10px 12px;
+}
+
+.listing-action-stack {
+  align-items: flex-end;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.privacy-status {
+  background: var(--dplus-yellow);
+}
+
+.contact-state-card {
+  border-radius: 22px;
+  flex-direction: column;
+  padding: 14px;
+}
+
+.contact-state-card strong {
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.contact-state-card span {
+  color: var(--dplus-body);
+  line-height: 1.6;
+}
+
+.rail-note,
+.privacy-note-strong {
+  background: var(--dplus-yellow);
+  border-color: var(--dplus-ink);
+  color: var(--dplus-ink);
+  font-weight: 800;
+}
+
 @media (max-width: 720px) {
   .site-header {
     border-radius: 0 0 22px 22px;
@@ -2197,6 +2287,24 @@ body {
   .auth-card,
   .notice-panel {
     box-shadow: 5px 5px 0 var(--dplus-ink);
+  }
+
+  .market-header,
+  .detail-hero,
+  .publish-hero,
+  .record-card-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .listing-action-stack {
+    align-items: stretch;
+  }
+
+  .market-safety-strip span,
+  .listing-action-stack .button,
+  .listing-action-stack .status-pill {
+    width: 100%;
   }
 }
 
@@ -2294,5 +2402,171 @@ body {
   .result-count {
     min-width: 0;
     white-space: normal;
+  }
+}
+
+/* D+ batch 2: business flow pages keep scan efficiency over decoration. */
+.dplus-business-page .market-header,
+.dplus-business-page .detail-hero,
+.dplus-business-page .publish-hero {
+  background: var(--dplus-paper);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 30px;
+  box-shadow: var(--dplus-shadow-hard);
+  margin-bottom: 28px;
+  padding: clamp(22px, 4vw, 34px);
+}
+
+.dplus-business-page .workbench-layout,
+.dplus-business-page .detail-sheet,
+.dplus-business-page .step-form-layout {
+  gap: clamp(22px, 4vw, 34px);
+}
+
+.dplus-business-page .filter-panel,
+.dplus-business-page .step-rail,
+.dplus-business-page .detail-actions {
+  background: var(--dplus-cream);
+}
+
+.dplus-business-page .filter-panel,
+.dplus-business-page .result-panel,
+.dplus-business-page .detail-main,
+.dplus-business-page .form-section,
+.dplus-business-page .submit-section {
+  border-radius: 30px;
+}
+
+.dplus-business-page .filter-panel {
+  align-self: start;
+}
+
+.dplus-business-page .filter-stack {
+  gap: 18px;
+}
+
+.dplus-panel-note {
+  background: var(--dplus-cream);
+  border: 2px solid var(--dplus-ink);
+  border-radius: 18px;
+  color: var(--dplus-body);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+}
+
+.dplus-business-page .result-panel {
+  background: var(--dplus-paper);
+}
+
+.dplus-business-page .result-panel .record-list {
+  background: var(--dplus-paper-strong);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 24px;
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.dplus-business-page .result-panel .record-card {
+  border: 0;
+  border-bottom: 2px solid #ded6ad;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 20px;
+}
+
+.dplus-business-page .result-panel .record-card:last-child {
+  border-bottom: 0;
+}
+
+.dplus-business-page .listing-card-meta {
+  background: var(--dplus-lime);
+  border: 2px solid var(--dplus-ink);
+  border-radius: 999px;
+  display: inline-flex;
+  margin-bottom: 10px;
+  padding: 5px 10px;
+}
+
+.dplus-business-page .record-card-header .status-pill,
+.dplus-business-page .detail-main > .status-pill {
+  display: inline-flex;
+  margin: 0 0 12px;
+  width: fit-content;
+}
+
+.dplus-business-page .detail-facts div,
+.dplus-business-page .detail-card,
+.dplus-business-page .choice-item,
+.dplus-business-page .fee-range-card,
+.dplus-business-page .privacy-note {
+  box-shadow: none;
+}
+
+.dplus-business-page .detail-actions,
+.dplus-business-page .step-rail {
+  color: var(--dplus-ink);
+}
+
+.dplus-business-page .detail-actions h2,
+.dplus-business-page .detail-actions p,
+.dplus-business-page .step-rail h2,
+.dplus-business-page .step-rail p,
+.dplus-business-page .step-item strong,
+.dplus-business-page .step-item small {
+  color: var(--dplus-ink);
+}
+
+.dplus-business-page .detail-note {
+  border-top: 2px solid #ded6ad;
+  color: var(--dplus-body);
+}
+
+.dplus-business-page .step-list {
+  gap: 12px;
+}
+
+.dplus-business-page .form-section {
+  gap: 22px;
+}
+
+.dplus-business-page .form-section-heading p {
+  max-width: 720px;
+}
+
+.dplus-business-page .fee-range-card {
+  background: var(--dplus-cream);
+}
+
+.dplus-business-page .privacy-note {
+  background: var(--dplus-yellow);
+}
+
+@media (max-width: 980px) {
+  .dplus-business-page .market-header,
+  .dplus-business-page .detail-hero,
+  .dplus-business-page .publish-hero {
+    box-shadow: var(--dplus-shadow-small);
+  }
+}
+
+@media (max-width: 720px) {
+  .dplus-business-page .market-header,
+  .dplus-business-page .detail-hero,
+  .dplus-business-page .publish-hero,
+  .dplus-business-page .filter-panel,
+  .dplus-business-page .result-panel,
+  .dplus-business-page .detail-main,
+  .dplus-business-page .detail-actions,
+  .dplus-business-page .form-section,
+  .dplus-business-page .submit-section {
+    border-width: 2px;
+    border-radius: 24px;
+  }
+
+  .dplus-business-page .result-panel .record-card {
+    padding: 18px;
   }
 }

@@ -82,14 +82,19 @@ export default function TutorProfilesPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page dplus-business-page">
       <section className="market-header">
         <div className="market-copy">
           <span className="eyebrow">老师资料</span>
           <h1 className="section-title">家教信息广场</h1>
           <p>
-            按科目、学段、课时费和性别筛选大学生家教信息；公开详情不展示联系方式。
+            按科目、学段、课时费和性别筛选大学生家教信息；公开详情不展示联系方式，先站内沟通再决定是否交换。
           </p>
+          <div className="market-safety-strip" aria-label="家教广场隐私规则">
+            <span>公开资料</span>
+            <span>站内沟通</span>
+            <span>双方同意后交换</span>
+          </div>
         </div>
         <div className="action-row compact-actions">
           <Link className="button secondary" href="/">
@@ -107,6 +112,7 @@ export default function TutorProfilesPage() {
             <span className="eyebrow">筛选老师</span>
             <h2>缩小查找范围</h2>
             <p>先筛出匹配的可教科目、学段和课时费，再进入详情发起站内聊天。</p>
+            <p className="dplus-panel-note">公开列表只展示家教资料，不展示手机号、微信号或邮箱。</p>
           </div>
 
           <form className="filter-stack" onSubmit={applyFilters}>
@@ -208,9 +214,12 @@ export default function TutorProfilesPage() {
                         {profile.school} · {profile.major}
                       </h2>
                     </div>
-                    <Link className="button secondary" href={`/tutor-profiles/${profile.id}`}>
-                      查看详情
-                    </Link>
+                    <div className="listing-action-stack">
+                      <span className="status-pill privacy-status">联系方式未公开</span>
+                      <Link className="button secondary" href={`/tutor-profiles/${profile.id}`}>
+                        查看详情
+                      </Link>
+                    </div>
                   </div>
                   <p>性别：{profile.gender}</p>
                   <p>可教科目：{profile.subjects.join("、")}</p>
@@ -222,6 +231,7 @@ export default function TutorProfilesPage() {
                       .join("；")}
                   </p>
                   <p>能力说明：{profile.abilityDescription}</p>
+                  <p className="listing-note">公开资料只用于初步判断，沟通和联系方式交换都在站内完成。</p>
                 </article>
               ))}
             </div>

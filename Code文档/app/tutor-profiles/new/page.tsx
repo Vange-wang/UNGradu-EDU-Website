@@ -132,7 +132,7 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
           <span className="eyebrow">发布资料</span>
           <h1 className="section-title">发布家教信息</h1>
           <p>
-            将学校专业、可教范围、课时费和能力说明分组填写。发布后，家长可在家教信息广场中查看。
+            将学校专业、可教范围、课时费和能力说明分组填写。发布后，家长可在家教信息广场中查看；公开说明不要填写联系方式。
           </p>
         </div>
         <Link className="button secondary" href="/profile/tutor-profiles">
@@ -147,6 +147,9 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
             <h2>把资料整理成可读档案</h2>
           </div>
           <p>多组“学段 + 科目 + 课时费”仍可继续添加，证明文件只记录当前已有元信息。</p>
+          <p className="rail-note">
+            公开资料只写可教范围和能力说明，不写联系方式或精确住址。
+          </p>
           <ol className="step-list">
             <li className="step-item">
               <span>1</span>
@@ -415,6 +418,9 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
             <p className="privacy-note">
               隐私提示：请勿在公开资料中填写手机号、微信号、详细住址等联系方式或精确位置。
             </p>
+            <p className="privacy-note privacy-note-strong">
+              发布后公开页仍不会展示联系方式；后续需先站内沟通，再由双方同意交换。
+            </p>
           </section>
 
           <section className="submit-section">
@@ -431,7 +437,7 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
 
 export default function NewTutorProfilePage() {
   return (
-    <div className="page">
+    <div className="page dplus-business-page">
       <RequireTestSession>
         {(session) => <NewTutorProfileForm ownerPhone={session.userId ?? session.phone ?? ""} />}
       </RequireTestSession>

@@ -2248,6 +2248,229 @@ body {
   line-height: 1.6;
 }
 
+.dplus-profile-page .wide-panel,
+.dplus-chat-page .wide-panel {
+  overflow: hidden;
+  position: relative;
+}
+
+.dplus-profile-page .wide-panel::before,
+.dplus-chat-page .wide-panel::before {
+  background: var(--dplus-yellow);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 999px;
+  box-shadow: 5px 5px 0 var(--dplus-ink);
+  content: "";
+  height: 82px;
+  position: absolute;
+  right: clamp(18px, 4vw, 42px);
+  top: clamp(18px, 4vw, 38px);
+  transform: rotate(-5deg);
+  width: 82px;
+  z-index: 0;
+}
+
+.dplus-profile-page .workspace-header,
+.dplus-profile-page .account-dashboard,
+.dplus-profile-page .profile-workspace,
+.dplus-profile-page .profile-list-toolbar,
+.dplus-profile-page .record-list,
+.dplus-chat-page .workspace-header,
+.dplus-chat-page .conversation-workspace {
+  position: relative;
+  z-index: 1;
+}
+
+.dplus-profile-banner {
+  align-items: center;
+  background: var(--dplus-lime);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 26px;
+  box-shadow: 6px 6px 0 var(--dplus-ink);
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+}
+
+.dplus-profile-banner h2 {
+  color: var(--dplus-ink);
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.15;
+  margin: 0;
+}
+
+.dplus-account-rules {
+  display: grid;
+  gap: 10px;
+}
+
+.dplus-account-rules span {
+  background: var(--dplus-paper);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 999px;
+  box-shadow: 3px 3px 0 var(--dplus-ink);
+  color: var(--dplus-ink);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+  padding: 8px 12px;
+  width: fit-content;
+}
+
+.dplus-account-rules span:nth-child(2) {
+  background: var(--dplus-yellow);
+}
+
+.dplus-account-rules span:nth-child(3) {
+  background: var(--dplus-orange);
+}
+
+.dplus-profile-page .account-card {
+  border-radius: 22px;
+  min-height: 144px;
+}
+
+.dplus-profile-page .account-card:nth-child(2),
+.dplus-profile-page .profile-record-card:nth-child(2n) {
+  background: var(--dplus-lime);
+}
+
+.dplus-profile-page .account-card:nth-child(3),
+.dplus-profile-page .profile-record-card:nth-child(2n + 1) {
+  background: var(--dplus-cream);
+}
+
+.dplus-profile-page .account-card:nth-child(4) {
+  background: var(--dplus-orange);
+}
+
+.dplus-profile-page .profile-side-note,
+.dplus-profile-page .account-summary,
+.dplus-chat-page .conversation-context {
+  background: var(--dplus-ink);
+}
+
+.dplus-profile-page .profile-panel,
+.dplus-profile-page .account-settings-panel {
+  border-width: 3px;
+}
+
+.dplus-list-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.dplus-list-tabs a,
+.dplus-list-tabs span {
+  background: var(--dplus-paper);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 999px;
+  box-shadow: 3px 3px 0 var(--dplus-ink);
+  color: var(--dplus-ink);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.15;
+  padding: 8px 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dplus-list-tabs .active {
+  background: var(--dplus-orange);
+}
+
+.dplus-profile-page .profile-list-toolbar {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dplus-profile-page .profile-record-list {
+  background: var(--dplus-paper);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 28px;
+  box-shadow: var(--dplus-card-shadow);
+  gap: 0;
+  overflow: hidden;
+}
+
+.dplus-profile-page .profile-record-card {
+  border: 0;
+  border-bottom: 3px solid var(--dplus-ink);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.dplus-profile-page .profile-record-card:last-child {
+  border-bottom: 0;
+}
+
+.dplus-chat-page .conversation-workspace {
+  gap: clamp(16px, 3vw, 24px);
+  grid-template-columns: minmax(190px, 0.26fr) minmax(0, 1fr) minmax(280px, 0.38fr);
+}
+
+.dplus-chat-page .conversation-main {
+  background: var(--dplus-paper);
+  border-radius: 30px;
+}
+
+.dplus-chat-page .conversation-main-header {
+  background: var(--dplus-lime);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 22px;
+  box-shadow: 4px 4px 0 var(--dplus-ink);
+  padding: 14px 16px;
+}
+
+.dplus-chat-page .message-list {
+  background: #fffdf7;
+  border: 3px solid var(--dplus-ink);
+  border-radius: 26px;
+  margin-top: 16px;
+  min-height: 360px;
+  padding: 18px;
+}
+
+.dplus-chat-page .message-bubble {
+  background: var(--dplus-cream);
+  border-radius: 24px 24px 24px 8px;
+  max-width: min(620px, 70%);
+  padding: 14px 16px;
+}
+
+.dplus-chat-page .own-message {
+  background: var(--dplus-orange);
+  border-radius: 24px 24px 8px 24px;
+}
+
+.dplus-chat-page .chat-compose {
+  background: var(--dplus-paper);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 24px;
+  box-shadow: 4px 4px 0 var(--dplus-ink);
+  padding: 14px;
+}
+
+.dplus-chat-page .contact-status-panel {
+  background: var(--dplus-yellow);
+  border-radius: 30px;
+}
+
+.dplus-chat-page .contact-panel,
+.dplus-chat-page .exchange-card {
+  background: var(--dplus-paper);
+  border-width: 3px;
+  box-shadow: 4px 4px 0 var(--dplus-ink);
+}
+
+.dplus-chat-page .privacy-note {
+  background: var(--dplus-paper);
+}
+
 .rail-note,
 .privacy-note-strong {
   background: var(--dplus-yellow);

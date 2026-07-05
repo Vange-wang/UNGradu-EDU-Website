@@ -46,6 +46,11 @@ function ChatList({ currentUserPhone }: { currentUserPhone: string }) {
           <strong>{conversations.length}</strong>
           <span>个会话</span>
         </div>
+        <div className="dplus-list-tabs" aria-label="我的内容分类">
+          <Link href="/profile/parent-needs">我的需求</Link>
+          <Link href="/profile/tutor-profiles">我的家教信息</Link>
+          <span className="active">我的聊天</span>
+        </div>
       </div>
 
       {conversations.length === 0 ? (
@@ -85,7 +90,7 @@ function ChatList({ currentUserPhone }: { currentUserPhone: string }) {
 
 export default function MyChatsPage() {
   return (
-    <div className="page">
+    <div className="page dplus-profile-page">
       <RequireTestSession>
         {(session) => <ChatList currentUserPhone={session.userId ?? session.phone ?? ""} />}
       </RequireTestSession>

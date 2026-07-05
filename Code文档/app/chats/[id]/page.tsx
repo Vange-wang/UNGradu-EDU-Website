@@ -373,7 +373,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
 
 export default function ChatPage() {
   return (
-    <div className="page">
+    <div className="page dplus-chat-page">
       <RequireTestSession>
         {(session) => <ChatRoom currentUserPhone={session.userId ?? session.phone ?? ""} />}
       </RequireTestSession>

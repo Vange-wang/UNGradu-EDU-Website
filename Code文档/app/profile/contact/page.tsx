@@ -152,7 +152,7 @@ function ContactProfileForm({ ownerPhone }: { ownerPhone: string }) {
 
 export default function ContactProfilePage() {
   return (
-    <div className="page">
+    <div className="page dplus-profile-page">
       <RequireTestSession>
         {(session) => <ContactProfileForm ownerPhone={session.userId ?? session.phone ?? ""} />}
       </RequireTestSession>

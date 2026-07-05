@@ -49,6 +49,11 @@ function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
           <strong>{profiles.length}</strong>
           <span>条家教信息</span>
         </div>
+        <div className="dplus-list-tabs" aria-label="我的内容分类">
+          <Link href="/profile/parent-needs">我的需求</Link>
+          <span className="active">我的家教信息</span>
+          <Link href="/profile/chats">我的聊天</Link>
+        </div>
         <Link className="button primary" href="/tutor-profiles/new">
           发布新家教信息
         </Link>
@@ -90,7 +95,7 @@ function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
 
 export default function MyTutorProfilesPage() {
   return (
-    <div className="page">
+    <div className="page dplus-profile-page">
       <RequireTestSession>
         {(session) => <TutorProfilesList ownerPhone={session.userId ?? session.phone ?? ""} />}
       </RequireTestSession>

@@ -35,7 +35,7 @@ const profileLinks = [
 
 export default function ProfilePage() {
   return (
-    <div className="page">
+    <div className="page dplus-profile-page">
       <RequireTestSession>
         {(session) => (
           <section className="wide-panel">
@@ -65,10 +65,23 @@ export default function ProfilePage() {
                     <span>种身份场景</span>
                   </div>
                 </div>
+                <div className="dplus-account-rules">
+                  <span>公开页不展示联系方式</span>
+                  <span>先站内聊天确认意向</span>
+                  <span>双方同意后再交换</span>
+                </div>
                 <LogoutButton />
               </aside>
 
               <div className="account-main">
+                <div className="dplus-profile-banner">
+                  <div>
+                    <span className="eyebrow">账号工作台</span>
+                    <h2>发布、沟通和隐私资料集中管理</h2>
+                  </div>
+                  <span className="status-pill">MVP 撮合流程</span>
+                </div>
+
                 <div className="account-card-grid">
                   {profileLinks.map((link) => (
                     <Link className="account-card" href={link.href} key={link.href}>

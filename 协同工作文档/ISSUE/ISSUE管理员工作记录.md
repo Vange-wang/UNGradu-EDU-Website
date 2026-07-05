@@ -553,3 +553,41 @@
 后续提醒：
 
 - 本轮 UI 实现如后续进入验收闭环，仍需补齐提交 / 推送等 Git 闭环证据；在未提交 / 未推送前，不得将相关实现表述为远端已闭环。
+
+## 2026-07-05
+
+操作类型：D+ 第 3 批个人中心与聊天页面 UI 落地 Issue 扫描
+
+任务 ID：`UI-DPLUS-IMPLEMENT-2026-07-05-003`
+
+扫描范围：
+
+- `/profile`
+- `/profile/contact`
+- `/profile/parent-needs`
+- `/profile/tutor-profiles`
+- `/profile/chats`
+- `/chats/[id]`
+
+输入证据：
+
+- 前台验证摘要显示：`git diff --check` 通过，仅 CRLF 提示。
+- `npm run typecheck`、`npm run lint`、`npm test`、`npm run build` 已通过。
+- 浏览器登录态抽检显示：个人中心、联系方式、我的需求、我的家教信息、我的聊天和 missing 聊天路由均正常渲染。
+- 桌面 1440px 与移动 390px 抽检无横向溢出、无 Next overlay。
+- 未登录守卫正常跳转到登录页。
+- UI 设计师结论：视觉验收通过，无必须修复项。
+- 产品经理结论：产品验收通过，无越界承诺或必须修复项。
+
+扫描结论：
+
+- 无需新开 Open Issue。
+- 不复开旧 Issue。
+- 第三批页面均使用 `RequireTestSession`，未发现新的登录守卫绕过或权限展示风险。
+- 个人中心、联系方式、我的发布列表、聊天列表和聊天详情页未发现新的联系方式公开泄露证据。
+- 聊天详情页未授权前明确不展示联系方式；同意交换前仍有二次确认；已授权后展示联系方式符合既有业务规则。
+- 未发现新增支付、担保、仲裁、自动推荐、认证、平台审核等未实现能力暗示。
+
+非阻塞观察：
+
+- dev 模式 React DevTools info、既有密码输入 autocomplete verbose 建议和 favicon 404 不建议登记为 D+ 第 3 批 Open Issue。

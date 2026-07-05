@@ -48,6 +48,11 @@ function ParentNeedsList({ ownerPhone }: { ownerPhone: string }) {
           <strong>{needs.length}</strong>
           <span>条需求记录</span>
         </div>
+        <div className="dplus-list-tabs" aria-label="我的内容分类">
+          <span className="active">我的需求</span>
+          <Link href="/profile/tutor-profiles">我的家教信息</Link>
+          <Link href="/profile/chats">我的聊天</Link>
+        </div>
         <Link className="button primary" href="/parent-needs/new">
           发布新需求
         </Link>
@@ -86,7 +91,7 @@ function ParentNeedsList({ ownerPhone }: { ownerPhone: string }) {
 
 export default function MyParentNeedsPage() {
   return (
-    <div className="page">
+    <div className="page dplus-profile-page">
       <RequireTestSession>
         {(session) => <ParentNeedsList ownerPhone={session.userId ?? session.phone ?? ""} />}
       </RequireTestSession>

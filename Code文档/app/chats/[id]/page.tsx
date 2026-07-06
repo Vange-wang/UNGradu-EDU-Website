@@ -210,9 +210,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
         <div>
           <span className="eyebrow">站内沟通</span>
           <h1 className="section-title">站内聊天</h1>
-          <p>
-            先在站内完成基础沟通；未完成双方同意和二次确认前，不展示任何联系方式。
-          </p>
+          <p>先站内沟通；双方确认前不展示联系方式。</p>
         </div>
         <Link className="button secondary" href="/profile/chats">
           返回我的聊天
@@ -227,7 +225,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
               ? "需求沟通"
               : "家教信息沟通"}
           </h2>
-          <p>消息会自动轮询刷新；联系方式交换集中在右侧状态区处理。</p>
+          <p>确认意向后，可请求交换联系方式。</p>
           <div className="context-stat">
             <strong>{messages.length}</strong>
             <span>条消息</span>
@@ -242,7 +240,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
           <div className="conversation-main-header">
             <div>
               <h2>消息区</h2>
-              <p>请勿直接发送手机号、微信号或详细地址。</p>
+              <p>不直接发送手机号、微信号或详细地址。</p>
             </div>
             <span className="status-pill">
               {authorizedProfiles ? "联系方式已授权" : "联系方式未授权"}
@@ -275,7 +273,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
               <textarea
                 id="message-text"
                 onChange={(event) => setMessageText(event.target.value)}
-                placeholder="输入沟通内容，不要直接填写手机号、微信号或详细地址"
+                placeholder="输入沟通内容，不直接发送联系方式"
                 rows={3}
                 value={messageText}
               />
@@ -301,7 +299,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
               <p>对方微信号：{authorizedProfiles.otherUser.wechat || "未填写"}</p>
             </div>
           ) : (
-            <p className="privacy-note">当前未完成交换授权，双方联系方式不会展示。</p>
+            <p className="privacy-note">双方确认前，联系方式不会展示。</p>
           )}
 
           <button

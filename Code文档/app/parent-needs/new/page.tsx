@@ -93,9 +93,7 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
         <div className="publish-copy">
           <span className="eyebrow">发布需求</span>
           <h1 className="section-title">发布家教需求</h1>
-          <p>
-            按任务分组填写孩子情况、科目、预算和可上课时间。发布后，老师可在需求广场中查看；公开说明不要填写联系方式。
-          </p>
+          <p>填写孩子情况、科目、预算和时间；公开说明不要写联系方式。</p>
         </div>
         <Link className="button secondary" href="/profile/parent-needs">
           返回我的需求
@@ -108,37 +106,37 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
             <span className="eyebrow">分步填写</span>
             <h2>把需求拆成四件小事</h2>
           </div>
-          <p>信息越清晰，老师越容易判断是否合适；隐私内容仍按现有规则保护。</p>
+          <p>写清学习情况和上课安排即可。</p>
           <p className="rail-note">
-            公开说明只写学习情况和上课安排，不写联系方式或精确门牌号。
+            不写手机号、微信号或精确门牌号。
           </p>
           <ol className="step-list">
             <li className="step-item">
               <span>1</span>
               <div>
                 <strong>基础信息</strong>
-                <small>老师偏好、科目和年级</small>
+                <small>偏好、科目、年级</small>
               </div>
             </li>
             <li className="step-item">
               <span>2</span>
               <div>
                 <strong>预算时间</strong>
-                <small>课时预算和可上课时段</small>
+                <small>预算和时间</small>
               </div>
             </li>
             <li className="step-item">
               <span>3</span>
               <div>
                 <strong>区域位置</strong>
-                <small>只填写到小区或村</small>
+                <small>小区或村</small>
               </div>
             </li>
             <li className="step-item">
               <span>4</span>
               <div>
                 <strong>隐私提示</strong>
-                <small>不填写手机号、微信号或门牌号</small>
+                <small>不写联系方式</small>
               </div>
             </li>
           </ol>
@@ -151,7 +149,7 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
                 <span className="form-section-number">01</span>
                 <h2>基础信息</h2>
               </div>
-              <p>先说明需要什么老师、补哪些科目，以及孩子当前所在学段。</p>
+              <p>选择老师偏好、科目和年级。</p>
             </div>
 
             <div className="field">
@@ -215,7 +213,7 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
                 <span className="form-section-number">02</span>
                 <h2>预算与时间</h2>
               </div>
-              <p>保留原有预算区间和多选时段，方便老师快速判断匹配度。</p>
+              <p>填写课时预算和可上课时间。</p>
             </div>
 
             <div className="two-column">
@@ -266,7 +264,7 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
                 <span className="form-section-number">03</span>
                 <h2>区域与隐私</h2>
               </div>
-              <p>位置只需要到大致区域，孩子简介用于说明学习情况。</p>
+              <p>位置填到小区或村即可。</p>
             </div>
 
             <div className="two-column">
@@ -318,10 +316,7 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
             </div>
 
             <p className="privacy-note">
-              隐私提示：请勿在公开简介中填写手机号、微信号、详细门牌号等联系方式或精确住址。
-            </p>
-            <p className="privacy-note privacy-note-strong">
-              发布后公开页仍不会展示联系方式；后续需先站内沟通，再由双方同意交换。
+              公开说明不要写手机号、微信号或精确住址；联系方式需双方确认后交换。
             </p>
           </section>
 

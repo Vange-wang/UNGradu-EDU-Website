@@ -3,10 +3,10 @@
 import { GuardedEntryLink } from "@/features/auth/guarded-entry-link";
 
 const steps = [
-  ["发布信息", "家长发布需求，大学生发布个人家教信息。"],
-  ["筛选详情", "按科目、学段、价格和性别查看合适对象。"],
-  ["站内沟通", "先通过基础文字聊天确认具体上课情况。"],
-  ["双向同意", "二次确认后才展示双方存档联系方式。"]
+  ["发布", "填写需求或家教资料。"],
+  ["筛选", "按科目、学段、价格查看合适对象。"],
+  ["沟通", "先站内确认上课安排。"],
+  ["确认", "二次确认后才展示联系方式。"]
 ];
 
 export default function HomePage() {
@@ -18,13 +18,13 @@ export default function HomePage() {
             <span className="eyebrow">东莞大学城 · 先聊清楚</span>
             <h1>找家教这件事，要清楚也要安心。</h1>
             <p>
-              家长发布需求，大学生展示家教资料。公开页面不展示联系方式，双方先站内沟通，确认同意后再交换。
+              先发布需求或资料，再站内沟通；双方确认后才交换联系方式。
             </p>
             <div className="gateway-entry-grid" aria-label="身份入口">
               <div className="gateway-entry parent-entry">
                 <span>家长 / 学生</span>
                 <strong>发布找老师需求</strong>
-                <small>填写学段、科目、预算和上课偏好，先把需求讲清楚。</small>
+                <small>填写科目、预算和上课偏好。</small>
                 <GuardedEntryLink className="button primary full-width" href="/parent-needs/new">
                   我要找家教
                 </GuardedEntryLink>
@@ -32,7 +32,7 @@ export default function HomePage() {
               <div className="gateway-entry tutor-entry">
                 <span>大学生家教</span>
                 <strong>发布可教资料</strong>
-                <small>展示可教科目、时间和课时费范围，公开页不放联系方式。</small>
+                <small>填写可教科目、时间和课时费。</small>
                 <GuardedEntryLink className="button primary full-width" href="/tutor-profiles/new">
                   我要做家教
                 </GuardedEntryLink>
@@ -52,7 +52,7 @@ export default function HomePage() {
           </div>
 
           <div className="gateway-status-panel" aria-label="平台边界">
-            <span className="eyebrow">当前版本</span>
+            <span className="eyebrow">试运行</span>
             <h2>先站内聊，再放心联系</h2>
             <div className="dplus-comic-stage" aria-hidden="true">
               <div className="dplus-comic-duo">
@@ -65,7 +65,7 @@ export default function HomePage() {
               </div>
             </div>
             <p>
-              平台当前提供信息发布、筛选、站内沟通和双方同意后的联系方式交换；不做支付、担保、认证或人工仲裁。
+              平台不做支付、担保、认证或人工仲裁。
             </p>
             <div className="status-strip">
               <span>公开页不展示联系方式</span>
@@ -81,7 +81,7 @@ export default function HomePage() {
           <div>
             <span className="eyebrow">使用流程</span>
             <h2 className="section-title" id="process-title">
-              需求 / 家教 / 沟通 / 同意后交换
+              发布、沟通、确认
             </h2>
           </div>
           <Link className="button secondary" href="/rules">

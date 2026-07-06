@@ -131,9 +131,7 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
         <div className="publish-copy">
           <span className="eyebrow">发布资料</span>
           <h1 className="section-title">发布家教信息</h1>
-          <p>
-            将学校专业、可教范围、课时费和能力说明分组填写。发布后，家长可在家教信息广场中查看；公开说明不要填写联系方式。
-          </p>
+          <p>填写学校专业、可教范围和课时费；公开说明不要写联系方式。</p>
         </div>
         <Link className="button secondary" href="/profile/tutor-profiles">
           返回我的家教信息
@@ -146,37 +144,37 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
             <span className="eyebrow">分步填写</span>
             <h2>把资料整理成可读档案</h2>
           </div>
-          <p>多组“学段 + 科目 + 课时费”仍可继续添加，证明文件只记录当前已有元信息。</p>
+          <p>可添加多组学段、科目和课时费。</p>
           <p className="rail-note">
-            公开资料只写可教范围和能力说明，不写联系方式或精确住址。
+            公开资料不写联系方式或精确住址。
           </p>
           <ol className="step-list">
             <li className="step-item">
               <span>1</span>
               <div>
                 <strong>学校专业</strong>
-                <small>基础身份信息</small>
+                <small>学校和专业</small>
               </div>
             </li>
             <li className="step-item">
               <span>2</span>
               <div>
                 <strong>可教范围</strong>
-                <small>科目、学段和时间</small>
+                <small>科目和时间</small>
               </div>
             </li>
             <li className="step-item">
               <span>3</span>
               <div>
                 <strong>课时费组</strong>
-                <small>支持多组组合</small>
+                <small>可新增</small>
               </div>
             </li>
             <li className="step-item">
               <span>4</span>
               <div>
                 <strong>证明与说明</strong>
-                <small>文件元信息与能力描述</small>
+                <small>说明不含联系方式</small>
               </div>
             </li>
           </ol>
@@ -189,7 +187,7 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
                 <span className="form-section-number">01</span>
                 <h2>学校专业</h2>
               </div>
-              <p>保留原有性别、学校和专业字段，用于形成基础资料。</p>
+              <p>填写学校、专业和基础信息。</p>
             </div>
 
             <div className="field">
@@ -236,7 +234,7 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
                 <span className="form-section-number">02</span>
                 <h2>可教范围</h2>
               </div>
-              <p>科目、学段和时间继续使用原有多选方式，不改变提交结构。</p>
+              <p>选择可教科目、学段和时间。</p>
             </div>
 
             <fieldset className="field option-field">
@@ -301,7 +299,7 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
                 <span className="form-section-number">03</span>
                 <h2>课时费组</h2>
               </div>
-              <p>每组仍由学段、科目、最低课时费和最高课时费组成，可继续新增或删除。</p>
+              <p>填写学段、科目和课时费区间。</p>
             </div>
 
             <fieldset className="field option-field">
@@ -385,7 +383,7 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
                 <span className="form-section-number">04</span>
                 <h2>证明与能力说明</h2>
               </div>
-              <p>证明文件仍只处理文件名、类型和大小；能力说明不填写联系方式。</p>
+              <p>能力说明不要填写联系方式。</p>
             </div>
 
             <div className="field">
@@ -398,7 +396,7 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
                 type="file"
               />
               <span className="field-hint">
-                当前仅保存文件名、类型和大小，不提供正式证明图片上传、查看或审核能力。
+                当前不会公开展示或审核证明图片。
               </span>
               <span className="error">{errors.proofImages}</span>
             </div>
@@ -416,10 +414,7 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
             </div>
 
             <p className="privacy-note">
-              隐私提示：请勿在公开资料中填写手机号、微信号、详细住址等联系方式或精确位置。
-            </p>
-            <p className="privacy-note privacy-note-strong">
-              发布后公开页仍不会展示联系方式；后续需先站内沟通，再由双方同意交换。
+              公开资料不要写手机号、微信号或精确住址；联系方式需双方确认后交换。
             </p>
           </section>
 

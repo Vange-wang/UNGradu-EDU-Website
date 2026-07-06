@@ -95,9 +95,9 @@ function ContactProfileForm({ ownerPhone }: { ownerPhone: string }) {
     <section className="wide-panel">
       <div className="workspace-header">
         <div>
-          <span className="eyebrow">个人资料管理</span>
+          <span className="eyebrow">隐私资料</span>
           <h1 className="section-title">联系方式管理</h1>
-          <p>存档联系方式默认不公开，只在双方授权并二次确认后展示。</p>
+          <p>联系方式默认不公开，双方确认后才展示。</p>
         </div>
         <Link className="button secondary" href="/profile">
           返回个人中心
@@ -107,8 +107,8 @@ function ContactProfileForm({ ownerPhone }: { ownerPhone: string }) {
       <div className="profile-workspace">
         <aside className="profile-side-note">
           <span className="eyebrow">隐私边界</span>
-          <h2>未授权前不展示</h2>
-          <p>这里保存的手机号和微信号仅用于联系方式交换流程，不会直接出现在公开页面。</p>
+          <h2>公开页不展示</h2>
+          <p>手机号和微信号不会出现在公开页面。</p>
         </aside>
 
         <section className="profile-panel">
@@ -120,7 +120,7 @@ function ContactProfileForm({ ownerPhone }: { ownerPhone: string }) {
                 inputMode="tel"
                 name="phone"
                 onChange={(event) => updateField("phone", event.target.value)}
-                placeholder="请输入用于交换的手机号"
+                placeholder="用于交换的手机号"
                 value={input.phone}
               />
               <span className="error">{phoneError}</span>

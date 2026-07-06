@@ -8,7 +8,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "UNGradu EDU",
-  description: "东莞大学城家教对接平台 MVP"
+  description: "东莞大学城家教对接平台"
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

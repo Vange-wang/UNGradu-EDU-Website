@@ -76,10 +76,10 @@ export default function ProfilePage() {
               <div className="account-main">
                 <div className="dplus-profile-banner">
                   <div>
-                    <span className="eyebrow">账号工作台</span>
+                    <span className="eyebrow">账号管理</span>
                     <h2>发布、沟通和隐私资料集中管理</h2>
                   </div>
-                  <span className="status-pill">MVP 撮合流程</span>
+                  <span className="status-pill">试运行流程</span>
                 </div>
 
                 <div className="account-card-grid">

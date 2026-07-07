@@ -2,8 +2,6 @@ import Link from "next/link";
 
 import { CustomerServiceChat } from "@/features/customer-service/customer-service-chat";
 
-export const dynamic = "force-dynamic";
-
 export default function CustomerServicePage() {
   const difyWebAppUrl = process.env.NEXT_PUBLIC_DIFY_CUSTOMER_SERVICE_URL?.trim();
 
@@ -45,22 +43,24 @@ export default function CustomerServicePage() {
             </ul>
             <p>
               <span>当前使用站内离线客服。</span>
-              <span>Dify WebApp 入口已预留。</span>
-              <code>NEXT_PUBLIC_DIFY_CUSTOMER_SERVICE_URL</code>
+              <span>Dify WebApp 仅作为延后入口。</span>
             </p>
+            {difyWebAppUrl ? (
+              <a
+                className="customer-service-dify-entry"
+                href={difyWebAppUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                打开 Dify 客服
+              </a>
+            ) : (
+              <code>NEXT_PUBLIC_DIFY_CUSTOMER_SERVICE_URL</code>
+            )}
           </aside>
 
           <div className="customer-service-main">
-            {difyWebAppUrl ? (
-              <iframe
-                allow="microphone"
-                className="customer-service-dify-frame"
-                src={difyWebAppUrl}
-                title="UNGradu EDU Dify 智能客服"
-              />
-            ) : (
-              <CustomerServiceChat />
-            )}
+            <CustomerServiceChat />
           </div>
         </div>
       </section>

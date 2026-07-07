@@ -2721,19 +2721,28 @@ body {
   width: 100%;
 }
 
-.customer-service-dify-frame {
-  background: var(--dplus-paper);
+.customer-service-dify-entry {
+  align-items: center;
+  background: var(--dplus-lime);
   border: 3px solid var(--dplus-ink);
-  border-radius: 30px;
-  box-shadow: var(--dplus-shadow-small);
-  height: min(720px, calc(100vh - 180px));
-  min-height: 560px;
-  width: 100%;
+  border-radius: 999px;
+  box-shadow: 3px 3px 0 var(--dplus-ink);
+  color: var(--dplus-ink);
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 900;
+  justify-content: center;
+  padding: 9px 14px;
+  text-decoration: none;
 }
 
 @media (max-width: 860px) {
   .customer-service-layout {
     grid-template-columns: 1fr;
+  }
+
+  .customer-service-main {
+    order: -1;
   }
 }
 
@@ -2788,13 +2797,17 @@ body {
   .customer-service-page,
   .customer-service-side,
   .customer-service-chat,
-  .customer-service-dify-frame {
+  .customer-service-dify-entry {
     border-width: 2px;
     border-radius: 24px;
   }
 
   .customer-service-message {
     max-width: 100%;
+  }
+
+  .customer-service-messages {
+    min-height: 160px;
   }
 
   .customer-service-compose {

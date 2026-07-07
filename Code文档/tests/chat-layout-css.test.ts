@@ -22,4 +22,10 @@ describe("chat layout CSS", () => {
     expect(messageListRule).toContain("overflow-y: auto");
     expect(messageListRule).toContain("min-height:");
   });
+
+  it("prioritizes customer service chat controls on mobile", () => {
+    expect(globalsCss).toContain(".customer-service-main {\n    order: -1;");
+    expect(globalsCss).toContain(".customer-service-messages {\n    min-height: 160px;");
+    expect(globalsCss).not.toContain(".customer-service-dify-frame");
+  });
 });

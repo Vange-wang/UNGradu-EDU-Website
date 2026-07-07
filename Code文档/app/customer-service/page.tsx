@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { CustomerServiceChat } from "@/features/customer-service/customer-service-chat";
 
+export const dynamic = "force-dynamic";
+
 export default function CustomerServicePage() {
   const difyWebAppUrl = process.env.NEXT_PUBLIC_DIFY_CUSTOMER_SERVICE_URL?.trim();
 

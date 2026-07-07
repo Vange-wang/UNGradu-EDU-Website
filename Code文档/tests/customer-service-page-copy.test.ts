@@ -15,6 +15,7 @@ const navSource = readFileSync(
 describe("customer service page copy", () => {
   it("keeps customer service as rule guidance rather than arbitration", () => {
     expect(pageSource).toContain("智能客服");
+    expect(pageSource).toContain('export const dynamic = "force-dynamic"');
     expect(pageSource).toContain("NEXT_PUBLIC_DIFY_CUSTOMER_SERVICE_URL");
     expect(pageSource).toContain("不由智能客服裁决");
     expect(pageSource).not.toContain("平台保证退款");

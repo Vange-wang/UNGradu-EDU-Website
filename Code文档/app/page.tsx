@@ -123,6 +123,10 @@ export default function HomePage() {
             <strong>风险与功能反馈</strong>
             <span>记录联系方式滥用、虚假信息、骚扰和功能异常反馈。</span>
           </Link>
+          <Link className="dplus-mini-card" href="/customer-service">
+            <strong>智能客服</strong>
+            <span>咨询发布流程、联系方式交换、课时费边界和风险反馈入口。</span>
+          </Link>
         </div>
       </section>
     </div>

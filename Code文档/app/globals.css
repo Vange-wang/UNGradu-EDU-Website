@@ -2520,6 +2520,276 @@ body {
   font-weight: 800;
 }
 
+.sr-only {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.customer-service-page {
+  display: grid;
+  gap: var(--space-lg);
+  margin: 0 auto;
+  max-width: 980px;
+  overflow: hidden;
+  padding: clamp(20px, 4vw, 34px);
+  width: 100%;
+}
+
+.customer-service-page h1,
+.customer-service-page h2,
+.customer-service-page p {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.customer-service-page h1 {
+  color: var(--dplus-ink);
+  font-size: clamp(34px, 5vw, 52px);
+  line-height: 1.08;
+  margin: 0 0 14px;
+}
+
+.customer-service-page h1 span {
+  display: block;
+}
+
+.customer-service-page p span {
+  display: block;
+}
+
+.customer-service-layout {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: minmax(240px, 0.34fr) minmax(0, 1fr);
+}
+
+.customer-service-side,
+.customer-service-chat,
+.customer-service-main {
+  min-width: 0;
+}
+
+.customer-service-side {
+  background: var(--dplus-cream);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 28px;
+  box-shadow: var(--dplus-shadow-small);
+  color: var(--dplus-ink);
+  padding: 20px;
+}
+
+.customer-service-side h2 {
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.1;
+  margin: 0 0 14px;
+}
+
+.customer-service-side ul {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding-left: 20px;
+}
+
+.customer-service-side li,
+.customer-service-side p {
+  color: var(--dplus-body);
+  line-height: 1.7;
+}
+
+.customer-service-side code {
+  background: var(--dplus-paper);
+  border: 2px solid var(--dplus-ink);
+  border-radius: 8px;
+  display: inline-block;
+  font-size: 13px;
+  margin: 0 4px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 2px 6px;
+  word-break: break-all;
+}
+
+.customer-service-chat {
+  background: var(--dplus-paper);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 30px;
+  box-shadow: var(--dplus-shadow-small);
+  display: grid;
+  gap: 16px;
+  padding: clamp(16px, 3vw, 22px);
+}
+
+.customer-service-messages {
+  background: #fffdf7;
+  border: 3px solid var(--dplus-ink);
+  border-radius: 24px;
+  display: grid;
+  gap: 12px;
+  min-height: 340px;
+  padding: 16px;
+}
+
+.customer-service-message {
+  background: var(--dplus-cream);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 22px 22px 22px 8px;
+  box-shadow: 4px 4px 0 var(--dplus-ink);
+  justify-self: start;
+  max-width: min(620px, 84%);
+  padding: 12px 14px;
+}
+
+.customer-service-message-user {
+  background: var(--dplus-orange);
+  border-radius: 22px 22px 8px 22px;
+  justify-self: end;
+}
+
+.customer-service-message p {
+  color: var(--dplus-ink);
+  line-height: 1.65;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.customer-service-inline-link {
+  color: var(--dplus-ink);
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 900;
+  margin-top: 10px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.customer-service-quick-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.customer-service-quick-list button {
+  background: var(--dplus-lime);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 999px;
+  box-shadow: 3px 3px 0 var(--dplus-ink);
+  color: var(--dplus-ink);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+  padding: 8px 12px;
+}
+
+.customer-service-compose {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.customer-service-compose input {
+  background: var(--dplus-paper-strong);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 14px;
+  color: var(--dplus-ink);
+  min-height: 50px;
+  padding: 0 14px;
+  width: 100%;
+}
+
+.customer-service-dify-frame {
+  background: var(--dplus-paper);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 30px;
+  box-shadow: var(--dplus-shadow-small);
+  height: min(720px, calc(100vh - 180px));
+  min-height: 560px;
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .customer-service-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .customer-service-page *,
+  .customer-service-page .workspace-header > div {
+    min-width: 0;
+  }
+
+  .customer-service-page {
+    max-width: calc(100vw - 80px);
+    padding: 18px;
+  }
+
+  .customer-service-page h1 {
+    font-size: 30px;
+    word-break: break-all;
+  }
+
+  .customer-service-page p,
+  .customer-service-side li {
+    word-break: break-all;
+  }
+
+  .customer-service-page .workspace-header,
+  .customer-service-page .action-row {
+    width: 100%;
+  }
+
+  .customer-service-page .workspace-header {
+    align-items: stretch;
+    display: grid;
+    gap: 16px;
+  }
+
+  .customer-service-page .workspace-header > div,
+  .customer-service-side,
+  .customer-service-main,
+  .customer-service-chat {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .customer-service-page .workspace-header p {
+    max-width: calc(100vw - 120px);
+  }
+
+  .customer-service-page .action-row {
+    display: grid;
+  }
+
+  .customer-service-page,
+  .customer-service-side,
+  .customer-service-chat,
+  .customer-service-dify-frame {
+    border-width: 2px;
+    border-radius: 24px;
+  }
+
+  .customer-service-message {
+    max-width: 100%;
+  }
+
+  .customer-service-compose {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-service-compose .button {
+    width: 100%;
+  }
+}
+
 @media (max-width: 720px) {
   .site-header {
     border-radius: 0 0 22px 22px;

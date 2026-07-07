@@ -40,6 +40,7 @@ export function SessionNav() {
     return (
       <>
         <Link href="/profile">个人页</Link>
+        <Link href="/customer-service">智能客服</Link>
         <Link href="/rules">规则</Link>
       </>
     );
@@ -49,6 +50,7 @@ export function SessionNav() {
     return (
       <>
         <Link href="/login">登录 / 注册</Link>
+        <Link href="/customer-service">智能客服</Link>
         <Link href="/rules">规则</Link>
       </>
     );
@@ -57,6 +59,7 @@ export function SessionNav() {
   return (
     <>
       <Link href="/profile">个人页</Link>
+      <Link href="/customer-service">智能客服</Link>
       <button className="nav-button" onClick={() => void logout()} type="button">
         退出登录
       </button>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  describeRiskFeedbackStatus,
   normalizeRiskFeedbackInput,
   validateRiskFeedbackInput
 } from "@/features/feedback/risk-feedback";
@@ -81,5 +82,12 @@ describe("risk feedback validation", () => {
       contactMethod: "parent@example.com",
       sourcePage: "/feedback"
     });
+  });
+
+  it("provides neutral status labels for feedback records", () => {
+    expect(describeRiskFeedbackStatus("recorded")).toBe("已记录");
+    expect(describeRiskFeedbackStatus("reviewing")).toBe("排查中");
+    expect(describeRiskFeedbackStatus("closed")).toBe("已归档");
+    expect(describeRiskFeedbackStatus("unable_to_process")).toBe("暂无法处理");
   });
 });

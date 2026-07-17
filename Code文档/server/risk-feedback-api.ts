@@ -8,9 +8,14 @@ import {
   type RuntimeEnv
 } from "@/server/api-utils";
 import { readAuthSessionFromRequest } from "@/server/auth-session";
-import { saveServerRiskFeedback } from "@/server/risk-feedback";
+import {
+  listServerRiskFeedbackForOwner,
+  saveServerRiskFeedback
+} from "@/server/risk-feedback";
 
-type RiskFeedbackCollection = Parameters<typeof saveServerRiskFeedback>[0]["collection"];
+type RiskFeedbackCollection =
+  Parameters<typeof saveServerRiskFeedback>[0]["collection"] &
+  Parameters<typeof listServerRiskFeedbackForOwner>[0]["collection"];
 
 function readOptionalAuthenticatedUserId(request: Request, env: RuntimeEnv) {
   const session = readAuthSessionFromRequest(request, env);
@@ -62,6 +67,29 @@ export function createRiskFeedbackApiHandlers({
   env?: RuntimeEnv;
 }) {
   return {
+    async GET(request: Request) {
+      const auth = readOptionalAuthenticatedUserId(request, env);
+
+      if (!auth.ok) {
+        return auth.response;
+      }
+
+      if (!auth.authenticatedUserId) {
+        return apiError(401, "登录后才能查看自己的反馈记录。");
+      }
+
+      const result = await listServerRiskFeedbackForOwner({
+        authenticatedUserId: auth.authenticatedUserId,
+        collection
+      }).catch(() => ({
+        ok: false as const,
+        value: null,
+        errors: { request: "反馈记录读取失败，请稍后重试。" }
+      }));
+
+      return jsonResponse(result, result.errors.request ? 500 : statusForResult(result, 400));
+    },
+
     async POST(request: Request) {
       const auth = readOptionalAuthenticatedUserId(request, env);
 

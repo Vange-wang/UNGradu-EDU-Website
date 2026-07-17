@@ -72,6 +72,9 @@ export default function HomePage() {
               <span>交换前二次确认</span>
               <span>风险反馈仅记录排查</span>
             </div>
+            <p>
+              推荐使用项目方提供的 HTTPS 入口；临时 Cloudflare Worker 入口仅用于访问和基础安全加固，不代表完整安全防护或认证背书。
+            </p>
           </div>
         </div>
       </section>

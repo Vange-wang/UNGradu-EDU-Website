@@ -13,3 +13,7 @@ function createHandlers() {
 export async function POST(request: Request) {
   return createHandlers().POST(request);
 }
+
+export async function GET(request: Request) {
+  return createHandlers().GET(request);
+}

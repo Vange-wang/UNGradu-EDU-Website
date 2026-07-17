@@ -2,11 +2,21 @@
 
 import Link from "next/link";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { RiskFeedbackInput } from "@/features/feedback/risk-feedback";
-import { validateRiskFeedbackInput } from "@/features/feedback/risk-feedback";
-import { submitRiskFeedbackToApi } from "@/features/feedback/risk-feedback-api-client";
+import {
+  describeRiskFeedbackStatus,
+  validateRiskFeedbackInput
+} from "@/features/feedback/risk-feedback";
+import {
+  listMyRiskFeedbackFromApi,
+  submitRiskFeedbackToApi
+} from "@/features/feedback/risk-feedback-api-client";
+import type {
+  PublicRiskFeedbackRecord,
+  ServerRiskFeedback
+} from "@/server/risk-feedback";
 
 const categoryOptions = ["联系方式滥用", "虚假信息", "骚扰", "付款风险", "功能异常", "其他"];
 const targetTypeOptions = ["需求", "家教信息", "聊天", "联系方式", "其他 / 不确定"];
@@ -24,9 +34,34 @@ const initialInput: RiskFeedbackInput = {
 export default function FeedbackPage() {
   const [input, setInput] = useState<RiskFeedbackInput>(initialInput);
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+  const [savedFeedback, setSavedFeedback] = useState<ServerRiskFeedback | null>(null);
+  const [myFeedbackRecords, setMyFeedbackRecords] = useState<
+    PublicRiskFeedbackRecord[]
+  >([]);
+  const [recordsStatus, setRecordsStatus] = useState<
+    "loading" | "ready" | "login-required" | "failed"
+  >("loading");
   const [status, setStatus] = useState<"idle" | "submitting" | "saved" | "failed">(
     "idle"
   );
+
+  const loadMyFeedbackRecords = useCallback(async () => {
+    setRecordsStatus("loading");
+    const result = await listMyRiskFeedbackFromApi();
+
+    if (result.ok) {
+      setMyFeedbackRecords(result.value);
+      setRecordsStatus("ready");
+      return;
+    }
+
+    const message = result.errors.request ?? "";
+    setRecordsStatus(message.includes("登录") ? "login-required" : "failed");
+  }, []);
+
+  useEffect(() => {
+    void loadMyFeedbackRecords();
+  }, [loadMyFeedbackRecords]);
 
   function updateInput<K extends keyof RiskFeedbackInput>(
     field: K,
@@ -35,6 +70,7 @@ export default function FeedbackPage() {
     setInput((current) => ({ ...current, [field]: value }));
     setErrors({});
     setStatus("idle");
+    setSavedFeedback(null);
   }
 
   async function submitForm(event: FormEvent<HTMLFormElement>) {
@@ -60,9 +96,11 @@ export default function FeedbackPage() {
       return;
     }
 
+    setSavedFeedback(result.value);
     setInput(initialInput);
     setErrors({});
     setStatus("saved");
+    await loadMyFeedbackRecords();
   }
 
   return (
@@ -73,6 +111,8 @@ export default function FeedbackPage() {
           <h1>发现问题，先记录下来。</h1>
           <p>可反馈联系方式滥用、虚假信息、骚扰或功能异常。</p>
           <p>反馈仅用于记录排查，不承诺客服介入、仲裁、退款或担保。</p>
+          <p>推荐通过项目方提供的 HTTPS 入口访问；入口变化以项目方通知为准。</p>
+          <p>Cloudflare Worker 如被使用，仅作为临时访问与基础安全加固方案。</p>
           <Link className="button secondary" href="/">
             返回首页
           </Link>
@@ -177,15 +217,79 @@ export default function FeedbackPage() {
           <button className="button primary" disabled={status === "submitting"} type="submit">
             {status === "submitting" ? "提交中..." : "提交风险反馈"}
           </button>
-          {status === "saved" ? (
-            <p className="success">
-              已记录反馈。平台会用于后续排查，但当前不承诺即时处理或人工仲裁。
-            </p>
+          {status === "saved" && savedFeedback ? (
+            <div className="feedback-result success">
+              <strong>已记录</strong>
+              <p>
+                反馈编号：{savedFeedback.id}。平台会用于后续排查，但当前不承诺即时处理、人工仲裁、退款、担保或封禁。
+              </p>
+              <p>
+                当前状态：{describeRiskFeedbackStatus(savedFeedback.status)}。
+                {savedFeedback.submittedByUserId
+                  ? "登录状态提交的反馈可在本页下方查看状态。"
+                  : "匿名反馈后续可能无法查询，请先保存本次编号。"}
+              </p>
+            </div>
           ) : null}
           {status === "failed" && errors.request ? (
             <p className="error">提交失败，请稍后重试；可先复制保存已填写内容。</p>
           ) : null}
         </form>
+      </section>
+
+      <section className="content-panel feedback-record-panel" aria-labelledby="feedback-record-title">
+        <div className="section-heading-row">
+          <div>
+            <span className="eyebrow">我的反馈记录</span>
+            <h2 className="section-title" id="feedback-record-title">
+              反馈状态
+            </h2>
+          </div>
+        </div>
+
+        {recordsStatus === "loading" ? (
+          <p className="empty-state">正在读取反馈记录...</p>
+        ) : null}
+        {recordsStatus === "login-required" ? (
+          <p className="privacy-note">
+            未登录提交可完成记录，但后续可能无法查询；登录后提交的反馈会在这里显示状态。
+          </p>
+        ) : null}
+        {recordsStatus === "failed" ? (
+          <p className="error">反馈记录读取失败，请稍后刷新重试。</p>
+        ) : null}
+        {recordsStatus === "ready" && myFeedbackRecords.length === 0 ? (
+          <p className="empty-state">当前账号还没有反馈记录。</p>
+        ) : null}
+
+        {recordsStatus === "ready" && myFeedbackRecords.length > 0 ? (
+          <div className="record-list feedback-record-list">
+            {myFeedbackRecords.map((record) => (
+              <article className="record-card feedback-record-card" key={record.id}>
+                <div className="record-card-header">
+                  <div>
+                    <h3>{record.category}</h3>
+                    <p>
+                      {record.targetType}
+                      {record.targetReference ? ` / ${record.targetReference}` : ""}
+                    </p>
+                  </div>
+                  <span className="status-pill">
+                    {describeRiskFeedbackStatus(record.status)}
+                  </span>
+                </div>
+                <p>{record.description.slice(0, 120)}</p>
+                <p className="field-hint">
+                  提交时间：{new Date(record.createdAt).toLocaleString("zh-CN")}
+                </p>
+              </article>
+            ))}
+          </div>
+        ) : null}
+
+        <p className="privacy-note">
+          反馈状态只表示记录进度，不代表平台承诺即时客服、人工仲裁、退款、担保、认证或封禁处理。
+        </p>
       </section>
     </div>
   );

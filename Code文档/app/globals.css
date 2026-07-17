@@ -1651,6 +1651,35 @@ button {
   margin: 0;
 }
 
+.feedback-result {
+  display: grid;
+  gap: 8px;
+}
+
+.feedback-result strong {
+  color: var(--success-text);
+  font-size: 18px;
+}
+
+.feedback-result p,
+.feedback-record-card p {
+  overflow-wrap: anywhere;
+}
+
+.feedback-record-panel {
+  margin-top: 24px;
+}
+
+.feedback-record-list {
+  margin-top: 18px;
+}
+
+.feedback-record-card h3 {
+  color: var(--ink);
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+
 @media (max-width: 980px) {
   .filter-bar,
   .gateway-layout,

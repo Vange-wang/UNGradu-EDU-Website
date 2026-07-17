@@ -10,6 +10,23 @@ export type RiskFeedbackInput = {
 
 export type RiskFeedback = RiskFeedbackInput;
 
+export type RiskFeedbackStatus =
+  | "recorded"
+  | "reviewing"
+  | "closed"
+  | "unable_to_process";
+
+export const riskFeedbackStatusLabels: Record<RiskFeedbackStatus, string> = {
+  closed: "已归档",
+  recorded: "已记录",
+  reviewing: "排查中",
+  unable_to_process: "暂无法处理"
+};
+
+export function describeRiskFeedbackStatus(status: RiskFeedbackStatus) {
+  return riskFeedbackStatusLabels[status];
+}
+
 type Failure = {
   ok: false;
   value: null;

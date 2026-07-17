@@ -16,6 +16,20 @@ function createFakeCollection() {
           return { updated: 1 };
         }
       };
+    },
+    where(query: Record<string, unknown>) {
+      return {
+        orderBy() {
+          return this;
+        },
+        async get() {
+          return {
+            data: Array.from(documents.values()).filter((document) =>
+              Object.entries(query).every(([key, value]) => document[key] === value)
+            )
+          };
+        }
+      };
     }
   };
 }
@@ -135,6 +149,13 @@ describe("risk feedback API handlers", () => {
               throw new Error("collection missing");
             }
           };
+        },
+        where() {
+          return {
+            async get() {
+              return { data: [] };
+            }
+          };
         }
       },
       env: { NODE_ENV: "test", NEXT_PUBLIC_ALLOW_TEST_LOGIN: "true" }
@@ -161,6 +182,92 @@ describe("risk feedback API handlers", () => {
       value: null,
       errors: {
         request: "反馈提交失败，请稍后重试。"
+      }
+    });
+  });
+
+  it("lists only the current user's feedback records", async () => {
+    const collection = createFakeCollection();
+    collection.documents.set("risk-feedback-a", {
+      category: "骚扰",
+      contactMethod: "private@example.com",
+      createdAt: "2026-07-17T08:00:00.000Z",
+      description: "对方持续要求绕开站内沟通。",
+      evidenceNote: "已保存截图",
+      id: "risk-feedback-a",
+      sourcePage: "/feedback",
+      status: "recorded",
+      submittedByUserId: "13800138000",
+      targetReference: "/chats/a",
+      targetType: "聊天",
+      updatedAt: "2026-07-17T08:00:00.000Z"
+    });
+    collection.documents.set("risk-feedback-b", {
+      category: "虚假信息",
+      contactMethod: "other@example.com",
+      createdAt: "2026-07-17T08:10:00.000Z",
+      description: "另一位用户的反馈。",
+      evidenceNote: "",
+      id: "risk-feedback-b",
+      sourcePage: "/feedback",
+      status: "reviewing",
+      submittedByUserId: "13900139000",
+      targetReference: "tutor-profile-b",
+      targetType: "家教信息",
+      updatedAt: "2026-07-17T08:10:00.000Z"
+    });
+
+    const handlers = createRiskFeedbackApiHandlers({
+      collection,
+      env: { NODE_ENV: "test", NEXT_PUBLIC_ALLOW_TEST_LOGIN: "true" }
+    });
+
+    const response = await handlers.GET(
+      new Request("http://localhost/api/feedback", {
+        headers: { "x-ungradu-test-user-phone": "13800138000" }
+      })
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      value: [
+        {
+          category: "骚扰",
+          id: "risk-feedback-a",
+          status: "recorded",
+          targetType: "聊天"
+        }
+      ]
+    });
+  });
+
+  it("does not enumerate anonymous feedback records through GET", async () => {
+    const collection = createFakeCollection();
+    collection.documents.set("risk-feedback-anonymous", {
+      category: "功能异常",
+      createdAt: "2026-07-17T08:00:00.000Z",
+      description: "匿名反馈。",
+      id: "risk-feedback-anonymous",
+      sourcePage: "/feedback",
+      status: "recorded",
+      submittedByUserId: null,
+      targetType: "其他 / 不确定"
+    });
+
+    const handlers = createRiskFeedbackApiHandlers({
+      collection,
+      env: { NODE_ENV: "test", NEXT_PUBLIC_ALLOW_TEST_LOGIN: "true" }
+    });
+
+    const response = await handlers.GET(
+      new Request("http://localhost/api/feedback")
+    );
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      errors: {
+        request: "登录后才能查看自己的反馈记录。"
       }
     });
   });

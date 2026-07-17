@@ -30,6 +30,12 @@ const profileLinks = [
     href: "/profile/chats",
     meta: "沟通记录",
     title: "我的聊天"
+  },
+  {
+    description: "查看自己提交的风险反馈状态，匿名反馈仅保留本次结果。",
+    href: "/feedback",
+    meta: "反馈记录",
+    title: "我的反馈"
   }
 ];
 
@@ -57,7 +63,7 @@ export default function ProfilePage() {
                 <p>同一个账号可同时使用家长端和大学生端能力。</p>
                 <div className="account-status-grid">
                   <div>
-                    <strong>4</strong>
+                    <strong>5</strong>
                     <span>个功能入口</span>
                   </div>
                   <div>

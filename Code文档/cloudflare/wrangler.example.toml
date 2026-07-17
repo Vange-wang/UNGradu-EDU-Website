@@ -1,0 +1,11 @@
+name = "ungradu-edu-temp-proxy"
+main = "cloudflare/worker.ts"
+compatibility_date = "2026-07-08"
+
+[vars]
+UPSTREAM_ORIGIN = "https://ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbase.com"
+
+# Dashboard route examples:
+# - workers.dev: enable workers.dev for a temporary preview domain.
+# - custom domain: bind the Worker to a Cloudflare-managed custom domain or route.
+# Do not put secrets in this file. Use Cloudflare Worker variables/secrets instead.

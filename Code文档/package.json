@@ -15,6 +15,7 @@
     "m5:hosted:verify": "node scripts/m5-hosted-verify.mjs",
     "m5:load": "vitest run m5-server-flow-and-load",
     "lint": "eslint . --max-warnings=0",
+    "production:ops:baseline": "node scripts/production-ops-baseline-check.mjs",
     "release:production:preflight": "node scripts/production-readiness-check.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

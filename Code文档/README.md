@@ -110,6 +110,7 @@
 - 生产构建：`npm run build`
 - CloudBase 连接检查：`npm run cloudbase:check`
 - 代码检查：`npm run lint`
+- S2 生产运行运维基线检查：`npm run production:ops:baseline`
 - 类型检查：`npm run typecheck`
 - 测试：`npm test`
 - 正式生产上线预检：`npm run release:production:preflight`
@@ -157,6 +158,14 @@ M5 发布前验证命令：
 - 该命令不会连接 CloudBase，不会读取真实数据，不会打印 `AUTH_SESSION_SECRET`、`TENCENTCLOUD_SECRETID` 或 `TENCENTCLOUD_SECRETKEY` 的值。
 - 如果本地模拟时故意设置 `M5_ENABLE_HOSTED_TEST_LOGIN=true` 或 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，命令会输出警告，同时仍验证这些误配不能启用生产测试登录。真实生产配置中必须移除这两个测试开关。
 - 该命令不能替代正式生产 URL 下的生产冒烟、生产禁用测试登录确认、生产登录方案确认或回滚演练。
+
+S2 生产运行运维基线检查命令：
+
+- `npm run production:ops:baseline`：只做仓库内无密钥运维基线检查，用于确认 S2 生产运行观察文档、生产环境变量名称、禁用测试登录开关、必备 CloudBase 集合清单、当前发布基线和回滚记录口径已经落地。
+- 该命令不会连接 CloudBase，不会读取真实生产数据，不会打印 `AUTH_SESSION_SECRET`、`EMAIL_CODE_SECRET`、`SMTP_PASS`、`TENCENTCLOUD_SECRETID` 或 `TENCENTCLOUD_SECRETKEY` 的值。
+- 如果当前 shell 中误设 `M5_ENABLE_HOSTED_TEST_LOGIN=true` 或 `NEXT_PUBLIC_ALLOW_TEST_LOGIN=true`，命令会失败，提醒生产运行基线不得启用测试登录开关。
+- 回滚目标 commit 仍以部署平台真实发布记录为准；仓库内只记录回滚清单和当前已知发布修复 head，不伪造生产部署记录。
+- 该命令不能替代真实生产 URL 冒烟、真实 SMTP 验证、真实 CloudBase 权限检查或部署平台回滚演练。
 
 正式邮箱验证码登录新增环境变量：
 

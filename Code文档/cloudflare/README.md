@@ -28,6 +28,7 @@ Shortest Dashboard path:
 - Rewrites `Host` to the CloudBase origin host.
 - Drops forwarded client/origin headers that are unnecessary for this temporary proxy.
 - Removes common upstream implementation headers such as `Server` and `X-Powered-By`.
+- Removes all `X-CloudBase-*` response headers, including `X-CloudBase-Session-Id` and `X-CloudBase-Upstream-*`, before returning responses to users.
 - Adds conservative security headers aligned with `next.config.ts`.
 
 ## Limits

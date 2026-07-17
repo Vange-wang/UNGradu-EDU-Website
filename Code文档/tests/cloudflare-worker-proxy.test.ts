@@ -53,6 +53,10 @@ describe("Cloudflare Worker reverse proxy example", () => {
       return new Response("ok", {
         headers: {
           "content-type": "text/html",
+          "X-CloudBase-Session-Id": "session-id",
+          "x-cloudbase-upstream-status-code": "200",
+          "x-cloudbase-upstream-timecost": "20",
+          "x-cloudbase-upstream-type": "cloudrun",
           server: "cloudbase",
           "x-powered-by": "next"
         }
@@ -81,7 +85,13 @@ describe("Cloudflare Worker reverse proxy example", () => {
     expect(proxiedRequest.headers.get("x-forwarded-host")).toBeNull();
     expect(response.headers.get("server")).toBeNull();
     expect(response.headers.get("x-powered-by")).toBeNull();
+    expect(response.headers.get("x-cloudbase-session-id")).toBeNull();
+    expect(response.headers.get("x-cloudbase-upstream-status-code")).toBeNull();
+    expect(response.headers.get("x-cloudbase-upstream-timecost")).toBeNull();
+    expect(response.headers.get("x-cloudbase-upstream-type")).toBeNull();
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("content-security-policy")).toContain("default-src 'self'");
+    expect(response.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
 
     vi.unstubAllGlobals();
   });

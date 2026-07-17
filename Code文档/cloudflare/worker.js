@@ -38,12 +38,20 @@ const requestHeadersToDrop = new Set([
 
 const responseHeadersToDrop = new Set([
   "server",
-  "x-cloudbase-request-id",
-  "x-cloudbase-trace-id",
   "x-powered-by",
   "x-tcb-request-id",
   "x-tencent-request-id"
 ]);
+
+const responseHeaderPrefixesToDrop = ["x-cloudbase-"];
+
+function shouldDropResponseHeader(header) {
+  const normalizedHeader = header.toLowerCase();
+  return (
+    responseHeadersToDrop.has(normalizedHeader) ||
+    responseHeaderPrefixesToDrop.some((prefix) => normalizedHeader.startsWith(prefix))
+  );
+}
 
 function normalizeOrigin(origin) {
   const normalized = new URL(origin);
@@ -80,7 +88,8 @@ function buildUpstreamRequest(request, upstreamOrigin) {
 
 function hardenResponse(response) {
   const headers = new Headers(response.headers);
-  for (const header of responseHeadersToDrop) {
+  const headersToDelete = [...headers.keys()].filter(shouldDropResponseHeader);
+  for (const header of headersToDelete) {
     headers.delete(header);
   }
   for (const [key, value] of defaultSecurityHeaders) {

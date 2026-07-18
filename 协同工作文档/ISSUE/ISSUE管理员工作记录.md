@@ -1146,3 +1146,45 @@
 
 - 本次只维护 `ISSUE-0020`、Issue 总表和 ISSUE 管理员工作记录。
 - 未修改代码、产品、UI 或总负责人文件；未代业务方接受风险；未关闭 Issue；未创建新 Issue；未创建 subagent。
+
+## 2026-07-18
+
+操作类型：`ISSUE-0020` 第三批 Cloudflare / CloudBase 安全证据复核与状态维护
+
+发起方：项目总负责人
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0020-临时CloudflareWorker反代与安全基线加固.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+独立复核与已通过门禁：
+
+- workers.dev 控制台状态为 Off；ISSUE 管理员独立公网复核 `https://ungradu-edu-proxy.vangewang0919.workers.dev/` 返回 404。该入口已修复并移出剩余风险清单。
+- 根域 `/`、`/rules`、`/feedback` 为 200，匿名 `/api/feedback` 为 401；`www /feedback?from=www&keep=1` 为 308，`Location` 精确保留为 `https://ungradeedu.eu.cc/feedback?from=www&keep=1`。
+- 根域 HSTS、CSP、Permissions-Policy、Referrer-Policy、`X-Content-Type-Options`、`X-Frame-Options` 保留，未发现 `x-nextjs-*`、`x-request-id`、`x-upstream-*`、`x-cloudbase*`。
+- 产品提交 `705db43e9ff02fc16210f7354824b25a391a82e3` 固定：`5 次 / 10 分钟 / IP、阻断 10 分钟`；Search / Agent / Training 全 Block；源站隔离 `00:00–01:00`、观察 24 小时、Worker 与强制阶段各 30 分钟。
+- 开发提交 `6b51f52c` 已完成源站隔离观察 / 强制模式代码与运行手册准备；记录显示 typecheck、lint、build 通过，47 个测试文件 / 189 个测试通过。该证据只证明代码准备完成，不代表 Secret、观察模式或 403 已部署生产。
+
+尚未通过的门禁与恢复条件：
+
+1. 限流能力确认与规则：Free 0/1，但 `Period`、`Duration` 是否均支持 10 minutes 未确认，规则未创建。责任人：Cloudflare 账号持有人 / 配置执行侧。恢复条件：回传能力页面证据；支持则按产品参数保存并复测，不支持则路由产品经理确定等价方案。
+2. AI bots 保存：三类尚无已保存为 Block 的证据。责任人：Cloudflare 账号持有人 / 配置执行侧。恢复条件：保存后页面证据及根域无回归结果。
+3. 双平台 Secret 权限与上线窗口：生产 Secret 未生成 / 未部署，观察与强制 403 未启用，CloudBase 源站仍可直访。责任人：项目总负责人及 Cloudflare / CloudBase 配置执行侧。恢复条件：取得两端 Secret 写权限、回滚入口和 `00:00–01:00` 窗口，按 24 小时观察及两段 30 分钟灰度完成生产证据。
+4. 登录态 feedback 回归：缺少专用非敏感安全测试账号。责任人：项目总负责人提供账号，代码开发员 / 验收方执行。恢复条件：在观察 / 灰度阶段完成一次登录后 feedback 提交成功回归，不使用真实隐私数据。
+
+状态判定：
+
+- `ISSUE-0020` 保持 `open / EXTERNAL_BLOCKED`，不得提前关闭。
+- 当前 workflow 阻塞为上述四项；“业务方风险接受是唯一剩余门禁”的旧结论不再适用。四项技术门禁全部完成后，业务方仍须按届时实际状态明确接受无法消除的残余风险，workers.dev 不得再列入接受清单。
+- 无独立证据显示不同范围的新问题，不创建新 Issue。
+
+唯一下一步：
+
+- Cloudflare 账号持有人先确认 Rate limiting 的 `Period` 与 `Duration` 是否均支持 10 minutes，并将可核验页面证据路由给项目总负责人；支持时立即按产品参数保存规则，不支持时回到产品经理确定等价方案。
+
+处理边界：
+
+- 仅修改三份 ISSUE 管理员职责内文档；未修改代码、产品决策、UI、总负责人文件或生产配置。
+- 未代业务方接受风险；未关闭 Issue；未创建新 Issue；未创建 subagent。

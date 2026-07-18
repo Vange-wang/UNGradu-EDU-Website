@@ -1188,3 +1188,42 @@
 
 - 仅修改三份 ISSUE 管理员职责内文档；未修改代码、产品决策、UI、总负责人文件或生产配置。
 - 未代业务方接受风险；未关闭 Issue；未创建新 Issue；未创建 subagent。
+
+## 2026-07-18
+
+操作类型：`ISSUE-0020` feedback POST 限流生产门禁复核与状态维护
+
+发起方：项目总负责人
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0020-临时CloudflareWorker反代与安全基线加固.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+正式契约与生产证据：
+
+- 产品提交 `60486d5f` 已按 Cloudflare Free 实际能力，将历史 `5 次 / 10 分钟 / IP、阻断 10 分钟` 修订为：仅根域、仅 POST、精确 `/api/feedback`、每来源 IP `3 requests / 10 seconds`、阻断 `10 seconds`。旧参数不再作为当前验收标准。
+- 规则 `feedback-post-rate-limit` 存在且 Active，Rate limiting 为 1/1；列表表达式准确匹配根域 + POST + 精确 `/api/feedback`，动作为 Block。
+- 生产行为：同一来源前三次请求进入应用，第四次由 Cloudflare 返回 429 / error 1015；等待 11 秒后恢复应用响应，`GET /feedback` 为 200。
+- 基线证据：`/`、`/rules`、`/feedback` 为 200；`www` 308 精确保留 path/query；HTTP 301；TLS 1.0 拒绝；安全响应头和去指纹通过。
+- 开发证据提交：`9aff1117abdcbd8d64aaf9048a1825ba2462208b`。
+- 空 JSON 返回 400 属于应用载荷校验顺序事实，不作为限流失败，也不替代后续真实登录态业务回归。
+- 规则详情页未独立复核“来源 IP”字段；同一来源的实际计数、第四次阻断及 11 秒后恢复行为已证明该规则在生产工作，本缺口不再阻塞限流门禁。
+
+门禁判定：
+
+- feedback POST 限流能力确认、规则保存及生产行为门禁：**通过**。
+- `ISSUE-0020` 继续保持 `open / EXTERNAL_BLOCKED`，不得提前关闭。
+- 剩余技术门禁缩减为三项：①Search / Agent / Training 全部保存为 Block；②取得 Cloudflare / CloudBase 双平台 Secret 权限与 `00:00–01:00` 窗口，完成源站隔离 24 小时观察及两段 30 分钟灰度 / 403；③使用专用非敏感账号完成一次真实已登录 feedback 提交成功业务回归。
+- 三项技术门禁完成后，仍须取得业务方对届时无法消除的残余风险的明确接受；workers.dev 和已通过的限流规则不再列为未修复项。
+- 无独立证据显示不同范围的新问题，不创建新 Issue。
+
+唯一下一步：
+
+- Cloudflare 账号持有人将 Search、Agent、Training 三类 AI bots 全部保存为 Block，并向项目总负责人提供保存后页面证据及根域无回归结果。
+
+处理边界：
+
+- 仅修改三份 ISSUE 管理员职责文件；未修改代码、产品决策、UI、总负责人文件或生产配置。
+- 未代业务方接受风险；未关闭 Issue；未创建新 Issue；未创建 subagent。

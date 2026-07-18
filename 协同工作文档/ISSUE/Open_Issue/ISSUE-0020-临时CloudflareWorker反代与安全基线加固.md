@@ -38,10 +38,9 @@
 
 ## 阻塞项
 
-- **AI bots 保存**：产品已确定 Search、Agent、Training 全部 Block，但尚无三项已保存为 Block 的控制台证据。
 - **双平台 Secret 权限与上线窗口**：源站隔离观察模式代码已准备，但尚未取得 Cloudflare Worker 与 CloudBase 两端 Secret 写权限及北京时间 `00:00–01:00` 上线窗口；未生成或部署生产 Secret，未进入 24 小时观察及两段 30 分钟灰度，源站强制 403 未启用，CloudBase 原始源站仍可直访。
 - **登录态 / 业务回归**：缺少专用非敏感安全测试账号，尚未执行一次真实已登录 feedback 提交成功回归，以证明后续源站隔离观察 / 灰度不影响正常业务写入。
-- 以上三项为当前 workflow 技术 / 外部阻塞。限流规则已经生产部署并完成行为复核，不再属于阻塞；workers.dev 已关闭并经外部 404 复核，不再列为剩余风险。全部技术门禁通过后，仍须按届时现状由业务方明确接受无法消除的残余风险，ISSUE 管理员才可最终关闭。
+- 以上两项为当前 workflow 技术 / 外部阻塞。AI Crawl Control 与限流规则均已完成配置及生产证据复核，不再属于阻塞；workers.dev 已关闭并经外部 404 复核，不再列为剩余风险。全部技术门禁通过后，仍须按届时现状由业务方明确接受无法消除的残余风险，ISSUE 管理员才可最终关闭。
 
 ## 不做范围
 
@@ -73,6 +72,10 @@
 - 2026-07-18 限流正式契约更新：产品提交 `60486d5f` 根据 Cloudflare Free 实际能力，将不可执行的历史参数 `5 次 / 10 分钟 / IP、阻断 10 分钟` 修订为仅根域、仅 `POST`、精确 `/api/feedback`、每来源 IP `3 requests / 10 seconds`、阻断 `10 seconds`；历史参数仅保留为决策变更依据，不再作为验收标准。
 - 2026-07-18 限流生产证据：规则 `feedback-post-rate-limit` 存在且 Active，Rate limiting 显示 1/1；列表表达式精确匹配根域、POST 与 `/api/feedback`，动作为 Block。开发证据提交 `9aff1117abdcbd8d64aaf9048a1825ba2462208b` 记录同源前三次进入应用、第四次由 Cloudflare 返回 429 / error 1015、等待 11 秒恢复应用响应，`GET /feedback` 保持 200；核心路由、`www` 308、HTTP 301、TLS 1.0 拒绝、安全头和去指纹无回归。
 - 2026-07-18 限流门禁判定：**通过**。规则详情页未独立复核“来源 IP”字段，但同一来源的实际计数、阻断及恢复行为已证明生产规则有效；空 JSON 返回 400 属于应用载荷校验顺序事实，不作为限流失败，也不替代后续真实登录态业务回归。
+- 2026-07-19 AI Crawl Control 控制台证据：总负责人只读核对页面共 32 个 crawler；AI Assistant、AI Crawler、AI Search 三类共 26 个，Block=true 为 26/26、未阻止为 0；Googlebot 属于 Search Engine Crawler，Block=false；Arquivo Web Crawler 属于 Archiver，Block=true。
+- 2026-07-19 00:30:53 +08:00，代码开发员独立生产复测 verdict 为“通过（证据边界已限定）”：核心路由、HTTPS、TLS、安全响应头和去指纹无回归；OAI-SearchBot/1.0 返回 403（CF-Ray `a1d2ddaa4ba0ccca-NRT`），ChatGPT-User/1.0 返回 403（`a1d2ddaa0891afd4-NRT`），Googlebot/2.1 返回 200（`a1d2ddab2a30262f-NRT`）。开发证据提交 `694cf901a2b0ae0ebccc737af421ec66456baf44` 已推送。
+- 2026-07-19 AI Crawl Control 证据边界：GPTBot/1.0、GPTBot/1.2、ClaudeBot/1.0 从普通来源伪造 UA 返回 200，只能证明 UA 字符串不足以代表 Cloudflare verified crawler 身份；不能据此认定真实 verified crawler 绕过，也不能将 26/26 配置状态表述为全部 26 个真实爬虫均已逐一完成 HTTP 阻断实测。
+- 2026-07-19 AI Crawl Control 门禁判定：**通过**。通过依据是 26/26 目标类别控制台配置状态、部分代表性 HTTP 差异化行为及核心生产无回归的组合证据；本结论不扩展为产品验收或全量真实 crawler HTTP 覆盖声明。
 
 ## 当前精确关闭门禁
 
@@ -87,16 +90,16 @@
 7. zone 技术配置证据门禁已通过：Always Use HTTPS On、Minimum TLS 1.2、Automatic HTTPS Rewrites On、TLS 1.3 On；SSL Full（非 strict）、Managed Rules、Custom Rules、Rate limit、Bot Fight、AI bot、Leaked credentials mitigation 的当前状态与不覆盖范围已明确记录。HTTP 301 与 TLS 1.0 alert 70 已通过独立公网复核；提交 `f2cadb573236b51e06a4ac70430eef728b0e93e9` 已推送。
 8. 产品提交 `705db43e9ff02fc16210f7354824b25a391a82e3` 已固定本批总体加固方向；限流参数已由产品提交 `60486d5f` 按 Free 套餐能力正式修订。开发提交 `6b51f52c` 已完成源站隔离观察模式代码准备，typecheck、lint、build 与 47 文件 / 189 测试通过。
 9. 限流规则 `feedback-post-rate-limit` 已 Active，Rate limiting 1/1；正式契约为根域 + POST + 精确 `/api/feedback` + 每来源 IP `3 requests / 10 seconds` + 阻断 `10 seconds`。生产行为确认前三次进入应用、第四次 Cloudflare 429 / error 1015、等待 11 秒恢复；基线无回归。证据提交 `9aff1117abdcbd8d64aaf9048a1825ba2462208b` 已推送。
+10. AI Crawl Control 页面显示目标 AI Assistant / AI Crawler / AI Search 共 26 个均为 Block，未阻止为 0；OAI-SearchBot 与 ChatGPT-User 代表性请求为 403，Googlebot 保持 200，核心生产无回归。证据提交 `694cf901a2b0ae0ebccc737af421ec66456baf44` 已推送。普通来源伪造 GPTBot / ClaudeBot UA 的 200 不构成 verified crawler 绕过证据，本门禁通过不等于 26 个真实爬虫均已逐一 HTTP 实测。
 
 尚未通过的关闭门禁：
 
-1. **AI bots 门禁（责任人：Cloudflare 账号持有人 / 配置执行侧）**：将 Search、Agent、Training 三项保存为 Block，并提供保存后页面证据及根域无回归结果。
-2. **源站隔离生产门禁（责任人：项目总负责人 / Cloudflare 与 CloudBase 配置执行侧）**：在 `00:00–01:00` 窗口取得双平台 Secret 写权限与回滚入口，部署同一生产 Secret，完成 24 小时观察、Worker 注入后 30 分钟灰度、启用无正确头即 403 后 30 分钟监控；证明 Worker 正常且 CloudBase 直接访问被拒绝。当前不得提前启用 403。
-3. **登录态 / 业务回归门禁（责任人：项目总负责人提供账号；代码开发员 / 验收方执行）**：提供专用非敏感安全测试账号，在源站隔离观察 / 灰度阶段完成一次真实已登录 feedback 提交成功回归，证明正常业务写入未受影响；不得使用真实未成年人、联系方式或投诉隐私数据。空 JSON 400 仅证明载荷校验顺序，不满足本门禁。
-4. **最终残余风险接受门禁（责任人：业务方）**：上述技术门禁全部通过后，按届时实际状态逐项接受仍未消除的风险；至少包括 CloudBase 单一上游、持续监控覆盖缺口、SSL Full 非 strict、Free 限流仅提供 10 秒突发抑制及其他 Free 计划未覆盖能力。workers.dev 已修复，不得再列入接受清单。
+1. **源站隔离生产门禁（责任人：项目总负责人 / Cloudflare 与 CloudBase 配置执行侧）**：在 `00:00–01:00` 窗口取得双平台 Secret 写权限与回滚入口，部署同一生产 Secret，完成 24 小时观察、Worker 注入后 30 分钟灰度、启用无正确头即 403 后 30 分钟监控；证明 Worker 正常且 CloudBase 直接访问被拒绝。当前不得提前启用 403。
+2. **登录态 / 业务回归门禁（责任人：项目总负责人提供账号；代码开发员 / 验收方执行）**：提供专用非敏感安全测试账号，在源站隔离观察 / 灰度阶段完成一次真实已登录 feedback 提交成功回归，证明正常业务写入未受影响；不得使用真实未成年人、联系方式或投诉隐私数据。空 JSON 400 仅证明载荷校验顺序，不满足本门禁。
+3. **最终残余风险接受门禁（责任人：业务方）**：上述技术门禁全部通过后，按届时实际状态逐项接受仍未消除的风险；至少包括 CloudBase 单一上游、持续监控覆盖缺口、SSL Full 非 strict、Free 限流仅提供 10 秒突发抑制及其他 Free 计划未覆盖能力。workers.dev、限流及 AI Crawl Control 已通过，不得再列为未修复项。
 
-最小解除条件：上述三项技术门禁形成生产证据，随后业务方对届时仍存在的残余风险给出可归档确认。恢复触发条件：项目总负责人将对应证据包及最终风险接受原文路由给 ISSUE 管理员，由 ISSUE 管理员独立复核状态；任一配置未保存、Secret / 窗口 / 测试账号缺失、生产回归失败或源站仍可绕过，均保持或恢复 `open / EXTERNAL_BLOCKED`。
+最小解除条件：上述两项技术门禁形成生产证据，随后业务方对届时仍存在的残余风险给出可归档确认。恢复触发条件：项目总负责人将对应证据包及最终风险接受原文路由给 ISSUE 管理员，由 ISSUE 管理员独立复核状态；任一 Secret / 窗口 / 测试账号缺失、生产回归失败或源站仍可绕过，均保持或恢复 `open / EXTERNAL_BLOCKED`。
 
 ## 唯一下一步
 
-Cloudflare 账号持有人将 Search、Agent、Training 三类 AI bots 全部保存为 Block，并向项目总负责人提供保存后页面证据及根域无回归结果。
+项目总负责人确认下一次北京时间 `00:00–01:00` 源站隔离上线窗口，并将 Cloudflare / CloudBase 两端 Secret 写权限、回滚入口及专用非敏感验收账号作为同一 rollout 前置包路由给代码开发员；前置包齐备后启动 observe 部署。

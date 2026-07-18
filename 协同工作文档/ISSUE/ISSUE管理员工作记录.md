@@ -1227,3 +1227,45 @@
 
 - 仅修改三份 ISSUE 管理员职责文件；未修改代码、产品决策、UI、总负责人文件或生产配置。
 - 未代业务方接受风险；未关闭 Issue；未创建新 Issue；未创建 subagent。
+
+## 2026-07-19
+
+操作类型：`ISSUE-0020` AI Crawl Control 门禁复核与状态维护
+
+发起方：项目总负责人
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0020-临时CloudflareWorker反代与安全基线加固.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+配置与独立生产证据：
+
+- 业务方已完成 Cloudflare AI Crawl Control 配置。总负责人只读 Dashboard 核对：页面 32 个 crawler；AI Assistant、AI Crawler、AI Search 共 26 个，Block=true 为 26/26、未阻止为 0；Googlebot（Search Engine Crawler）Block=false；Arquivo Web Crawler（Archiver）Block=true。
+- 代码开发员于 `2026-07-19 00:30:53 +08:00` 完成独立生产复测，verdict 为“通过（证据边界已限定）”；开发证据提交 `694cf901a2b0ae0ebccc737af421ec66456baf44` 已推送。
+- 核心路由、HTTPS、TLS、安全响应头和去指纹无回归。
+- OAI-SearchBot/1.0 返回 403，CF-Ray `a1d2ddaa4ba0ccca-NRT`；ChatGPT-User/1.0 返回 403，CF-Ray `a1d2ddaa0891afd4-NRT`；Googlebot/2.1 返回 200，CF-Ray `a1d2ddab2a30262f-NRT`。
+
+证据边界：
+
+- GPTBot/1.0、GPTBot/1.2、ClaudeBot/1.0 从普通来源伪造 UA 返回 200，只证明 UA 字符串不足以代表 Cloudflare verified crawler 身份。
+- 上述 200 不足以认定真实 verified crawler 绕过，不作为门禁失败；同时不得把 Dashboard 26/26 配置状态表述为 26 个真实爬虫均已逐一完成 HTTP 阻断实测。
+- 本轮只维护 Issue 状态和证据，不实现修复，不修改生产配置，不作产品验收。
+
+门禁判定：
+
+- AI Crawl Control 门禁：**通过**。依据为 26/26 目标类别控制台配置、部分代表性 HTTP 差异化行为及核心生产无回归的组合证据，结论严格受上述边界约束。
+- `ISSUE-0020` 继续保持 `open / EXTERNAL_BLOCKED`，不得提前关闭。
+- 剩余技术门禁缩减为两项：①Cloudflare / CloudBase 双平台 Secret 权限、`00:00–01:00` 窗口、24 小时 observe、Worker 注入后 30 分钟灰度、强制 403 后 30 分钟监控；②使用专用非敏感账号完成一次真实已登录 feedback 提交成功业务回归。
+- 两项技术门禁通过后，仍须取得业务方对届时无法消除的残余风险的明确接受；已通过的 workers.dev、限流与 AI Crawl Control 不再列为未修复项。
+- 无独立证据显示不同范围的新问题，不创建新 Issue。
+
+唯一下一步：
+
+- 项目总负责人确认下一次北京时间 `00:00–01:00` 源站隔离上线窗口，并将 Cloudflare / CloudBase 两端 Secret 写权限、回滚入口及专用非敏感验收账号作为同一 rollout 前置包路由给代码开发员；前置包齐备后启动 observe 部署。
+
+处理边界：
+
+- 仅修改三份 ISSUE 管理员职责文件；未修改代码、产品决策、UI、总负责人文件或生产配置。
+- 未代业务方接受风险；未关闭 Issue；未创建新 Issue；未创建 subagent。

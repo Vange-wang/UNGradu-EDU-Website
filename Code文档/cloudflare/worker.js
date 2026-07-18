@@ -1,6 +1,7 @@
 const DEFAULT_UPSTREAM_ORIGIN =
   "https://ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbase.com";
 const PRIMARY_PUBLIC_ORIGIN = "https://ungradeedu.eu.cc";
+const ORIGIN_VERIFY_HEADER = "x-ungrade-origin-verify";
 const canonicalRedirectHosts = new Set(["www.ungradeedu.eu.cc"]);
 
 const defaultSecurityHeaders = new Headers({
@@ -32,6 +33,7 @@ const requestHeadersToDrop = new Set([
   "cf-visitor",
   "forwarded",
   "host",
+  ORIGIN_VERIFY_HEADER,
   "x-forwarded-for",
   "x-forwarded-host",
   "x-forwarded-proto",
@@ -40,6 +42,7 @@ const requestHeadersToDrop = new Set([
 
 const responseHeadersToDrop = new Set([
   "server",
+  ORIGIN_VERIFY_HEADER,
   "x-powered-by",
   "x-request-id",
   "x-tcb-request-id",
@@ -83,7 +86,7 @@ function buildCanonicalRedirect(request) {
   return Response.redirect(canonicalUrl, 308);
 }
 
-function buildUpstreamRequest(request, upstreamOrigin) {
+function buildUpstreamRequest(request, upstreamOrigin, originVerifySecret) {
   const incomingUrl = new URL(request.url);
   const upstreamUrl = new URL(upstreamOrigin);
   upstreamUrl.pathname = incomingUrl.pathname;
@@ -95,6 +98,9 @@ function buildUpstreamRequest(request, upstreamOrigin) {
   }
   headers.set("host", upstreamUrl.host);
   headers.set("x-forwarded-proto", incomingUrl.protocol.replace(":", ""));
+  if (originVerifySecret) {
+    headers.set(ORIGIN_VERIFY_HEADER, originVerifySecret);
+  }
 
   return new Request(upstreamUrl, {
     body: request.body,
@@ -129,7 +135,11 @@ const worker = {
     }
 
     const upstreamOrigin = normalizeOrigin(resolveUpstreamOrigin(env));
-    const upstreamRequest = buildUpstreamRequest(request, upstreamOrigin);
+    const upstreamRequest = buildUpstreamRequest(
+      request,
+      upstreamOrigin,
+      env?.ORIGIN_VERIFY_SECRET
+    );
     const upstreamResponse = await fetch(upstreamRequest);
 
     return hardenResponse(upstreamResponse);

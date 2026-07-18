@@ -12,6 +12,7 @@ const wranglerConfigPath = join(here, "..", "cloudflare", "wrangler.example.toml
 
 type WorkerEnv = {
   UPSTREAM_ORIGIN: string;
+  ORIGIN_VERIFY_SECRET?: string;
 };
 
 type WorkerModule = {
@@ -43,11 +44,11 @@ describe("Cloudflare Worker reverse proxy example", () => {
     expect(workerJs).not.toContain("Promise<Response>");
   });
 
-  it("declares the custom root and www domains while keeping workers.dev as a fallback", () => {
+  it("declares the custom root and www domains while disabling workers.dev", () => {
     const wranglerConfig = readFileSync(wranglerConfigPath, "utf8");
 
     expect(wranglerConfig).toContain('name = "ungradu-edu-proxy"');
-    expect(wranglerConfig).toContain("workers_dev = true");
+    expect(wranglerConfig).toContain("workers_dev = false");
     expect(wranglerConfig).toMatch(
       /\[\[routes\]\]\s+pattern = "ungradeedu\.eu\.cc"\s+custom_domain = true/
     );
@@ -97,6 +98,7 @@ describe("Cloudflare Worker reverse proxy example", () => {
           "x-upstream-status-code": "200",
           "x-nextjs-cache": "HIT",
           "x-request-id": "upstream-request-id",
+          "x-ungrade-origin-verify": "must-not-leak",
           server: "cloudbase",
           "x-powered-by": "next"
         }
@@ -108,10 +110,14 @@ describe("Cloudflare Worker reverse proxy example", () => {
       new Request("https://proxy.example.com/course/list?city=shanghai", {
         headers: {
           host: "proxy.example.com",
+          "x-ungrade-origin-verify": "attacker-controlled",
           "x-forwarded-host": "proxy.example.com"
         }
       }),
-      { UPSTREAM_ORIGIN: "https://ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbase.com" }
+      {
+        UPSTREAM_ORIGIN: "https://ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbase.com",
+        ORIGIN_VERIFY_SECRET: "test-origin-secret"
+      }
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -123,6 +129,7 @@ describe("Cloudflare Worker reverse proxy example", () => {
       "ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbase.com"
     );
     expect(proxiedRequest.headers.get("x-forwarded-host")).toBeNull();
+    expect(proxiedRequest.headers.get("x-ungrade-origin-verify")).toBe("test-origin-secret");
     expect(response.headers.get("server")).toBeNull();
     expect(response.headers.get("x-powered-by")).toBeNull();
     expect(response.headers.get("x-cloudbase-session-id")).toBeNull();
@@ -133,9 +140,32 @@ describe("Cloudflare Worker reverse proxy example", () => {
     expect(response.headers.get("x-upstream-status-code")).toBeNull();
     expect(response.headers.get("x-nextjs-cache")).toBeNull();
     expect(response.headers.get("x-request-id")).toBeNull();
+    expect(response.headers.get("x-ungrade-origin-verify")).toBeNull();
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     expect(response.headers.get("content-security-policy")).toContain("default-src 'self'");
     expect(response.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
+
+    vi.unstubAllGlobals();
+  });
+
+  it.each([
+    ["TypeScript source", workerTsPath],
+    ["Dashboard JavaScript paste version", workerJsPath]
+  ])("drops a spoofed origin verification header when the Worker secret is not configured: %s", async (_, workerPath) => {
+    const worker = await importWorker(workerPath);
+    expect(worker).not.toBeNull();
+
+    const fetchMock = vi.fn<(request: Request) => Promise<Response>>(async () => new Response("ok"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await worker!.default.fetch(
+      new Request("https://ungradeedu.eu.cc/rules", {
+        headers: { "x-ungrade-origin-verify": "attacker-controlled" }
+      }),
+      { UPSTREAM_ORIGIN: "https://ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbase.com" }
+    );
+
+    expect(fetchMock.mock.calls[0][0].headers.get("x-ungrade-origin-verify")).toBeNull();
 
     vi.unstubAllGlobals();
   });

@@ -1,8 +1,10 @@
 type Env = {
   UPSTREAM_ORIGIN: string;
+  ORIGIN_VERIFY_SECRET?: string;
 };
 
 const PRIMARY_PUBLIC_ORIGIN = "https://ungradeedu.eu.cc";
+const ORIGIN_VERIFY_HEADER = "x-ungrade-origin-verify";
 const canonicalRedirectHosts = new Set(["www.ungradeedu.eu.cc"]);
 
 const defaultSecurityHeaders = new Headers({
@@ -34,6 +36,7 @@ const requestHeadersToDrop = new Set([
   "cf-visitor",
   "forwarded",
   "host",
+  ORIGIN_VERIFY_HEADER,
   "x-forwarded-for",
   "x-forwarded-host",
   "x-forwarded-proto",
@@ -42,6 +45,7 @@ const requestHeadersToDrop = new Set([
 
 const responseHeadersToDrop = new Set([
   "server",
+  ORIGIN_VERIFY_HEADER,
   "x-powered-by",
   "x-request-id",
   "x-tcb-request-id",
@@ -81,7 +85,11 @@ function buildCanonicalRedirect(request: Request) {
   return Response.redirect(canonicalUrl, 308);
 }
 
-function buildUpstreamRequest(request: Request, upstreamOrigin: URL) {
+function buildUpstreamRequest(
+  request: Request,
+  upstreamOrigin: URL,
+  originVerifySecret?: string
+) {
   const incomingUrl = new URL(request.url);
   const upstreamUrl = new URL(upstreamOrigin);
   upstreamUrl.pathname = incomingUrl.pathname;
@@ -93,6 +101,9 @@ function buildUpstreamRequest(request: Request, upstreamOrigin: URL) {
   }
   headers.set("host", upstreamUrl.host);
   headers.set("x-forwarded-proto", incomingUrl.protocol.replace(":", ""));
+  if (originVerifySecret) {
+    headers.set(ORIGIN_VERIFY_HEADER, originVerifySecret);
+  }
 
   return new Request(upstreamUrl, {
     body: request.body,
@@ -131,7 +142,11 @@ const worker = {
     }
 
     const upstreamOrigin = normalizeOrigin(env.UPSTREAM_ORIGIN);
-    const upstreamRequest = buildUpstreamRequest(request, upstreamOrigin);
+    const upstreamRequest = buildUpstreamRequest(
+      request,
+      upstreamOrigin,
+      env.ORIGIN_VERIFY_SECRET
+    );
     const upstreamResponse = await fetch(upstreamRequest);
 
     return hardenResponse(upstreamResponse);

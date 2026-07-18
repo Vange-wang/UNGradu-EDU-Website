@@ -1,7 +1,7 @@
 name = "ungradu-edu-proxy"
 main = "cloudflare/worker.ts"
 compatibility_date = "2026-07-08"
-workers_dev = true
+workers_dev = false
 
 [[routes]]
 pattern = "ungradeedu.eu.cc"
@@ -16,5 +16,5 @@ UPSTREAM_ORIGIN = "https://ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbas
 
 # ungradeedu.eu.cc is the canonical public domain.
 # www.ungradeedu.eu.cc redirects to the canonical root domain in the Worker.
-# workers.dev remains enabled as a fallback and must not be deleted.
+# workers.dev public access is disabled; keep the Worker resource and Custom Domains.
 # Do not put secrets in this file. Use Cloudflare Worker variables/secrets instead.

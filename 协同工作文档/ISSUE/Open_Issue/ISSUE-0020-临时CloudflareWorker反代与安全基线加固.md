@@ -38,8 +38,8 @@
 
 ## 阻塞项
 
-- 业务方尚未明确接受以下剩余风险：workers.dev 仍可直访；CloudBase 原始源站仍可绕过 Worker；CloudBase 为单一上游；当前无持续监控证据。
-- 原 Issue 要求的 zone 级 Cloudflare Free 安全项、WAF / Bot / rate limit 或等价规则启用状态与不覆盖范围，当前证据包未提供可核验记录。zone 已实际接入，旧“zone 项 N/A / 后续补齐”口径不再适用。
+- 唯一阻塞为业务方尚未逐项明确接受残余风险：workers.dev 仍可直访；CloudBase 原始源站仍可绕过 Worker；CloudBase 为单一上游；当前无持续监控证据；SSL 模式为 Full 而非 Full (strict)；Managed Rules 未部署 / Pro；Custom Rules 为 0/5；Rate limit 为 0/1；Bot Fight Mode 未能证明启用；三类 AI bot 当前允许；Leaked credentials mitigation 为 Off。
+- zone 技术配置证据门禁已通过：Always Use HTTPS 为 On，Minimum TLS 为 TLS 1.2，Automatic HTTPS Rewrites 与 TLS 1.3 为 On；其余未启用、不可用及不覆盖项已形成明确状态记录。该结论只确认技术证据完整，不代表业务方已经接受残余风险。
 
 ## 不做范围
 
@@ -61,6 +61,10 @@
 - 2026-07-18 仓库证据复核：代码开发员工作记录确认 Worker `ungradu-edu-proxy` 生产版本 `d8eff139` Active；定向 8/8、全量 181/181、typecheck、lint、build 通过。开发提交 `23620c99a8e0c322c913af9f4f4f5bd0d494eda3` 已位于当前分支及远端 `origin/codex/vnext-feedback-status-security-20260717`。
 - 2026-07-18 产品证据复核：产品经理独立产品验收结论为“通过”，并确认无需新开或重开其他 Issue；产品经理未代替 ISSUE 管理员关闭 `ISSUE-0020`。
 - 2026-07-18 ISSUE 管理员结论：技术、部署、Git 与产品验收证据已通过；未发现需要新建 Issue 的不同范围问题。由于业务方风险接受和 zone 级安全配置状态证据仍缺，`ISSUE-0020` 保持 `open / EXTERNAL_BLOCKED`。
+- 2026-07-18 16:42 +08:00，ISSUE 管理员复核新增 zone 技术证据：Always Use HTTPS 已从 Off 调整为 On，Minimum TLS 已从 TLS 1.0 调整为 TLS 1.2；页面证据分别显示 checked=true 与 TLS 1.2。Automatic HTTPS Rewrites、TLS 1.3 为 On；SSL 模式为 Full（非 strict）；Managed Rules 未部署 / Pro；Custom Rules 0/5；Rate limit 0/1；Bot Fight Mode 未能证明启用；三类 AI bot 允许；Leaked credentials mitigation 为 Off。
+- 2026-07-18 16:42 +08:00 公网独立复核：HTTP 根域返回 301，`Location` 精确为 `https://ungradeedu.eu.cc/`；OpenSSL TLS 1.0 握手收到 `protocol version` / alert 70；HTTPS `/`、`/rules`、`/feedback` 为 200，匿名 `/api/feedback` 为 401，`www` 308 精确保留 path/query，workers.dev `/` 为 200；安全响应头保留且未出现上游指纹。
+- 2026-07-18 仓库证据：开发记录提交 `f2cadb573236b51e06a4ac70430eef728b0e93e9` 已推送至 `origin/codex/vnext-feedback-status-security-20260717`，记录了 zone 安全加固状态。
+- 2026-07-18 门禁结论更新：zone 技术配置证据门禁通过；配置确认不等于风险接受。`ISSUE-0020` 保持 `open / EXTERNAL_BLOCKED`，唯一剩余门禁为业务方逐项明确接受全部残余风险。
 
 ## 当前精确关闭门禁
 
@@ -72,12 +76,23 @@
 4. 定向 8/8、全量 181/181、typecheck、lint、build 已通过。
 5. 开发提交 `23620c99a8e0c322c913af9f4f4f5bd0d494eda3` 已推送，生产版本 `d8eff139` Active。
 6. 产品经理独立产品验收通过；无需新开或重开其他 Issue。
+7. zone 技术配置证据门禁已通过：Always Use HTTPS On、Minimum TLS 1.2、Automatic HTTPS Rewrites On、TLS 1.3 On；SSL Full（非 strict）、Managed Rules、Custom Rules、Rate limit、Bot Fight、AI bot、Leaked credentials mitigation 的当前状态与不覆盖范围已明确记录。HTTP 301 与 TLS 1.0 alert 70 已通过独立公网复核；提交 `f2cadb573236b51e06a4ac70430eef728b0e93e9` 已推送。
 
 尚未通过的关闭门禁：
 
-1. **配置证据门禁（责任人：项目总负责人 / Cloudflare 账号持有人）**：提供当前 zone 的 Cloudflare Free 安全配置记录，至少逐项说明 SSL/TLS、Always Use HTTPS、Automatic HTTPS Rewrites、Bot / WAF、rate limit 或等价规则的启用状态、不可用项和不覆盖范围。最小解除条件是形成可核验截图、导出或逐项状态记录；恢复触发条件是该证据路由给 ISSUE 管理员。
-2. **业务方风险接受门禁（责任人：业务方）**：明确接受 workers.dev 仍可直访、CloudBase 原始源站仍可绕过 Worker、CloudBase 单一上游、当前无持续监控证据；如 zone 安全配置记录显示某项不可用或未启用，需一并明确接受。最小解除条件是一条可归档的明确确认；恢复触发条件是项目总负责人将该确认路由给 ISSUE 管理员。
+1. **业务方风险接受门禁（唯一剩余门禁；责任人：业务方）**：逐项明确接受以下残余风险：
+   - workers.dev 临时回退入口仍可直接访问；
+   - CloudBase 原始源站仍可绕过 Worker；
+   - CloudBase 为单一上游；
+   - 当前无持续监控证据；
+   - SSL 模式为 Full，而非 Full (strict)；
+   - Managed Rules 未部署 / Pro，Custom Rules 为 0/5，Rate limit 为 0/1；
+   - Bot Fight Mode 当前未能证明启用；
+   - 三类 AI bot 当前允许；
+   - Leaked credentials mitigation 为 Off。
+
+最小解除条件：业务方提供一条可归档、明确覆盖上述各项的风险接受确认。恢复触发条件：项目总负责人将该确认原文路由给 ISSUE 管理员，ISSUE 管理员独立复核后再执行关闭状态维护。
 
 ## 唯一下一步
 
-项目总负责人补充当前 zone 的 Cloudflare Free / WAF / Bot / rate-limit 或等价安全配置状态证据，并据此向业务方发起一次合并风险确认；两项证据齐备后路由给 ISSUE 管理员恢复最终关闭复核。
+项目总负责人向业务方发送上述逐项残余风险清单并取得明确接受原文，再将确认路由给 ISSUE 管理员恢复最终关闭复核。

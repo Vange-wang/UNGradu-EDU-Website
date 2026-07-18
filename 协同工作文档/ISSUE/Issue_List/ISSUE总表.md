@@ -10,7 +10,7 @@
 
 | id | title | type | status | priority | source | owner_agent | related_files | 关闭条件摘要 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `ISSUE-0020` | 临时 Cloudflare Worker 反代与安全基线加固 | ops / security hardening / deployment workaround | open / EXTERNAL_BLOCKED | P1 | `ungradeedu.eu.cc` 已进入生产；继续在同范围跟踪最终安全配置证据与风险接受闭环 | 项目总负责人（证据路由与恢复） / 业务方（风险接受） / ISSUE 管理员（状态维护） | Cloudflare Worker `ungradu-edu-proxy`；生产版本 `d8eff139`；`ungradeedu.eu.cc` 根域与 `www`；workers.dev 回退入口；提交 `23620c99a8e0c322c913af9f4f4f5bd0d494eda3`；安全响应头与去指纹验证记录；`协同工作文档/ISSUE/Open_Issue/ISSUE-0020-临时CloudflareWorker反代与安全基线加固.md` | 技术、部署、Git、生产行为及产品验收已通过；保持 Open。仍缺：① zone 级 Cloudflare Free / WAF / Bot / rate-limit 或等价配置状态及不覆盖范围证据；②业务方明确接受 workers.dev 可直访、CloudBase 源站可绕过、单一上游、无持续监控及任何未启用 zone 安全项。唯一下一步：项目总负责人补齐 zone 安全配置证据，并向业务方发起一次合并风险确认后路由 ISSUE 管理员复核 |
+| `ISSUE-0020` | 临时 Cloudflare Worker 反代与安全基线加固 | ops / security hardening / deployment workaround | open / EXTERNAL_BLOCKED | P1 | `ungradeedu.eu.cc` 已进入生产；zone 技术配置证据已通过，等待业务风险接受闭环 | 业务方（唯一剩余门禁） / 项目总负责人（确认路由与恢复） / ISSUE 管理员（状态维护） | Cloudflare Worker `ungradu-edu-proxy`；生产版本 `d8eff139`；`ungradeedu.eu.cc` 根域与 `www`；workers.dev 回退入口；提交 `23620c99a8e0c322c913af9f4f4f5bd0d494eda3`、`f2cadb573236b51e06a4ac70430eef728b0e93e9`；安全响应头、TLS 与去指纹验证记录；`协同工作文档/ISSUE/Open_Issue/ISSUE-0020-临时CloudflareWorker反代与安全基线加固.md` | 技术、部署、Git、生产行为、产品验收及 zone 配置证据门禁已通过；保持 Open。唯一剩余门禁：业务方逐项接受 workers.dev 可直访、CloudBase 源站绕过、单一上游、无持续监控、SSL Full 非 strict、Managed/Custom/Rate-limit/Bot/AI bot/Leaked credentials 等未启用或不覆盖风险。唯一下一步：项目总负责人取得业务方明确接受原文并路由 ISSUE 管理员最终复核 |
 
 ## Closed Issue
 

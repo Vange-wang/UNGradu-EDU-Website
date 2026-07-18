@@ -1081,3 +1081,68 @@
 
 - 本次只维护 `ISSUE-0020`、Issue 总表和 ISSUE 管理员工作记录。
 - 未修改代码、产品、UI 或总负责人文件；未代业务方接受风险；未创建新 Issue；未创建 subagent。
+
+## 2026-07-18
+
+操作类型：`ISSUE-0020` zone 技术配置门禁复核与唯一剩余门禁更新
+
+任务 ID：`ISSUE-0020-ZONE-GATE-REVIEW-2026-07-18-001`
+
+发起方：项目总负责人
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0020-临时CloudflareWorker反代与安全基线加固.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+新增 zone 技术证据：
+
+- Always Use HTTPS 已从 Off 调整为 On，页面证据 checked=true。
+- Minimum TLS 已从 TLS 1.0 调整为 TLS 1.2，页面按钮显示 TLS 1.2。
+- Automatic HTTPS Rewrites、TLS 1.3 为 On。
+- SSL mode 为 Full（非 strict）。
+- Managed Rules 未部署 / Pro；Custom Rules 0/5；Rate limit 0/1；Bot Fight Mode 当前未能证明启用；三类 AI bot 允许；Leaked credentials mitigation 为 Off。
+- 开发记录提交 `f2cadb573236b51e06a4ac70430eef728b0e93e9` 已推送至 `origin/codex/vnext-feedback-status-security-20260717`。
+
+独立公网复核：
+
+- 复核时间：`2026-07-18 16:42 +08:00`。
+- HTTP 根域返回 301，`Location` 精确为 `https://ungradeedu.eu.cc/`。
+- OpenSSL TLS 1.0 握手收到 `protocol version` / alert 70，符合 Minimum TLS 1.2。
+- HTTPS `/`、`/rules`、`/feedback` 为 200，匿名 `/api/feedback` 为 401。
+- `www` 308 精确保留 path/query；workers.dev 根路径为 200。
+- 安全响应头保留；未发现 `x-nextjs-*`、`x-request-id`、`x-upstream-*`、`x-cloudbase*`。
+
+门禁判定：
+
+- zone 技术配置证据门禁：**通过**。当前启用项、未启用项、不可用项和不覆盖范围已形成可核验状态记录，公网行为与关键配置一致。
+- 上述“配置证据通过”只表示技术事实已确认，不构成或替代业务方风险接受。
+- `ISSUE-0020` 继续保持 `open / EXTERNAL_BLOCKED`，不得关闭。
+- 无新范围缺陷，不创建新 Issue。
+
+唯一剩余门禁：业务方逐项风险接受。
+
+业务方需要明确接受：
+
+1. workers.dev 临时入口仍可直接访问；
+2. CloudBase 原始源站仍可绕过 Worker；
+3. CloudBase 单一上游；
+4. 当前无持续监控证据；
+5. SSL mode 为 Full，非 Full (strict)；
+6. Managed Rules 未部署 / Pro，Custom Rules 0/5，Rate limit 0/1；
+7. Bot Fight Mode 未能证明启用；
+8. 三类 AI bot 当前允许；
+9. Leaked credentials mitigation 为 Off。
+
+责任人、解除条件与恢复触发：
+
+- 责任人：业务方。
+- 最小解除条件：业务方提供一条可归档、明确覆盖上述九项的风险接受确认。
+- 恢复触发条件：项目总负责人将业务方确认原文路由给 ISSUE 管理员。
+- 唯一下一步：项目总负责人向业务方发送逐项残余风险清单并取得明确接受原文，再路由 ISSUE 管理员恢复最终关闭复核。
+
+处理边界：
+
+- 本次只维护 `ISSUE-0020`、Issue 总表和 ISSUE 管理员工作记录。
+- 未修改代码、产品、UI 或总负责人文件；未代业务方接受风险；未关闭 Issue；未创建新 Issue；未创建 subagent。

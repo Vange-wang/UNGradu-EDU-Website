@@ -591,3 +591,493 @@
 非阻塞观察：
 
 - dev 模式 React DevTools info、既有密码输入 autocomplete verbose 建议和 favicon 404 不建议登记为 D+ 第 3 批 Open Issue。
+
+## 2026-07-07
+
+操作类型：vNext UI 文案精简与风险反馈最小闭环 Issue 登记
+
+任务 ID：`VNEXT-UI-COPY-RISK-2026-07-07-001-ISSUE-1`
+
+输入材料：
+
+- `AGENTS.md`
+- `协同工作文档/交流记录/2026-07-07-vNext-UI文案精简与风险反馈最小闭环任务分发.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/钦定ISSUE管理员.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0016-UI界面多余说明文字清理.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0017-风险反馈举报投诉最小记录能力缺口.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+登记前状态：
+
+- 已核对 `ISSUE总表.md`，Open Issue 区为 `_当前无 Open Issue_`。
+- 已确认本轮如需新建 Issue，应从 `ISSUE-0016` 起编号。
+- 本轮不复用 S1 / S2 / S3 / S4 / S5 已关闭 Issue 编号。
+
+登记摘要：
+
+- `ISSUE-0016`：UI 界面多余说明文字需要删除或压缩，避免内部术语和重复说明干扰核心操作。类型为 `improvement / ui copy`，状态为 open，优先级 P2，owner_agent 为代码开发员 / UI 设计师 / 产品经理。
+- `ISSUE-0017`：风险反馈 / 举报投诉缺少最小记录能力，用户无法完成风险反馈最小闭环。类型为 `feature / risk feedback`，状态为 open，优先级 P1，owner_agent 为代码开发员 / 产品经理。
+
+处理边界：
+
+- 本轮只登记 Issue 和维护 Issue 文档。
+- 不修改业务代码，不修改 `Code文档/`。
+- 不替产品经理确认最终产品范围或验收结论。
+- 不替代码开发员实现。
+- 不提交、不推送、不运行 npm。
+
+后续关闭口径：
+
+- `ISSUE-0016` 后续需按产品经理边界和 UI 设计师清单完成文案删除 / 压缩，移动端和桌面端页面冒烟通过，且产品经理和 UI 设计师验收通过后，具备 Git 闭环证据再关闭。
+- `ISSUE-0017` 后续需由产品经理确认最小字段、匿名策略、提示和不承诺 SLA 边界；代码开发员实现 `/feedback` 或等价入口的最小记录能力，相关验证和页面冒烟通过，产品经理验收通过后，具备 Git 闭环证据再关闭。
+
+## 2026-07-07
+
+操作类型：vNext UI 文案精简与风险反馈最小闭环 Issue 关闭流转
+
+任务 ID：`VNEXT-UI-COPY-RISK-2026-07-07-001-ISSUE-CLOSE-1`
+
+输入材料：
+
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0016-UI界面多余说明文字清理.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0017-风险反馈举报投诉最小记录能力缺口.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+- `规划文档/里程碑文档/vNext产品能力阶段验收报告/2026-07-07-vNext-UI文案精简与风险反馈最小闭环产品验收记录.md`
+- `UI美术文档/设计验收与交接/2026-07-07-vNext-UI文案精简与风险反馈验收记录.md`
+- `Code文档/开发员工作记录.md` 中 `VNEXT-UI-COPY-RISK-2026-07-07-001-DEV-1` 回执
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/Close_Issue/ISSUE-0016-UI界面多余说明文字清理.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0017-风险反馈举报投诉最小记录能力缺口.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+状态更新摘要：
+
+- `ISSUE-0016` 已从 open 更新为 closed，并移入 `Close_Issue`。
+- `ISSUE-0016` 关闭依据：代码提交 `26af84fa21af52e1b77185e4cfd72124a832d158` 已推送；代码开发员回执显示 `npm run typecheck`、`npm run lint`、`npm test`、`npm run build` 通过，反馈页桌面端和 390px 移动端冒烟通过；产品经理验收通过；UI 设计师验收有条件通过并允许进入关闭前流程。
+- `ISSUE-0017` 保持 open，不进入关闭归档。
+- `ISSUE-0017` 保持 Open 的原因：代码口径和产品 / UI 验收均已达到有条件通过，但目标环境关闭前置项未完成；需创建 CloudBase 集合 `risk_feedback_records`，确认服务端写入权限，并在目标环境完成一次 `/feedback` 成功提交或等价写入核对后，方可关闭。
+
+处理边界：
+
+- 本轮只处理 `协同工作文档/ISSUE/` 下的 Issue 状态流转和工作记录。
+- 未修改业务代码，未运行 npm，未提交，未推送。
+- 未替产品经理或 UI 设计师重新验收，仅读取其回执并按规则流转。
+
+## 2026-07-07
+
+操作类型：vNext 风险反馈最小记录能力 Issue 关闭流转
+
+任务 ID：`VNEXT-UI-COPY-RISK-2026-07-07-001-ISSUE-CLOSE-2`
+
+输入材料：
+
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0017-风险反馈举报投诉最小记录能力缺口.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+- `总负责人文档/总负责人工作记录.md` 中 `VNEXT-UI-COPY-RISK-2026-07-07-001` 最新记录
+- `规划文档/里程碑文档/vNext产品能力阶段验收报告/2026-07-07-vNext-UI文案精简与风险反馈最小闭环产品验收记录.md`
+- `UI美术文档/设计验收与交接/2026-07-07-vNext-UI文案精简与风险反馈验收记录.md`
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/Close_Issue/ISSUE-0017-风险反馈举报投诉最小记录能力缺口.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+关闭依据：
+
+- 代码提交 `26af84fa21af52e1b77185e4cfd72124a832d158` 已推送。
+- 代码开发员验证 `npm run typecheck`、`npm run lint`、`npm test`、`npm run build` 均通过。
+- 产品经理验收和 UI 设计师验收均为有条件通过。
+- CloudBase 集合 `risk_feedback_records` 已配置。
+- 目标环境 `/api/feedback` POST 写入核对通过并返回 200，记录 ID：`risk-feedback-bfd1edb4-a489-4243-b44d-0cc76cf4b961`。
+
+状态更新摘要：
+
+- `ISSUE-0017` 已从 open 更新为 closed。
+- `ISSUE-0017` 已从 `Open_Issue` 归档至 `Close_Issue`。
+- `ISSUE总表.md` 已从 Open 区移除 `ISSUE-0017`，并在 Closed 区写入关闭依据。
+- 当前 Open Issue 列表为空。
+
+处理边界：
+
+- 本轮只处理 `协同工作文档/ISSUE/` 下的 Issue 状态流转和工作记录。
+- 未修改业务代码，未运行 npm，未提交，未推送。
+- 未替产品经理或 UI 设计师重新验收，仅读取既有验收和目标环境写入核对结果。
+
+## 2026-07-07
+
+操作类型：登记聊天窗口长内容布局 Open Issue
+
+任务 ID：`CHAT-LAYOUT-FIX-2026-07-07-001-ISSUE-1`
+
+来源：
+
+- 用户反馈：聊天内容过长时，会一直拉伸聊天框。
+- 期望：固定聊天窗口大小，可以在聊天窗口内上下滑动翻阅过往信息，而不是一直拉伸聊天框。
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0018-聊天内容过长时聊天窗口被持续拉伸.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+登记前状态：
+
+- 已核对 `ISSUE总表.md`，Open Issue 区为 `_当前无 Open Issue_`。
+- 已确认 Closed Issue 已登记至 `ISSUE-0017`，本轮下一个新编号为 `ISSUE-0018`。
+
+登记摘要：
+
+- 新增 `ISSUE-0018`：聊天内容过长时聊天窗口被持续拉伸，应固定聊天窗口并在消息列表内滚动。
+- 类型：`production bug / chat layout`。
+- 状态：open。
+- 优先级：P1。
+- owner_agent：代码开发员 / UI 设计师 / 产品经理。
+- related_files：聊天详情页；聊天窗口布局；消息列表滚动区域；`/chats/[id]` 或等价聊天详情路由。
+
+处理边界：
+
+- 本轮只处理 `协同工作文档/ISSUE/` 下的 Issue 登记、总表和工作记录。
+- 未修改业务代码，未运行 npm，未提交，未推送。
+
+后续关闭口径：
+
+- 聊天详情页或等价聊天窗口在长消息场景下高度固定或受控，不再随消息数量无限拉伸。
+- 历史消息可在消息列表内部上下滚动查看。
+- 聊天输入区和主要操作区在长消息场景下仍保持可见或可正常使用。
+- 桌面端和移动端均完成长消息 / 多消息场景冒烟，未出现横向溢出、输入区被挤出或页面异常拉伸。
+- 产品经理或 UI 设计师确认交互符合“固定聊天窗口 + 内部滚动”的预期。
+- `npm run typecheck`、`npm run lint`、`npm test`、`npm run build` 通过，或交付说明中写明无法运行原因和风险。
+- 具备提交 / 推送等 Git 闭环证据后，ISSUE 管理员再执行关闭归档。
+
+## 2026-07-07
+
+操作类型：关闭聊天窗口长内容布局 Issue
+
+任务 ID：`CHAT-LAYOUT-FIX-2026-07-07-001-ISSUE-CLOSE-1`
+
+关闭对象：
+
+- `ISSUE-0018`：聊天内容过长时聊天窗口被持续拉伸，应固定聊天窗口并在消息列表内滚动。
+
+输入材料：
+
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0018-聊天内容过长时聊天窗口被持续拉伸.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+- `总负责人文档/总负责人工作记录.md` 中 `CHAT-LAYOUT-FIX-2026-07-07-001` 记录
+- `UI美术文档/设计验收与交接/2026-07-07-聊天页消息列表固定高度与内部滚动验收记录.md`
+- `Code文档/开发员工作记录.md` 中 `CHAT-LAYOUT-FIX-2026-07-07-001-DEV-1` 回执
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/Close_Issue/ISSUE-0018-聊天内容过长时聊天窗口被持续拉伸.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+关闭依据：
+
+- 代码提交 `46ee468ff39cdcf5cbff6032cbccdc0bd584ec3b` 已推送。
+- 开发验证通过：`npm test -- chat-layout-css`、`npm run typecheck`、`npm run lint`、全量 `npm test`、`npm run build`。
+- UI 验收通过，允许 `ISSUE-0018` 进入关闭流程。
+- 项目总控制人反馈已部署最新代码。
+- 总负责人线上核对：`GET /chats/acceptance-probe` 返回 200；生产 CSS `/_next/static/css/c98f13933d2e389e.css` 包含 `overflow-y:auto`、`overscroll-behavior:contain` 和 `grid-template-rows`，说明聊天消息列表内部滚动约束已部署生效。
+
+状态更新摘要：
+
+- `ISSUE-0018` 已从 open 更新为 closed。
+- `ISSUE-0018` 已从 `Open_Issue` 归档至 `Close_Issue`。
+- `ISSUE总表.md` 已从 Open 区移除 `ISSUE-0018`，并在 Closed 区写入关闭依据。
+- 当前 Open Issue 列表为空。
+
+处理边界：
+
+- 本轮只处理 `协同工作文档/ISSUE/` 下的 Issue 状态流转和工作记录。
+- 未修改业务代码，未运行 npm，未提交，未推送。
+- 未替代码开发员、UI 设计师或总负责人重新验收，仅按既有验证、验收和线上核对结果执行关闭归档。
+
+## 2026-07-07
+
+操作类型：登记智能客服首屏加载慢 Open Issue
+
+任务 ID：`CUSTOMER-SERVICE-INSTANT-2026-07-07-001-ISSUE-1`
+
+来源：
+
+- 用户反馈：智能客服点进去总要加载一秒钟左右；用户需要点开马上可以使用。
+- 初步核查：线上 `/customer-service` 首次响应约 828ms，后续约 230ms；HTML 命中 `<iframe>` 和 Dify 文案，未命中站内离线客服对话。
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0019-智能客服首屏加载慢.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+登记前状态：
+
+- 已核对 `ISSUE总表.md`，Open Issue 区为 `_当前无 Open Issue_`。
+- 已确认 Closed Issue 已登记至 `ISSUE-0018`，本轮下一个新编号为 `ISSUE-0019`。
+
+登记摘要：
+
+- 新增 `ISSUE-0019`：智能客服首屏加载慢，需点开即可使用站内客服。
+- 类型：`production bug / customer service entry`。
+- 状态：open。
+- 优先级：P1。
+- owner_agent：代码开发员 / UI 设计师 / 产品经理。
+- related_files：`Code文档/app/customer-service/page.tsx`；`/customer-service` 页面；智能客服入口；站内客服对话首屏；Dify iframe 配置。
+- 初步原因：`app/customer-service/page.tsx` 使用 `export const dynamic = "force-dynamic"`，且配置 `NEXT_PUBLIC_DIFY_CUSTOMER_SERVICE_URL` 时直接渲染 Dify iframe；首屏可用性依赖外部 iframe 加载链路，未命中站内离线客服对话或可立即交互的站内首屏兜底。
+
+处理边界：
+
+- 本轮只处理 `协同工作文档/ISSUE/` 下的 Issue 登记、总表和工作记录。
+- 未修改业务代码，未运行 npm，未提交，未推送。
+
+后续关闭口径：
+
+- `/customer-service` 首屏达到“点开即可使用”的体验预期，用户进入后无需等待外部 iframe 完成加载才能开始咨询或提交问题。
+- 若继续使用 Dify iframe，页面需提供站内即时可交互兜底或等价方案，并明确 iframe 加载不阻塞首屏核心使用。
+- 首次访问和后续访问均完成线上或目标环境核对，并记录响应时间、首屏可用状态和是否命中站内客服对话。
+- 桌面端和移动端均完成智能客服入口到可用状态的冒烟验证，未出现空白等待、布局异常或交互不可用。
+- 产品经理或 UI 设计师确认交互符合“点开马上可以使用”的预期。
+- `npm run typecheck`、`npm run lint`、`npm test`、`npm run build` 通过，或交付说明中写明无法运行原因和风险。
+- 具备提交 / 推送等 Git 闭环证据后，ISSUE 管理员再执行关闭归档。
+
+## 2026-07-07
+
+操作类型：关闭智能客服首屏加载慢 Issue
+
+任务 ID：`CUSTOMER-SERVICE-INSTANT-2026-07-07-001-ISSUE-CLOSE-1`
+
+关闭对象：
+
+- `ISSUE-0019`：智能客服首屏加载慢，需点开即可使用站内客服。
+
+输入材料：
+
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0019-智能客服首屏加载慢.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+- `总负责人文档/总负责人工作记录.md` 中 `CUSTOMER-SERVICE-INSTANT-2026-07-07-001` 记录
+- `UI美术文档/设计验收与交接/2026-07-07-智能客服首屏即时可用验收记录.md`
+- `Code文档/开发员工作记录.md` 中 `CUSTOMER-SERVICE-INSTANT-2026-07-07-001-DEV-1` 回执
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/Close_Issue/ISSUE-0019-智能客服首屏加载慢.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+关闭依据：
+
+- 代码提交 `09ed3b937353ee3f37b04429763466d8e4e87cd5` 已推送。
+- 开发验证通过：`npm test -- customer-service-page-copy`、`npm test -- chat-layout-css`、`npm run typecheck`、`npm run lint`、全量 `npm test`、`npm run build`。
+- UI 验收通过，允许 `ISSUE-0019` 进入关闭流程。
+- 项目总控制人反馈已部署最新代码。
+- 总负责人线上核对：`GET /customer-service` 返回 200；HTML 不含 iframe；包含站内智能客服、输入框 `customer-service-question`、快捷问题；Dify 只作为可选外链相关文案存在；后续访问约 270ms。
+
+状态更新摘要：
+
+- `ISSUE-0019` 已从 open 更新为 closed。
+- `ISSUE-0019` 已从 `Open_Issue` 归档至 `Close_Issue`。
+- `ISSUE总表.md` 已从 Open 区移除 `ISSUE-0019`，并在 Closed 区写入关闭依据。
+- 当前 Open Issue 列表为空。
+
+处理边界：
+
+- 本轮只处理 `协同工作文档/ISSUE/` 下的 Issue 状态流转和工作记录。
+- 未修改业务代码，未运行 npm，未提交，未推送。
+- 未替代码开发员、UI 设计师或总负责人重新验收，仅按既有验证、验收和线上核对结果执行关闭归档。
+
+## 2026-07-08
+
+操作类型：登记临时 Cloudflare Worker 反代与安全基线加固 Open Issue
+
+任务 ID：`CLOUDFLARE-WORKER-PROXY-SECURITY-2026-07-08-001-ISSUE-1`
+
+来源：
+
+- 用户确认临时 Cloudflare Worker 反代方案。
+- 免费 `.pp.ua` + CloudBase 自定义域名可能受 ICP / SSL 证书阻塞，需要用 Issue 跟踪配置、验收和风险告知。
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0020-临时CloudflareWorker反代与安全基线加固.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+登记前状态：
+
+- 已核对 `ISSUE总表.md`，Open Issue 区为 `_当前无 Open Issue_`。
+- 已确认 Closed Issue 已登记至 `ISSUE-0019`，本轮下一个新编号为 `ISSUE-0020`。
+- 已在 `协同工作文档/` 范围搜索 Cloudflare / Worker / `.pp.ua` / WAF / rate limit / 安全响应头等关键词，未发现同类 Open Issue。
+
+登记摘要：
+
+- 新增 `ISSUE-0020`：临时 Cloudflare Worker 反代与安全基线加固。
+- 类型：`ops / security hardening / deployment workaround`。
+- 状态：open。
+- 优先级：P1。
+- owner_agent：项目总负责人 / 配置执行子智能体 / 用户本人。
+- 重点验收标准：Worker 代理可访问、HTTPS 正常、Cloudflare Free 安全项启用、WAF / rate limit 配置清单完成、安全响应头验证通过、原始 CloudBase 域名绕过风险已告知。
+- 阻塞项：需要用户本人登录 Cloudflare / NIC / CloudBase；`.pp.ua` 需手机号或 Telegram 激活；CloudBase 自定义域名可能要求 ICP / 证书。
+- 不做范围：不承诺绝对防 DDoS；不使用 Flexible SSL；不泄露 / 提交密钥；不删除现有资源；不修改 `Code文档` 业务代码。
+
+处理边界：
+
+- 本轮只处理 `协同工作文档/ISSUE/` 下的 Issue 登记、总表和工作记录。
+- 未修改 `Code文档` 业务代码。
+- 未运行 npm，未提交，未推送。
+
+后续关闭口径：
+
+- 配置执行侧完成 Worker 代理、HTTPS、Cloudflare Free 安全项、WAF / rate limit 或等价限流清单、安全响应头验证和风险告知记录。
+- 用户本人完成 Cloudflare、NIC / `.pp.ua`、CloudBase 控制台中必须由账号持有人执行的配置。
+- 项目总负责人或指定验收 Agent 核对目标地址可访问、HTTPS 无异常、配置清单与验证证据完整后，ISSUE 管理员再执行关闭归档。
+
+## 2026-07-18
+
+操作类型：ISSUE 管理员 Agent v2.2.0 正式迁移绑定
+
+来源：
+
+- 项目总负责人线程 `019f2318-50b7-75e0-b0fc-0013edefc039` 下发正式绑定指令。
+
+绑定信息：
+
+- 新会话 ID：`019f70ed-54b6-77b3-88a4-aa78c7600087`。
+- 线程标题：`ISSUE管理员v2.2.0`。
+- 旧会话 ID `019f2319-3809-73c2-81de-1899fc3b92a3` 仅作 v2.1.0 历史归档，不再作为当前调度入口。
+- 更早历史会话 ID `019f0d74-8e93-7242-b6fb-910d8e2e7d71` 继续保留为归档参考。
+
+涉及文档：
+
+- `协同工作文档/ISSUE/钦定ISSUE管理员.md`
+- `协同工作文档/AGENT身份注册信息/ISSUE管理员Agent-019f70ed-54b6-77b3-88a4-aa78c7600087.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+迁移结果：
+
+- 已将 ISSUE 管理员当前会话绑定更新为 v2.2.0 新 ID，并保留旧 ID 历史说明。
+- 已建立 v2.2.0 独立身份注册文件，继承 Issue 编号、Open/Close、总表、状态流转与关闭证据职责。
+- 当前 Open Issue 仅有 `ISSUE-0020`，状态继续保持 `open`。
+- `ISSUE-0020` 已具备 Worker 核心路由、HTTPS、Cloudflare 入口、安全响应头与去指纹复测证据。
+- `ISSUE-0020` 剩余唯一关闭门禁为业务方明确接受 workers.dev 临时入口、CloudBase 源站可绕过、zone 安全项当前 N/A / 后续补齐三项风险。
+
+处理边界：
+
+- 本次仅完成 ISSUE 管理员身份重新注册，不执行 `ISSUE-0020` 状态流转。
+- 未修改中央 `AGENT注册状态总览.md`、`协同工作总览.md`、Issue 总表、Open/Close Issue 状态或其他角色文件。
+- 未修改业务代码，未运行 npm，未执行 git，未创建 subagent。
+
+## 2026-07-18
+
+操作类型：更新 `ISSUE-0020` 新公开域名处理记录与关闭门禁
+
+任务 ID：`DOMAIN-SWITCH-2026-07-18-001-ISSUE-UPDATE-1`
+
+发起方：项目总负责人
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0020-临时CloudflareWorker反代与安全基线加固.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+输入证据：
+
+- 用户指定新公开域名 `ungradeedu.eu.cc`。
+- 公共 DNS 当前 NS 为 `ns1.julydns.com` / `ns2.julydns.com`；根域和 `www` 无 A / AAAA / CNAME，HTTPS 不可验证。
+- Cloudflare Dashboard 当前无登录态；本机无 Wrangler / API 凭据；未进行外部配置。
+- 代码开发员已在本地准备根域与 `www` Custom Domain 配置、`www` 到根域 308、保留 workers.dev 和扩展去指纹；定向测试 1 file / 8 tests 通过。
+- 本轮变更尚未提交、推送或部署；现有线上 Worker 仍返回 `x-cloudbaserun-*`、`x-upstream-*`、`x-nextjs-*`、`x-request-id`。
+
+状态更新：
+
+- 域名切换属于 `ISSUE-0020` 同范围，不新建 Issue。
+- `ISSUE-0020` 状态保持 `open`，未移动 Open/Close 归档。
+- 本地定向测试通过仅记为开发准备证据，不替代提交、推送、部署和生产复测。
+- 当前工作流状态为 `EXTERNAL_BLOCKED`：缺少拥有现有 Worker 的 Cloudflare 账户操作和 Cloudflare 权威 NS。
+
+精确关闭门禁：
+
+1. `ungradeedu.eu.cc` 已添加到拥有现有 Worker 的 Cloudflare 账户，JulyDNS NS 已替换为 Cloudflare 分配的 NS，zone 达到 Active。
+2. 根域和 `www` 两个 Custom Domain 与证书均为 Active；根域 HTTPS 可访问，`www` 到根域 308 生效。
+3. Worker 变更已提交、推送、部署，并记录 Git 与部署证据。
+4. 根域、`www`、保留的 workers.dev 入口及核心路由生产复测通过。
+5. 线上安全响应头生效，`x-cloudbaserun-*`、`x-upstream-*`、`x-nextjs-*`、`x-request-id` 等上游指纹已移除。
+6. Cloudflare Free 安全项、WAF / rate limit 或等价规则及不覆盖范围已记录；原始 CloudBase 源站绕过和 workers.dev 保留风险已告知并获业务方接受。
+
+唯一下一步：
+
+- 用户在拥有现有 Worker 的 Cloudflare 账户中添加 `ungradeedu.eu.cc`，并回传 Cloudflare 分配的两条权威 NS。
+
+处理边界：
+
+- 本次只更新 `ISSUE-0020`、Issue 总表和 ISSUE 管理员工作记录中的必要状态与门禁信息。
+- 未关闭或流转 `ISSUE-0020`，未修改业务代码、PM/UI/总负责人文件，未运行 npm，未执行 git，未创建 subagent。
+
+## 2026-07-18
+
+操作类型：`ISSUE-0020` 生产事实最终复核与状态维护
+
+任务 ID：`ISSUE-0020-FINAL-REVIEW-2026-07-18-001`
+
+发起方：项目总负责人
+
+涉及文档：
+
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0020-临时CloudflareWorker反代与安全基线加固.md`
+- `协同工作文档/ISSUE/Issue_List/ISSUE总表.md`
+- `协同工作文档/ISSUE/ISSUE管理员工作记录.md`
+
+独立实时复核：
+
+- 复核时间：`2026-07-18 15:57 +08:00`。
+- 公共 DNS：`1.1.1.1` 返回 `maya.ns.cloudflare.com` / `rodney.ns.cloudflare.com`，确认域名已切换到 Cloudflare 权威 NS；根域与 `www` 均解析到 Cloudflare 边缘地址。
+- 根域 `/`、`/rules`、`/feedback` 均返回 200；匿名 `/api/feedback` 返回 401。
+- `https://www.ungradeedu.eu.cc/feedback?from=www&keep=1` 返回 308，`Location` 为 `https://ungradeedu.eu.cc/feedback?from=www&keep=1`，path 与 query 精确保留。
+- `https://ungradu-edu-proxy.vangewang0919.workers.dev/` 返回 200，仅作为回退入口。
+- 根域和 workers.dev 响应具备 HSTS、CSP、Permissions-Policy、Referrer-Policy、`X-Content-Type-Options`、`X-Frame-Options`；`www` 308 后落到具备上述响应头的根域。
+- 三入口未发现 `x-nextjs-*`、`x-request-id`、`x-upstream-*`、`x-cloudbase*`。
+
+仓库与角色证据核对：
+
+- 代码开发员工作记录确认 Worker `ungradu-edu-proxy` 生产版本 `d8eff139` Active。
+- 开发验证：定向 8/8、全量 181/181、typecheck、lint、build 通过。
+- 开发提交 `23620c99a8e0c322c913af9f4f4f5bd0d494eda3` 已位于当前分支及远端 `origin/codex/vnext-feedback-status-security-20260717`。
+- 产品经理独立产品验收结论为“通过”，并确认无需新开或重开其他 Issue。
+- 未发现不同范围的新问题，不创建新 Issue。
+
+状态结论：
+
+- 先前“域名未生效、尚未部署、线上仍泄露上游指纹”已被当前生产证据推翻，相关表述仅保留为历史处理记录。
+- 技术、部署、Git、生产行为和产品验收门禁已通过。
+- `ISSUE-0020` 仍保持 `open / EXTERNAL_BLOCKED`，不得关闭。
+- 原因一：业务方尚未明确接受 workers.dev 仍可直访、CloudBase 原始源站仍可绕过 Worker、CloudBase 单一上游、当前无持续监控证据。
+- 原因二：原 Issue 要求的 zone 级 Cloudflare Free / WAF / Bot / rate-limit 或等价配置启用状态与不覆盖范围，当前证据包未提供可核验记录；zone 已实际接入，不再沿用“zone 项 N/A”旧表述。
+
+责任人、解除条件与恢复触发：
+
+- 配置证据责任人：项目总负责人 / Cloudflare 账号持有人。最小解除条件：提供 zone 安全项逐项状态及不覆盖范围的截图、导出或可核验记录。恢复触发：证据路由给 ISSUE 管理员。
+- 风险接受责任人：业务方。最小解除条件：一条可归档的明确确认，接受四项残余风险，并接受配置记录中任何不可用或未启用的 zone 安全项。恢复触发：项目总负责人将确认路由给 ISSUE 管理员。
+
+唯一下一步：
+
+- 项目总负责人补充当前 zone 的 Cloudflare Free / WAF / Bot / rate-limit 或等价安全配置状态证据，并据此向业务方发起一次合并风险确认；两项证据齐备后路由给 ISSUE 管理员恢复最终关闭复核。
+
+处理边界：
+
+- 本次只维护 `ISSUE-0020`、Issue 总表和 ISSUE 管理员工作记录。
+- 未修改代码、产品、UI 或总负责人文件；未代业务方接受风险；未创建新 Issue；未创建 subagent。

@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 const here = dirname(fileURLToPath(import.meta.url));
 const workerTsPath = join(here, "..", "cloudflare", "worker.ts");
 const workerJsPath = join(here, "..", "cloudflare", "worker.js");
+const wranglerConfigPath = join(here, "..", "cloudflare", "wrangler.example.toml");
 
 type WorkerEnv = {
   UPSTREAM_ORIGIN: string;
@@ -42,6 +43,41 @@ describe("Cloudflare Worker reverse proxy example", () => {
     expect(workerJs).not.toContain("Promise<Response>");
   });
 
+  it("declares the custom root and www domains while keeping workers.dev as a fallback", () => {
+    const wranglerConfig = readFileSync(wranglerConfigPath, "utf8");
+
+    expect(wranglerConfig).toContain('name = "ungradu-edu-proxy"');
+    expect(wranglerConfig).toContain("workers_dev = true");
+    expect(wranglerConfig).toMatch(
+      /\[\[routes\]\]\s+pattern = "ungradeedu\.eu\.cc"\s+custom_domain = true/
+    );
+    expect(wranglerConfig).toMatch(
+      /\[\[routes\]\]\s+pattern = "www\.ungradeedu\.eu\.cc"\s+custom_domain = true/
+    );
+  });
+
+  it.each([
+    ["TypeScript source", workerTsPath],
+    ["Dashboard JavaScript paste version", workerJsPath]
+  ])("redirects www to the canonical root domain while preserving path and query: %s", async (_, workerPath) => {
+    const worker = await importWorker(workerPath);
+    expect(worker).not.toBeNull();
+
+    const fetchMock = vi.fn<(request: Request) => Promise<Response>>();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await worker!.default.fetch(
+      new Request("https://www.ungradeedu.eu.cc/feedback?from=www"),
+      { UPSTREAM_ORIGIN: "https://ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbase.com" }
+    );
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("https://ungradeedu.eu.cc/feedback?from=www");
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
+
   it.each([
     ["TypeScript source", workerTsPath],
     ["Dashboard JavaScript paste version", workerJsPath]
@@ -57,6 +93,10 @@ describe("Cloudflare Worker reverse proxy example", () => {
           "x-cloudbase-upstream-status-code": "200",
           "x-cloudbase-upstream-timecost": "20",
           "x-cloudbase-upstream-type": "cloudrun",
+          "x-cloudbaserun-scale-timecost": "3000",
+          "x-upstream-status-code": "200",
+          "x-nextjs-cache": "HIT",
+          "x-request-id": "upstream-request-id",
           server: "cloudbase",
           "x-powered-by": "next"
         }
@@ -89,6 +129,10 @@ describe("Cloudflare Worker reverse proxy example", () => {
     expect(response.headers.get("x-cloudbase-upstream-status-code")).toBeNull();
     expect(response.headers.get("x-cloudbase-upstream-timecost")).toBeNull();
     expect(response.headers.get("x-cloudbase-upstream-type")).toBeNull();
+    expect(response.headers.get("x-cloudbaserun-scale-timecost")).toBeNull();
+    expect(response.headers.get("x-upstream-status-code")).toBeNull();
+    expect(response.headers.get("x-nextjs-cache")).toBeNull();
+    expect(response.headers.get("x-request-id")).toBeNull();
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     expect(response.headers.get("content-security-policy")).toContain("default-src 'self'");
     expect(response.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");

@@ -2,6 +2,9 @@ type Env = {
   UPSTREAM_ORIGIN: string;
 };
 
+const PRIMARY_PUBLIC_ORIGIN = "https://ungradeedu.eu.cc";
+const canonicalRedirectHosts = new Set(["www.ungradeedu.eu.cc"]);
+
 const defaultSecurityHeaders = new Headers({
   "Content-Security-Policy": [
     "default-src 'self'",
@@ -40,11 +43,17 @@ const requestHeadersToDrop = new Set([
 const responseHeadersToDrop = new Set([
   "server",
   "x-powered-by",
+  "x-request-id",
   "x-tcb-request-id",
   "x-tencent-request-id"
 ]);
 
-const responseHeaderPrefixesToDrop = ["x-cloudbase-"];
+const responseHeaderPrefixesToDrop = [
+  "x-cloudbase-",
+  "x-cloudbaserun-",
+  "x-nextjs-",
+  "x-upstream-"
+];
 
 function shouldDropResponseHeader(header: string) {
   const normalizedHeader = header.toLowerCase();
@@ -60,6 +69,16 @@ function normalizeOrigin(origin: string) {
   normalized.search = "";
   normalized.hash = "";
   return normalized;
+}
+
+function buildCanonicalRedirect(request: Request) {
+  const incomingUrl = new URL(request.url);
+  if (!canonicalRedirectHosts.has(incomingUrl.hostname.toLowerCase())) {
+    return null;
+  }
+
+  const canonicalUrl = new URL(incomingUrl.pathname + incomingUrl.search, PRIMARY_PUBLIC_ORIGIN);
+  return Response.redirect(canonicalUrl, 308);
 }
 
 function buildUpstreamRequest(request: Request, upstreamOrigin: URL) {
@@ -102,6 +121,11 @@ function hardenResponse(response: Response) {
 
 const worker = {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const canonicalRedirect = buildCanonicalRedirect(request);
+    if (canonicalRedirect) {
+      return canonicalRedirect;
+    }
+
     if (!env.UPSTREAM_ORIGIN) {
       return new Response("Missing UPSTREAM_ORIGIN.", { status: 500 });
     }

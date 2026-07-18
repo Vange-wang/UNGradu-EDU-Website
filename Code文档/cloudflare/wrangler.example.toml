@@ -1,11 +1,20 @@
-name = "ungradu-edu-temp-proxy"
+name = "ungradu-edu-proxy"
 main = "cloudflare/worker.ts"
 compatibility_date = "2026-07-08"
+workers_dev = true
+
+[[routes]]
+pattern = "ungradeedu.eu.cc"
+custom_domain = true
+
+[[routes]]
+pattern = "www.ungradeedu.eu.cc"
+custom_domain = true
 
 [vars]
 UPSTREAM_ORIGIN = "https://ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbase.com"
 
-# Dashboard route examples:
-# - workers.dev: enable workers.dev for a temporary preview domain.
-# - custom domain: bind the Worker to a Cloudflare-managed custom domain or route.
+# ungradeedu.eu.cc is the canonical public domain.
+# www.ungradeedu.eu.cc redirects to the canonical root domain in the Worker.
+# workers.dev remains enabled as a fallback and must not be deleted.
 # Do not put secrets in this file. Use Cloudflare Worker variables/secrets instead.

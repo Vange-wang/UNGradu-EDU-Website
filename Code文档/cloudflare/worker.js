@@ -1,5 +1,7 @@
 const DEFAULT_UPSTREAM_ORIGIN =
   "https://ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbase.com";
+const PRIMARY_PUBLIC_ORIGIN = "https://ungradeedu.eu.cc";
+const canonicalRedirectHosts = new Set(["www.ungradeedu.eu.cc"]);
 
 const defaultSecurityHeaders = new Headers({
   "Content-Security-Policy": [
@@ -39,11 +41,17 @@ const requestHeadersToDrop = new Set([
 const responseHeadersToDrop = new Set([
   "server",
   "x-powered-by",
+  "x-request-id",
   "x-tcb-request-id",
   "x-tencent-request-id"
 ]);
 
-const responseHeaderPrefixesToDrop = ["x-cloudbase-"];
+const responseHeaderPrefixesToDrop = [
+  "x-cloudbase-",
+  "x-cloudbaserun-",
+  "x-nextjs-",
+  "x-upstream-"
+];
 
 function shouldDropResponseHeader(header) {
   const normalizedHeader = header.toLowerCase();
@@ -63,6 +71,16 @@ function normalizeOrigin(origin) {
 
 function resolveUpstreamOrigin(env) {
   return env?.UPSTREAM_ORIGIN || DEFAULT_UPSTREAM_ORIGIN;
+}
+
+function buildCanonicalRedirect(request) {
+  const incomingUrl = new URL(request.url);
+  if (!canonicalRedirectHosts.has(incomingUrl.hostname.toLowerCase())) {
+    return null;
+  }
+
+  const canonicalUrl = new URL(incomingUrl.pathname + incomingUrl.search, PRIMARY_PUBLIC_ORIGIN);
+  return Response.redirect(canonicalUrl, 308);
 }
 
 function buildUpstreamRequest(request, upstreamOrigin) {
@@ -105,6 +123,11 @@ function hardenResponse(response) {
 
 const worker = {
   async fetch(request, env) {
+    const canonicalRedirect = buildCanonicalRedirect(request);
+    if (canonicalRedirect) {
+      return canonicalRedirect;
+    }
+
     const upstreamOrigin = normalizeOrigin(resolveUpstreamOrigin(env));
     const upstreamRequest = buildUpstreamRequest(request, upstreamOrigin);
     const upstreamResponse = await fetch(upstreamRequest);

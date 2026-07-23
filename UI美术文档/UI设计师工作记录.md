@@ -682,3 +682,330 @@
 - 无必须修复项。
 - 允许进入产品经理验收；产品经理已只读确认产品验收通过。
 - 本次未修改 `Code文档/` 下业务代码，未运行 npm、未提交、未推送。
+
+## 2026-07-07
+
+### vNext UI 文案精简与风险边界清单输出
+
+类型：小细节调整 / UI 文案精简 / 风险边界交接
+
+关联任务：`VNEXT-UI-COPY-RISK-2026-07-07-001-UI-1`
+
+涉及文档：
+
+- `UI美术文档/小细节调整/2026-07-07-vNext-UI文案精简与风险边界清单.md`
+- `UI美术文档/UI设计师工作记录.md`
+
+读取材料：
+
+- `AGENTS.md`
+- `协同工作文档/交流记录/2026-07-07-vNext-UI文案精简与风险反馈最小闭环任务分发.md`
+- `UI美术文档/钦定UI设计师.md`
+- `UI美术文档/UI设计师工作记录.md`
+- `Code文档/app/page.tsx`
+- `Code文档/app/login/page.tsx`
+- `Code文档/app/rules/page.tsx`
+- `Code文档/app/feedback/page.tsx`
+- `Code文档/app/parent-needs/new/page.tsx`
+- `Code文档/app/tutor-profiles/new/page.tsx`
+- `Code文档/app/profile/contact/page.tsx`
+- `Code文档/app/chats/[id]/page.tsx`
+
+内容摘要：
+
+- 按任务分发要求，输出页面级 UI 文案精简清单，覆盖首页、登录页、规则页、反馈页、发布需求页、发布家教信息页、联系方式页和聊天页。
+- 将现有文案分为三类：必删、可压缩、必保留。
+- 必删重点包括内部设计 / 实现术语、技术解释、重复说明和页面功能自述，例如 `MVP`、`任务分组`、`保留原有字段`、`文件元信息`、`自动轮询刷新`、`状态区` 等。
+- 可压缩重点包括流程说明、表单帮助文字和风险提示，统一改为更短的用户行动句。
+- 必保留重点包括隐私、联系方式、未成年人、付款、平台不担保 / 不认证 / 不仲裁、反馈仅记录排查等安全边界。
+- 给代码开发员提供逐页中文替换建议和跨页面统一替换词表。
+- 给出 UI 验收标准：移动端不挤压、不变形；按钮、字段、卡片无空洞；删除文案后页面仍能理解下一步；不出现 `Step Form`、`Workspace`、`Dashboard`、`Contact Exchange`、`MVP`、`D+` 等内部术语。
+
+结论：
+
+- 从 UI 设计职责判断，允许代码开发员在收到产品经理允许实现后，按该清单执行 UI 文案删除、压缩和替换。
+- 本次仅新增 / 更新 UI 文档，未修改 `Code文档/` 下业务代码，未运行 npm，未提交，未推送。
+
+### vNext UI 文案精简与风险反馈 UI 验收
+
+类型：UI 验收 / 文案精简复核 / 风险反馈界面复核
+
+关联任务：`VNEXT-UI-COPY-RISK-2026-07-07-001-UI-ACCEPT-1`
+
+涉及文档：
+
+- `UI美术文档/设计验收与交接/2026-07-07-vNext-UI文案精简与风险反馈验收记录.md`
+- `UI美术文档/UI设计师工作记录.md`
+
+读取材料：
+
+- `UI美术文档/小细节调整/2026-07-07-vNext-UI文案精简与风险边界清单.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0016-UI界面多余说明文字清理.md`
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0017-风险反馈举报投诉最小记录能力缺口.md`
+- `Code文档/开发员工作记录.md`
+- `Code文档/app/page.tsx`
+- `Code文档/app/login/page.tsx`
+- `Code文档/app/rules/page.tsx`
+- `Code文档/app/feedback/page.tsx`
+- `Code文档/app/parent-needs/new/page.tsx`
+- `Code文档/app/tutor-profiles/new/page.tsx`
+- `Code文档/app/profile/page.tsx`
+- `Code文档/app/profile/contact/page.tsx`
+- `Code文档/app/chats/[id]/page.tsx`
+
+内容摘要：
+
+- 对 vNext UI 文案精简实现进行静态验收，不修改业务代码，不运行 npm，不提交不推送。
+- 指定主要页面已按清单删除或压缩 `MVP`、`任务分组`、`保留原有字段`、`自动轮询刷新`、`状态区`、`Step Form`、`Workspace`、`Dashboard`、`Contact Exchange` 等内部术语或实现说明。
+- 页面仍保留可理解的下一步动作：登录 / 注册、返回、浏览、发布、保存、发送、请求交换联系方式、同意 / 拒绝 / 撤回、提交风险反馈。
+- 隐私、联系方式、未成年人、付款、平台不担保 / 不认证 / 不仲裁、反馈仅记录排查等风险边界仍被压缩保留。
+- 反馈页已具备站内风险反馈表单、成功和失败状态；UI 层支持最小反馈操作，但记录能力闭环仍依赖产品经理确认和 CloudBase 集合配置。
+- 旁路观察：非本次指定主要页面 `Code文档/app/tutor-profiles/[id]/page.tsx` 仍出现“文件元信息数量”口径，建议后续单独纳入详情页扫尾。
+
+结论：
+
+- UI 验收结论为有条件通过。
+- UI 侧允许 `ISSUE-0016` 进入关闭前流程；最终关闭仍需产品经理验收、验证命令、提交 / 推送等证据齐全后由 ISSUE 管理员执行。
+- `ISSUE-0017` 的 UI 表单形态可接受，但不建议仅凭 UI 验收关闭；仍需确认最小字段、匿名策略、成功失败口径和 `risk_feedback_records` 集合部署。
+- 本次新增 UI 验收记录并更新 UI 设计师工作记录，未修改 `Code文档/` 下业务代码，未运行 npm，未提交，未推送。
+
+### 聊天页消息列表固定高度与内部滚动 UI 验收
+
+类型：UI 验收 / 聊天页布局修复复核 / 最终通过
+
+关联任务：`CHAT-LAYOUT-FIX-2026-07-07-001-UI-ACCEPT-1`
+
+关联 Issue：`ISSUE-0018` 聊天内容过长时聊天窗口被持续拉伸
+
+涉及文档：
+
+- `UI美术文档/设计验收与交接/2026-07-07-聊天页消息列表固定高度与内部滚动验收记录.md`
+- `UI美术文档/UI设计师工作记录.md`
+
+读取材料：
+
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0018-聊天内容过长时聊天窗口被持续拉伸.md`
+- `Code文档/开发员工作记录.md` 中 `CHAT-LAYOUT-FIX-2026-07-07-001-DEV-1` 回执
+- `Code文档/app/chats/[id]/page.tsx`
+- `Code文档/app/globals.css`
+- `Code文档/tests/chat-layout-css.test.ts`
+- `总负责人文档/总负责人工作记录.md` 中本任务页面冒烟回报
+
+内容摘要：
+
+- 复核确认 `.dplus-chat-page .conversation-main` 已改为固定可视高度的三行 grid，头部、消息列表、输入区被约束在同一聊天主面板中。
+- 复核确认 `.dplus-chat-page .message-list` 已具备 `max-height: 100%`、`overflow-y: auto` 和 `overscroll-behavior: contain`，长消息 / 多消息场景会在消息列表内部滚动。
+- 复核确认输入区作为第三行保留，不会被历史消息持续挤走。
+- 复核确认 980px 以下改为单列，720px 以下压低消息区最小高度、按钮单列、消息气泡限制宽度并断行，390px 移动端横向溢出风险可接受。
+- 对开发员未能进入真实聊天数据页的冒烟限制给出 UI 侧判断：接受为非阻塞。该问题是 CSS 约束问题，真实页面与验证夹具共用核心类名；总负责人记录显示验证夹具已使用真实 `globals.css` 完成桌面与 390px 冒烟，消息列表内部滚动成立。
+- UI 验收执行代理补充运行 `npm test -- chat-layout-css`，结果通过，1 个测试文件，1 个测试通过。
+
+结论：
+
+- UI 验收结论为通过。
+- UI 侧允许 `ISSUE-0018` 进入关闭流程；最终关闭仍需 ISSUE 管理员确认代码验证、提交 / 推送等闭环证据。
+- 本次新增 UI 验收记录并更新 UI 设计师工作记录，未修改 `Code文档/` 下业务代码，未提交，未推送。
+
+### 智能客服首屏即时可用 UI 验收
+
+类型：UI 验收 / 智能客服首屏体验复核 / 最终通过
+
+关联任务：`CUSTOMER-SERVICE-INSTANT-2026-07-07-001-UI-ACCEPT-1`
+
+关联 Issue：`ISSUE-0019` 智能客服首屏加载慢，需点开即可使用站内客服
+
+涉及文档：
+
+- `UI美术文档/设计验收与交接/2026-07-07-智能客服首屏即时可用验收记录.md`
+- `UI美术文档/UI设计师工作记录.md`
+
+读取材料：
+
+- `协同工作文档/ISSUE/Open_Issue/ISSUE-0019-智能客服首屏加载慢.md`
+- `Code文档/开发员工作记录.md` 中 `CUSTOMER-SERVICE-INSTANT-2026-07-07-001-DEV-1` 回执
+- `Code文档/app/customer-service/page.tsx`
+- `Code文档/features/customer-service/customer-service-chat.tsx`
+- `Code文档/app/globals.css` 中 customer-service 相关样式
+- `Code文档/tests/customer-service-page-copy.test.ts`
+- `Code文档/tests/chat-layout-css.test.ts`
+
+内容摘要：
+
+- 复核确认 `/customer-service` 页面已移除强制动态渲染口径，主体验始终渲染站内 `CustomerServiceChat`。
+- 复核确认站内客服初始即显示欢迎消息、快捷问题和输入框，用户进入后可直接点击快捷问题或输入问题发送。
+- 复核确认 Dify 不再作为首屏 iframe 渲染；配置 URL 时仅作为侧栏“打开 Dify 客服”可选外链，不阻塞站内客服。
+- 复核确认移动端样式将 `.customer-service-main` 排到说明侧栏之前，并通过单列输入区、满宽按钮、宽度保护和断行保护降低 390px 横向溢出风险。
+- UI 侧接受开发员本地桌面 1440x900 与移动 390x844 冒烟作为本轮验收证据；该冒烟包含快捷问题 / 输入框首屏可见、可输入发送、快捷问题可点击、iframe 数量为 0、console 无 error/warn、无横向溢出。
+- UI 验收执行代理补充运行 `npm test -- customer-service-page-copy`，结果通过，1 个测试文件，4 个测试通过。
+- UI 验收执行代理补充运行 `npm test -- chat-layout-css`，结果通过，1 个测试文件，2 个测试通过。
+
+结论：
+
+- UI 验收结论为通过。
+- UI 侧允许 `ISSUE-0019` 进入关闭流程。
+- 最终关闭仍需 ISSUE 管理员确认完整代码验证、目标环境首屏可用核对、提交 / 推送等闭环证据。
+- 本次新增 UI 验收记录并更新 UI 设计师工作记录，未修改 `Code文档/` 下业务代码，未提交，未推送。
+
+## 2026-07-18
+
+### UI 设计师 Agent v2.2.0 正式迁移绑定
+
+类型：会话迁移 / 角色重新注册 / 连续性接管
+
+涉及文档：
+
+- `UI美术文档/钦定UI设计师.md`
+- `协同工作文档/AGENT身份注册信息/UI设计师Agent-019f70ed-f088-77e1-8bdc-bede547e5231.md`
+- `UI美术文档/UI设计师工作记录.md`
+
+记录摘要：
+
+- 根据项目总负责人正式绑定指令，UI 设计师 Agent 已迁移到 v2.2.0 新会话线程。
+- 当前会话 ID 更新为 `019f70ed-f088-77e1-8bdc-bede547e5231`，线程标题为 `UI设计师v2.2.0`。
+- 旧会话 ID `019f2319-7c43-7653-9e2c-803229387ac1` 仅作 v2.1.0 历史归档，不再作为当前调度入口。
+- 新注册摘要继承旧注册职责：只负责视觉系统、界面方案、交互说明、设计交接和 UI 验收输入，不实现业务代码、不修改 Spec、不维护 Issue。
+- 当前连续性状态为：D+ UI 与 vNext 反馈 / 安全提示界面已完成 UI 验收，当前无 UI 返工；`ISSUE-0020` 仍是 ISSUE / 配置角色负责的生产 Worker 安全门禁。
+
+权限与范围：
+
+- 本次仅修改上述 3 个获授权的 UI 角色文件。
+- 未修改 `协同工作文档/AGENT身份注册信息/AGENT注册状态总览.md`、`协同工作文档/协同工作总览.md`、`UI美术文档/UI设计师Agent身份注册信息.md`、业务代码、PM 文档或 ISSUE 文件。
+- 未运行 npm、git、部署命令，未创建 subagent，未请求额外权限。
+
+影响：
+
+- `019f70ed-f088-77e1-8bdc-bede547e5231` 成为 UI 设计师 Agent v2.2.0 当前正式调度入口。
+- 后续 UI 任务从本线程继续，并严格沿用既有职责和跨角色边界。
+
+## 2026-07-24
+
+### 提交 `9fedf548dfb72d586ce58abdc169efffcf792056` 独立 UI / 交互验收
+
+类型：聊天固定高度 / 内部滚动独立 UI 复核 / `REWORK_REQUIRED`
+
+执行边界：
+
+- 本轮只复核提交 `9fedf548dfb72d586ce58abdc169efffcf792056` 的聊天消息区域、输入区、滚动与移动端行为。
+- 只允许更新本 UI 设计师工作记录；未修改业务代码、产品文档、Issue 文档或代码开发员记录。
+- 未触碰 CloudBase、Worker、DNS、Secret、生产变量或生产部署；未创建新任务或 subagent。
+
+行动前思考：
+
+- 目标与用户可见结果：桌面、约 390px 移动端及软键盘压缩视口下，消息增多只能扩大消息区内部 `scrollHeight`，聊天主面板高度受限，输入区始终可见且不重叠，长消息不横溢，用户可以用滚动条、触控或键盘查看历史；首次进入或收到新消息时滚底，但无新消息轮询不得打断用户查历史。
+- 非目标：不修改业务逻辑、登录 / 消息 API、联系方式交换流程、产品或 Issue 状态，不执行生产验证或部署。
+- 事实来源：目标提交及其父提交差异、当前 `HEAD`、聊天页源码、`ChatMessagePanel`、真实 `globals.css`、同范围测试、代码开发员提交记录和本轮独立命令输出。
+- 约束与依赖：当前 `HEAD` 正是目标提交；目标代码文件没有工作区偏移。真实双账号数据页和手机软键盘未在生产执行，因此必须以本地真实 Chrome 几何、可访问性约束和明确的可视视口断言共同支撑结论。
+- 方案取舍与长期影响：固定主面板和内部滚动方向正确，但不能用大于压缩可视视口的固定最小高度换取输入区“仅在面板内”；否则移动端键盘场景仍可能需要页面滚动或遮住输入区，后续浏览器差异也无法稳定验收。
+- 失败路径与回滚：若返工影响桌面或普通移动端高度，应回到原代码线程做最小 CSS / 布局调整，并重新运行桌面、普通移动端、压缩视口及自动滚底回归。本 UI 线程不直接修代码。
+
+提交与源码证据：
+
+- `HEAD` 与目标提交均为 `9fedf548dfb72d586ce58abdc169efffcf792056`。
+- `/chats/[id]` 已直接使用 `ChatMessagePanel`；消息区具备 `tabIndex=0` 和可访问名称。
+- `.conversation-main` 使用三行网格；`.message-list` 使用 `min-height:0`、`overflow-y:auto`、`overflow-x:hidden`、`overscroll-behavior:contain`、`scrollbar-gutter:stable` 和 `touch-action:pan-y`。
+- 长消息气泡继续使用 `overflow-wrap:anywhere`。
+- 自动滚底 effect 只依赖最新消息 ID；轮询返回相同末条消息 ID 时不会重复触发 effect，这一实现方向满足“不打断查历史”的设计要求。
+
+本轮独立验证：
+
+- `npm test -- chat-layout-css chat-message-panel-scroll chat-layout-browser --reporter=verbose`：exit 0，3 个测试文件、6 项测试通过。
+- 真实 Chrome 几何回归：
+  - 桌面：3 条与 80 条消息主面板均为 `674px`，消息区均为 `275px`；80 条消息 `scrollHeight=12332px`。
+  - 约 390px 移动内容宽度：主面板均为 `678px`，消息区均为 `184px`；80 条消息 `scrollHeight=11955px`。
+  - 390px 键盘压缩测试：主面板均为 `634px`，消息区均为 `140px`；80 条消息 `scrollHeight=11955px`。
+  - 三组均证明消息区可内部滚动、输入区位于主面板内、消息区不覆盖输入区、页面内容宽度无横向溢出。
+- `npm run typecheck`：exit 0。
+- `npm run lint`：exit 0，0 warnings。
+- `npm test`：exit 0，49 个测试文件、193 项测试通过。
+- 浏览器插件拒绝加载 `data:` 本地验收夹具；按安全策略未绕过。独立行为证据使用上述现有真实 Chrome headless 回归。
+
+严重性结论：
+
+- `SERIOUS-1`：软键盘压缩视口下，输入区“始终位于可视视口内”不能保证。
+- 直接证据：
+  - 720px 以下 `.conversation-main` 使用 `height: clamp(640px, calc(100dvh - 60px), 760px)`，最小高度为 `640px`。
+  - 压缩回归目标高度为 `600px`，实际测得主面板 `clientHeight=634px`，已大于目标压缩视口高度。
+  - 输入区没有 `position:sticky`、`position:fixed` 或基于 `visualViewport` 的可视区约束。
+  - 当前测试只断言 `composeRect.bottom <= mainRect.bottom + 1`，即输入区在主面板内；没有断言 `composeRect.bottom <= window.innerHeight` 或 `visualViewport.height`，也没有在 textarea 聚焦 / 键盘压缩后验证输入区仍可见。
+- 用户可见风险：键盘压缩后，输入区虽未被消息列表覆盖，但仍可能位于可视视口下方，用户需要额外滚动页面，不能满足“输入区始终可见”的明确验收条件。
+
+已通过的同范围项：
+
+- 桌面与普通移动端消息数量增加不会撑高聊天主面板或消息区。
+- 长消息、多消息仅增加消息区内部 `scrollHeight`，无页面内容横向溢出。
+- 消息区可聚焦并具备纵向滚动 / 触控滚动 CSS 条件。
+- 首次进入或末条消息 ID 变化时执行滚底；无新消息的同 ID 轮询不重复触发滚底。
+
+最小修订要求：
+
+1. 移动端聊天主面板必须受当前可视视口约束；在 390x600 或更小的键盘压缩可视区中，不得保留大于可视区的 `640px` 固定最小高度。可以调整高度公式或布局结构，但必须继续保留三行布局、消息区可收缩和输入区不重叠。
+2. 补充真实 Chrome 几何断言：记录 `window.innerHeight` / 可用时的 `visualViewport.height` 与 `composeRect.top/bottom`；textarea 聚焦及压缩视口后必须满足输入区底部不超过可视区底部，并且消息区仍有正高度且可内部滚动。
+3. 补充键盘查历史交互：消息区获得焦点后，`PageUp`、方向键或等价键盘滚动能改变 `scrollTop`；保留 `tabIndex=0` 和可访问名称。
+4. 补充轮询回归：用户把消息区滚到历史位置后，相同最新消息 ID 的轮询刷新不得改变 `scrollTop`；新消息 ID 到达时才允许滚到底部。
+
+复测验收条件：
+
+- 桌面 1280x900、移动 390x844、键盘压缩视口 390x600（必要时增加更小高度）均使用真实 Chrome 和真实组件 / CSS。
+- 3 条与 80 条消息时主面板和消息区 `clientHeight` 分别保持一致；长消息不横溢，消息区 `scrollHeight > clientHeight`。
+- 输入区不与消息区重叠、始终完全位于当前可视视口内；消息区滚动条、触控条件和键盘滚动均可查看历史。
+- 首次进入 / 新消息滚底通过；同 ID 无新消息轮询不改变用户历史滚动位置。
+- 返工后重新通过聚焦测试、typecheck、lint、全量测试及受影响浏览器回归。
+
+最终结论：
+
+- 结论：`REWORK_REQUIRED`。
+- 严重问题：1 项。
+- 非严重问题：0 项。
+- 当前提交不得按 UI 验收通过；必须退回当前注册代码开发员线程做最小返工并重新提交证据。
+- 生产未触碰。
+- 唯一下一步：代码开发员 Agent v2.2.0 按上述最小修订要求修复并回传新提交；本 UI 线程随后仅复核受影响的压缩视口、键盘滚动、轮询滚动位置与相关回归。
+
+### 提交 `595a692335ba2ca56e2ff1e78bb553d8e8607dbf` UI SERIOUS 修订后复验
+
+类型：390×600 软键盘压缩视口严重项聚焦复验 / `PASS_ZERO_ISSUES`
+
+执行边界：
+
+- 本轮只复核上一轮 `SERIOUS-1` 的修订及受影响回归：390×600 聚焦可视区、输入区可见、消息区内部滚动、失焦恢复文档流、普通 390×844 与桌面布局、无遮挡和横向溢出。
+- 只追加本 UI 设计师工作记录；未修改业务代码、测试代码、产品文档、Issue 文档或代码开发员记录。
+- 未触碰 CloudBase、Worker、DNS、Secret、生产变量或生产部署；未创建任务或 subagent。
+
+行动前思考：
+
+- 目标与用户可见结果：确认旧 `640px` 最小高度造成的压缩视口遮挡风险已经消除，同时保持消息历史只在区域内部滚动、输入区不重叠、普通移动端和桌面不回归。
+- 非目标：不重审本提交之外的功能，不修改实现，不替代产品、Issue、部署或生产验收。
+- 事实来源：父提交 `9fedf548dfb72d586ce58abdc169efffcf792056` 与目标提交差异、当前 CSS / 组件 / 测试源码、本轮新鲜真实 Chrome CDP 输出、静态门禁和全量测试。
+- 失败路径：若聚焦态任一矩形超出 `visualViewport`、失焦仍保持 fixed、历史区无法键盘滚动，或普通视口出现同范围回归，则必须返回原代码线程；本 UI 线程不自行修复。
+
+提交差异核对：
+
+- 当前 `HEAD` 为目标提交 `595a692335ba2ca56e2ff1e78bb553d8e8607dbf`，父提交为上一轮未通过的 `9fedf548dfb72d586ce58abdc169efffcf792056`。
+- 业务样式差异仅在 `Code文档/app/globals.css`：移动端主面板高度改为 `clamp(480px, calc(100dvh - 16px), 760px)`；窄且低视口下，`:focus-within` 使用 `position: fixed`、`top: 8px`、`height: calc(100dvh - 16px)`。
+- 真实 Chrome 测试改为 CDP `Emulation.setDeviceMetricsOverride`，直接断言 `window.innerHeight`、`visualViewport`、面板 / 输入区矩形和真实 sticky 顶栏占位。
+
+本轮独立验证：
+
+- `npm test -- chat-layout-css chat-message-panel-scroll chat-layout-browser --reporter=verbose`：exit 0，3 个测试文件、6 项测试通过。
+- 真实 Chrome CDP 几何：
+  - 桌面 1280×800：3 条与 80 条消息主面板均为 `674px`，消息区均为 `275px`；80 条消息 `scrollHeight=12332px`，无横向溢出。
+  - 移动端 390×844：3 条与 80 条消息主面板均为 `754px`，消息区均为 `260px`；80 条消息 `scrollHeight=11691px`，输入区底部 `661.875px`，无横向溢出。
+  - 聚焦态 390×600：`visualViewport=390×600`，面板 `top=8px`、`bottom=592px`，输入区 `top=348.21875px`、`bottom=571px`，消息区 `clientHeight=148px`、80 条消息 `scrollHeight=11366px`；输入区完整可见，消息区不覆盖输入区，文档与页面均无横向溢出。
+  - 真实 sticky 顶栏 DOM 高度为 `114.796875px`，不是省略顶栏的空白夹具。
+- 不落盘的一次性真实 Chrome/CDP 失焦与键盘探针：
+  - textarea 聚焦时主面板 `position=fixed`，范围为 `8–592px`；消息区 `overflow-y=auto`、`touch-action=pan-y`，无横向溢出。
+  - textarea 失焦并把焦点移至面板外的品牌链接后，主面板恢复 `position=static`，确认返回文档流。
+  - 消息区获得焦点后按 `PageUp`，`scrollTop` 从 `17235` 降至 `17106`，变化 `-129px`，可用键盘查看历史；焦点仍在消息区。
+- `npm run typecheck`：exit 0。
+- `npm run lint`：exit 0，0 warnings。
+- `npm test`：exit 0，49 个测试文件、193 项测试通过。
+- 本 UI 复验未重复执行构建；代码开发员随提交提供的构建通过证据仅作为上游证据，不冒充本轮独立构建。
+
+严重性结论：
+
+- 上一轮 `SERIOUS-1` 已按最小范围修复并通过真实 Chrome 复验。
+- 严重问题：0 项。
+- 非严重问题：0 项。
+- 最终结论：`PASS_ZERO_ISSUES`。
+- 本 UI 复验不阻塞后续既定门禁，但不代表生产、配置、Issue 或业务方验收通过。
+- 生产未触碰。
+- 唯一下一步：项目总负责人接收本 UI 复验结论，并按既有职责链继续其余独立产品 / Issue / 部署门禁；任何生产动作仍需单独授权与证据。

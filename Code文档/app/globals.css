@@ -2451,8 +2451,9 @@ body {
   border-radius: 30px;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  height: clamp(560px, calc(100vh - 180px), 760px);
+  height: clamp(640px, calc(100vh - 120px), 760px);
   min-height: 0;
+  overflow: hidden;
 }
 
 .dplus-chat-page .conversation-main-header {
@@ -2464,15 +2465,19 @@ body {
 }
 
 .dplus-chat-page .message-list {
+  align-content: start;
   background: #fffdf7;
   border: 3px solid var(--dplus-ink);
   border-radius: 26px;
   margin-top: 16px;
   max-height: 100%;
-  min-height: 360px;
+  min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 18px;
+  scrollbar-gutter: stable;
+  touch-action: pan-y;
 }
 
 .dplus-chat-page .message-bubble {
@@ -2534,11 +2539,11 @@ body {
   }
 
   .dplus-chat-page .conversation-main {
-    height: clamp(520px, calc(100vh - 140px), 680px);
+    height: clamp(640px, calc(100dvh - 60px), 760px);
   }
 
   .dplus-chat-page .message-list {
-    min-height: 260px;
+    min-height: 0;
     padding: 14px;
   }
 

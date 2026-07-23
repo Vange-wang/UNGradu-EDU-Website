@@ -17,6 +17,7 @@ import {
   sendConversationMessageToApi,
   withdrawContactExchangeRequestFromApi
 } from "@/features/chat/chat-api-client";
+import { ChatMessagePanel } from "@/features/chat/chat-message-panel";
 import { CHAT_POLLING_INTERVAL_MS } from "@/features/chat/chat-polling";
 import type { ContactProfileInput } from "@/features/profile/contact-profile";
 import type { ServerContactExchangeRequestView } from "@/server/contact-exchange";
@@ -236,53 +237,13 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
           </div>
         </aside>
 
-        <section className="chat-main conversation-main" aria-label="聊天消息">
-          <div className="conversation-main-header">
-            <div>
-              <h2>消息区</h2>
-              <p>不直接发送手机号、微信号或详细地址。</p>
-            </div>
-            <span className="status-pill">
-              {authorizedProfiles ? "联系方式已授权" : "联系方式未授权"}
-            </span>
-          </div>
-
-          <div className="message-list">
-            {messages.length === 0 ? (
-              <p className="empty-state">暂无消息，先发一句问候吧。</p>
-            ) : null}
-
-            {messages.map((message) => {
-              const isOwn = message.direction === "sent";
-
-              return (
-                <article
-                  className={`message-bubble ${isOwn ? "own-message" : ""}`}
-                  key={message.id}
-                >
-                  <p>{message.text}</p>
-                  <span>{new Date(message.createdAt).toLocaleString("zh-CN")}</span>
-                </article>
-              );
-            })}
-          </div>
-
-          <form className="chat-compose" onSubmit={handleSendMessage}>
-            <label className="field" htmlFor="message-text">
-              <span>发送文字消息</span>
-              <textarea
-                id="message-text"
-                onChange={(event) => setMessageText(event.target.value)}
-                placeholder="输入沟通内容，不直接发送联系方式"
-                rows={3}
-                value={messageText}
-              />
-            </label>
-            <button className="button primary" type="submit">
-              发送
-            </button>
-          </form>
-        </section>
+        <ChatMessagePanel
+          authorizedProfiles={Boolean(authorizedProfiles)}
+          messages={messages}
+          messageText={messageText}
+          onMessageTextChange={setMessageText}
+          onSubmit={handleSendMessage}
+        />
 
         <aside className="chat-side contact-status-panel" aria-label="联系方式交换状态">
           <div>

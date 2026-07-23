@@ -2539,7 +2539,7 @@ body {
   }
 
   .dplus-chat-page .conversation-main {
-    height: clamp(640px, calc(100dvh - 60px), 760px);
+    height: clamp(480px, calc(100dvh - 16px), 760px);
   }
 
   .dplus-chat-page .message-list {
@@ -2559,6 +2559,32 @@ body {
 
   .dplus-chat-page .chat-compose .button {
     width: 100%;
+  }
+}
+
+@media (max-width: 720px) and (max-height: 700px) {
+  .dplus-chat-page .conversation-main-header {
+    padding: 8px 12px;
+  }
+
+  .dplus-chat-page .conversation-main:focus-within {
+    height: calc(100dvh - 16px);
+    left: 50%;
+    position: fixed;
+    top: 8px;
+    transform: translateX(-50%);
+    width: min(calc(100vw - 16px), 390px);
+    z-index: 11;
+  }
+
+  .dplus-chat-page .message-list {
+    margin-top: 8px;
+    padding: 10px;
+  }
+
+  .dplus-chat-page .chat-compose {
+    margin-top: 8px;
+    padding: 10px;
   }
 }
 

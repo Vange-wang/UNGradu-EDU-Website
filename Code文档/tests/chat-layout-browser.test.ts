@@ -1,10 +1,11 @@
-import { execFile } from "node:child_process";
+import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { createServer } from "node:http";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -13,7 +14,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ChatMessagePanel } from "@/features/chat/chat-message-panel";
 import type { ServerConversationMessageView } from "@/server/conversations";
 
-const execFileAsync = promisify(execFile);
 const browserPath = [
   process.env.CHROME_BIN,
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
@@ -23,19 +23,43 @@ const browserPath = [
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ].find((candidate): candidate is string => Boolean(candidate && existsSync(candidate)));
 const describeWithBrowser = browserPath ? describe : describe.skip;
+const require = createRequire(import.meta.url);
+
+type WebSocketClient = {
+  close: () => void;
+  on: {
+    (event: "open", listener: () => void): void;
+    (event: "message", listener: (data: { toString: () => string }) => void): void;
+    (event: "error", listener: (error: Error) => void): void;
+  };
+  send: (data: string) => void;
+};
+
+type WebSocketConstructor = new (url: string) => WebSocketClient;
+
+const WebSocketClient = require("ws") as WebSocketConstructor;
 
 type LayoutMetrics = {
   composeContained: boolean;
+  composeBottom: number;
+  composeTop: number;
   documentScrollWidth: number;
+  inputFocused: boolean;
   listCanScroll: boolean;
   listComesBeforeCompose: boolean;
   listClientHeight: number;
   listScrollHeight: number;
   listTabIndex: number;
+  mainBottom: number;
   mainClientHeight: number;
+  mainTop: number;
   pageClientWidth: number;
   pageScrollWidth: number;
+  siteHeaderHeight: number;
+  viewportHeight: number;
   viewportWidth: number;
+  visualViewportHeight: number;
+  visualViewportWidth: number;
 };
 
 function buildMessages(count: number): ServerConversationMessageView[] {
@@ -70,60 +94,120 @@ function renderFixture(css: string, messageCount: number, contentWidth?: number)
     <style>${css}</style>
   </head>
   <body>
-    <main class="page dplus-chat-page"${
-      contentWidth
-        ? ` style="max-width:${contentWidth}px;width:${contentWidth}px"`
-        : ""
-    }>
-      <section class="wide-panel">
-        <div class="workspace-header">
-          <div><span class="eyebrow">站内沟通</span><h1 class="section-title">站内聊天</h1></div>
-        </div>
-        <div class="conversation-workspace">
-          <aside class="conversation-context"><h2>需求沟通</h2><p>会话状态</p></aside>
-          ${panel}
-          <aside class="chat-side contact-status-panel"><h2>联系方式交换</h2></aside>
-        </div>
-      </section>
+    <header class="site-header">
+      <a class="brand" href="/">UNGradu EDU</a>
+      <nav class="top-nav" aria-label="主导航">
+        <a href="/parent-needs">家长需求</a>
+        <a href="/tutor-profiles">老师资料</a>
+        <a href="/profile">我的账号</a>
+      </nav>
+    </header>
+    <main>
+      <div class="page dplus-chat-page"${
+        contentWidth
+          ? ` style="max-width:${contentWidth}px;width:${contentWidth}px"`
+          : ""
+      }>
+        <section class="wide-panel">
+          <div class="workspace-header">
+            <div><span class="eyebrow">站内沟通</span><h1 class="section-title">站内聊天</h1></div>
+          </div>
+          <div class="conversation-workspace">
+            <aside class="conversation-context"><h2>需求沟通</h2><p>会话状态</p></aside>
+            ${panel}
+            <aside class="chat-side contact-status-panel"><h2>联系方式交换</h2></aside>
+          </div>
+        </section>
+      </div>
     </main>
-    <pre id="layout-result"></pre>
-    <script>
-      const main = document.querySelector(".conversation-main");
-      const list = document.querySelector(".message-list");
-      const compose = document.querySelector(".chat-compose");
-      const page = document.querySelector(".dplus-chat-page");
-      const mainRect = main.getBoundingClientRect();
-      const listRect = list.getBoundingClientRect();
-      const composeRect = compose.getBoundingClientRect();
-      list.scrollTop = 50;
-      const result = {
-        composeContained: composeRect.bottom <= mainRect.bottom + 1,
-        documentScrollWidth: document.documentElement.scrollWidth,
-        listCanScroll: list.scrollTop > 0,
-        listComesBeforeCompose: listRect.bottom <= composeRect.top + 1,
-        listClientHeight: list.clientHeight,
-        listScrollHeight: list.scrollHeight,
-        listTabIndex: list.tabIndex,
-        mainClientHeight: main.clientHeight,
-        pageClientWidth: page.clientWidth,
-        pageScrollWidth: page.scrollWidth,
-        viewportWidth: window.innerWidth
-      };
-      document.querySelector("#layout-result").textContent =
-        "LAYOUT_METRICS:" + JSON.stringify(result);
-    </script>
   </body>
 </html>`;
 }
 
-function parseMetrics(html: string): LayoutMetrics {
-  const match = html.match(/LAYOUT_METRICS:(\{[^<]+\})/);
+type CdpResponse = {
+  error?: { message: string };
+  id?: number;
+  result?: unknown;
+};
 
-  if (!match) {
-    throw new Error("Chrome 未返回聊天布局测量结果。");
+class CdpClient {
+  private nextId = 1;
+  private readonly pending = new Map<
+    number,
+    { reject: (error: Error) => void; resolve: (value: unknown) => void }
+  >();
+
+  constructor(private readonly socket: WebSocketClient) {
+    socket.on("message", (data) => {
+      const message = JSON.parse(data.toString()) as CdpResponse;
+
+      if (!message.id) {
+        return;
+      }
+
+      const request = this.pending.get(message.id);
+
+      if (!request) {
+        return;
+      }
+
+      this.pending.delete(message.id);
+
+      if (message.error) {
+        request.reject(new Error(message.error.message));
+        return;
+      }
+
+      request.resolve(message.result);
+    });
   }
 
-  return JSON.parse(match[1]) as LayoutMetrics;
+  close() {
+    this.socket.close();
+  }
+
+  send(method: string, params: Record<string, unknown> = {}) {
+    const id = this.nextId;
+    this.nextId += 1;
+
+    return new Promise<unknown>((resolve, reject) => {
+      this.pending.set(id, { reject, resolve });
+      this.socket.send(JSON.stringify({ id, method, params }));
+    });
+  }
+}
+
+async function connectCdp(url: string) {
+  const socket = new WebSocketClient(url);
+
+  await new Promise<void>((resolve, reject) => {
+    socket.on("open", resolve);
+    socket.on("error", reject);
+  });
+
+  return new CdpClient(socket);
+}
+
+async function readDevToolsPort(profileDirectory: string) {
+  const portFile = path.join(profileDirectory, "DevToolsActivePort");
+
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      const [port] = (await readFile(portFile, "utf8")).trim().split(/\r?\n/);
+
+      if (port) {
+        return Number(port);
+      }
+    } catch {
+      await delay(50);
+    }
+  }
+
+  throw new Error("Chrome DevTools 端口未在预期时间内就绪。");
+}
+
+function readRuntimeValue<T>(result: unknown) {
+  return (result as { result?: { value?: T } }).result?.value;
 }
 
 describeWithBrowser("真实聊天消息面板布局", () => {
@@ -167,49 +251,196 @@ describeWithBrowser("真实聊天消息面板布局", () => {
     }
 
     const profileDirectory = await mkdtemp(path.join(tmpdir(), "chat-layout-chrome-"));
+    const browserProcess = spawn(
+      browserPath,
+      [
+        "--headless=new",
+        "--disable-gpu",
+        "--hide-scrollbars",
+        "--no-first-run",
+        "--remote-debugging-port=0",
+        `--user-data-dir=${profileDirectory}`,
+        "about:blank"
+      ],
+      { stdio: "ignore", windowsHide: true }
+    );
+    const browserExited = new Promise<void>((resolve, reject) => {
+      browserProcess.once("error", reject);
+      browserProcess.once("exit", (code) => {
+        if (code === 0 || code === null) {
+          resolve();
+          return;
+        }
+
+        reject(new Error(`Chrome 异常退出，code=${code}`));
+      });
+    });
+    let cdp: CdpClient | undefined;
 
     try {
-      const { stdout } = await execFileAsync(
-        browserPath,
-        [
-          "--headless=new",
-          "--disable-gpu",
-          "--hide-scrollbars",
-          "--no-first-run",
-          `--user-data-dir=${profileDirectory}`,
-          `--window-size=${width},${height}`,
-          "--virtual-time-budget=1000",
-          "--dump-dom",
-          `${baseUrl}/?messages=${messageCount}${
-            width <= 390 ? `&contentWidth=${width}` : ""
-          }`
-        ],
-        { encoding: "utf8", maxBuffer: 4 * 1024 * 1024 }
+      const port = await readDevToolsPort(profileDirectory);
+      const targetResponse = await fetch(
+        `http://127.0.0.1:${port}/json/new?${encodeURIComponent("about:blank")}`,
+        { method: "PUT" }
       );
 
-      return parseMetrics(stdout);
+      if (!targetResponse.ok) {
+        throw new Error(`无法创建 Chrome 调试页，status=${targetResponse.status}`);
+      }
+
+      const target = (await targetResponse.json()) as {
+        webSocketDebuggerUrl?: string;
+      };
+
+      if (!target.webSocketDebuggerUrl) {
+        throw new Error("Chrome 调试页未返回 WebSocket 地址。");
+      }
+
+      cdp = await connectCdp(target.webSocketDebuggerUrl);
+      await cdp.send("Page.enable");
+      await cdp.send("Emulation.setDeviceMetricsOverride", {
+        deviceScaleFactor: 1,
+        height,
+        mobile: width <= 720,
+        screenHeight: height,
+        screenWidth: width,
+        width
+      });
+      await cdp.send("Page.navigate", {
+        url: `${baseUrl}/?messages=${messageCount}`
+      });
+
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        const readyState = readRuntimeValue<string>(
+          await cdp.send("Runtime.evaluate", {
+            expression: "document.readyState",
+            returnByValue: true
+          })
+        );
+
+        if (readyState === "complete") {
+          break;
+        }
+
+        await delay(50);
+      }
+
+      const evaluation = await cdp.send("Runtime.evaluate", {
+        awaitPromise: true,
+        expression: `(() => new Promise((resolve) => {
+          const main = document.querySelector(".conversation-main");
+          const list = document.querySelector(".message-list");
+          const compose = document.querySelector(".chat-compose");
+          const page = document.querySelector(".dplus-chat-page");
+          const siteHeader = document.querySelector(".site-header");
+          const textarea = document.querySelector("#message-text");
+          textarea.focus();
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            const mainRect = main.getBoundingClientRect();
+            const listRect = list.getBoundingClientRect();
+            const composeRect = compose.getBoundingClientRect();
+            const visualViewportHeight = window.visualViewport
+              ? window.visualViewport.height
+              : window.innerHeight;
+            const visualViewportWidth = window.visualViewport
+              ? window.visualViewport.width
+              : window.innerWidth;
+            list.scrollTop = 50;
+            resolve({
+              composeContained: composeRect.bottom <= mainRect.bottom + 1,
+              composeBottom: composeRect.bottom,
+              composeTop: composeRect.top,
+              documentScrollWidth: document.documentElement.scrollWidth,
+              inputFocused: document.activeElement === textarea,
+              listCanScroll: list.scrollTop > 0,
+              listComesBeforeCompose: listRect.bottom <= composeRect.top + 1,
+              listClientHeight: list.clientHeight,
+              listScrollHeight: list.scrollHeight,
+              listTabIndex: list.tabIndex,
+              mainBottom: mainRect.bottom,
+              mainClientHeight: main.clientHeight,
+              mainTop: mainRect.top,
+              pageClientWidth: page.clientWidth,
+              pageScrollWidth: page.scrollWidth,
+              siteHeaderHeight: siteHeader.getBoundingClientRect().height,
+              viewportHeight: window.innerHeight,
+              visualViewportHeight,
+              visualViewportWidth,
+              viewportWidth: window.innerWidth
+            });
+          }));
+        }))()`,
+        returnByValue: true
+      });
+      const metrics = readRuntimeValue<LayoutMetrics>(evaluation);
+
+      if (!metrics) {
+        throw new Error("Chrome 未返回聊天布局测量结果。");
+      }
+
+      return metrics;
     } finally {
-      await rm(profileDirectory, { force: true, recursive: true });
+      if (cdp) {
+        void cdp.send("Browser.close").catch(() => undefined);
+        await delay(100);
+        cdp.close();
+      }
+
+      await Promise.race([browserExited, delay(2_000)]);
+
+      if (browserProcess.exitCode === null) {
+        browserProcess.kill();
+        await Promise.race([browserExited, delay(3_000)]);
+      }
+
+      await rm(profileDirectory, {
+        force: true,
+        maxRetries: 10,
+        recursive: true,
+        retryDelay: 100
+      });
     }
   }
 
   it.each([
-    { name: "桌面", width: 1280, height: 900, minListHeight: 200 },
-    { name: "移动端", width: 390, height: 844, minListHeight: 150 },
     {
-      name: "移动端键盘压缩视口",
+      name: "桌面",
+      width: 1280,
+      viewportHeight: 800,
+      minListHeight: 200,
+      mustFitViewport: false
+    },
+    {
+      name: "移动端",
       width: 390,
-      height: 600,
-      minListHeight: 120
+      viewportHeight: 844,
+      minListHeight: 150,
+      mustFitViewport: false
+    },
+    {
+      name: "390×600 移动端键盘压缩视口",
+      width: 390,
+      viewportHeight: 600,
+      minListHeight: 120,
+      mustFitViewport: true
     }
   ])(
     "$name 消息增多时只增加内部 scrollHeight",
-    async ({ width, height, minListHeight }) => {
-      const shortConversation = await measure(3, width, height);
-      const longConversation = await measure(80, width, height);
+    async ({
+      width,
+      viewportHeight,
+      minListHeight,
+      mustFitViewport
+    }) => {
+      const shortConversation = await measure(3, width, viewportHeight);
+      const longConversation = await measure(80, width, viewportHeight);
 
       console.info({ shortConversation, longConversation });
 
+      expect(longConversation.viewportHeight).toBe(viewportHeight);
+      expect(Math.round(longConversation.visualViewportHeight)).toBe(viewportHeight);
+      expect(Math.round(longConversation.visualViewportWidth)).toBe(width);
+      expect(longConversation.inputFocused).toBe(true);
       expect(longConversation.mainClientHeight).toBe(shortConversation.mainClientHeight);
       expect(longConversation.listClientHeight).toBe(shortConversation.listClientHeight);
       expect(longConversation.listClientHeight).toBeGreaterThanOrEqual(minListHeight);
@@ -226,6 +457,18 @@ describeWithBrowser("真实聊天消息面板布局", () => {
       expect(longConversation.pageScrollWidth).toBeLessThanOrEqual(
         longConversation.pageClientWidth
       );
+
+      if (mustFitViewport) {
+        expect(longConversation.siteHeaderHeight).toBeGreaterThan(0);
+        expect(longConversation.mainTop).toBeGreaterThanOrEqual(0);
+        expect(longConversation.mainBottom).toBeLessThanOrEqual(
+          longConversation.visualViewportHeight
+        );
+        expect(longConversation.composeTop).toBeGreaterThanOrEqual(0);
+        expect(longConversation.composeBottom).toBeLessThanOrEqual(
+          longConversation.visualViewportHeight
+        );
+      }
     },
     30_000
   );

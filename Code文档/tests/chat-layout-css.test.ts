@@ -25,7 +25,20 @@ describe("chat layout CSS", () => {
 
   it("prioritizes customer service chat controls on mobile", () => {
     expect(globalsCss).toContain(".customer-service-main {\n    order: -1;");
-    expect(globalsCss).toContain(".customer-service-messages {\n    min-height: 160px;");
+    expect(globalsCss).toContain(
+      ".customer-service-messages {\n    height: clamp(180px, 32dvh, 260px);"
+    );
     expect(globalsCss).not.toContain(".customer-service-dify-frame");
+  });
+
+  it("constrains customer service history to its own scroll region", () => {
+    const messagesRule = readRule(".customer-service-messages");
+
+    expect(messagesRule).toMatch(/(?:height|max-height):/);
+    expect(messagesRule).toContain("min-height: 0");
+    expect(messagesRule).toContain("overflow-y: auto");
+    expect(messagesRule).toContain("overflow-x: hidden");
+    expect(messagesRule).toContain("overscroll-behavior: contain");
+    expect(messagesRule).toContain("touch-action: pan-y");
   });
 });

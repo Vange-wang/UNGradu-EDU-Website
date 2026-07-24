@@ -2704,13 +2704,20 @@ body {
 }
 
 .customer-service-messages {
+  align-content: start;
   background: #fffdf7;
   border: 3px solid var(--dplus-ink);
   border-radius: 24px;
   display: grid;
   gap: 12px;
-  min-height: 340px;
+  height: clamp(300px, 42vh, 420px);
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 16px;
+  scrollbar-gutter: stable;
+  touch-action: pan-y;
 }
 
 .customer-service-message {
@@ -2867,7 +2874,7 @@ body {
   }
 
   .customer-service-messages {
-    min-height: 160px;
+    height: clamp(180px, 32dvh, 260px);
   }
 
   .customer-service-compose {

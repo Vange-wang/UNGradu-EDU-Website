@@ -12,6 +12,16 @@ const chatSource = readFileSync(
   "utf8"
 );
 
+const chatApiClientSource = readFileSync(
+  join(
+    process.cwd(),
+    "features",
+    "customer-service",
+    "customer-service-api-client.ts"
+  ),
+  "utf8"
+);
+
 const navSource = readFileSync(
   join(process.cwd(), "features", "auth", "session-nav.tsx"),
   "utf8"
@@ -41,6 +51,8 @@ describe("customer service page copy", () => {
     expect(chatSource).toContain('aria-label="快捷问题"');
     expect(chatSource).toContain('id="customer-service-question"');
     expect(chatSource).toContain('placeholder="输入问题');
+    expect(chatSource).toContain("sendCustomerServiceMessage");
+    expect(chatApiClientSource).toContain('"/api/customer-service"');
   });
 
   it("adds a top navigation entry for customer service", () => {

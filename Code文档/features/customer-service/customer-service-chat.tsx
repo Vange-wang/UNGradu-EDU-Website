@@ -3,15 +3,15 @@
 import { FormEvent, useState } from "react";
 
 import {
-  CustomerServiceReply,
-  getTutorCustomerServiceReply
-} from "@/features/customer-service/tutor-customer-service-agent";
+  buildCustomerServiceHistory,
+  sendCustomerServiceMessage
+} from "@/features/customer-service/customer-service-api-client";
 
 type ChatMessage = {
-  id: number;
+  id: string;
   role: "assistant" | "user";
   text: string;
-  intent?: CustomerServiceReply["intent"];
+  intent?: string;
 };
 
 const quickQuestions = [
@@ -24,7 +24,7 @@ const quickQuestions = [
 
 const initialMessages: ChatMessage[] = [
   {
-    id: 1,
+    id: "assistant-initial",
     role: "assistant",
     text: "你好，我是 UNGradu EDU 智能客服助手。你可以问找家教、发布资料、联系方式交换、课时费边界和风险反馈。"
   }
@@ -33,33 +33,59 @@ const initialMessages: ChatMessage[] = [
 export function CustomerServiceChat() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
+  const [conversationId, setConversationId] = useState<string | undefined>();
+  const [submitting, setSubmitting] = useState(false);
 
-  function ask(question: string) {
+  async function ask(question: string) {
     const normalized = question.trim();
     if (!normalized) {
       return;
     }
 
-    const reply = getTutorCustomerServiceReply(normalized);
-    setMessages((current) => [
-      ...current,
-      {
-        id: current.length + 1,
-        role: "user",
+    const userMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
+      role: "user",
+      text: normalized
+    };
+
+    setMessages((current) => [...current, userMessage]);
+    setSubmitting(true);
+
+    try {
+      const result = await sendCustomerServiceMessage({
+        conversationId,
+        history: buildCustomerServiceHistory(messages),
         text: normalized
-      },
-      {
-        id: current.length + 2,
-        role: "assistant",
-        text: reply.answer,
-        intent: reply.intent
-      }
-    ]);
+      });
+
+      setConversationId(result.value.conversationId);
+      setMessages((current) => [
+        ...current,
+        {
+          id: result.value.messageId,
+          intent: result.value.answer.templateId ?? result.value.answer.source,
+          role: "assistant",
+          text: result.value.answer.text
+        }
+      ]);
+    } catch {
+      setMessages((current) => [
+        ...current,
+        {
+          id: `assistant-error-${Date.now()}`,
+          intent: "terminal_guard",
+          role: "assistant",
+          text: "抱歉，当前无法处理您的请求，请稍后再试。"
+        }
+      ]);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    ask(input);
+    await ask(input);
     setInput("");
   }
 
@@ -76,7 +102,10 @@ export function CustomerServiceChat() {
             key={message.id}
           >
             <p>{message.text}</p>
-            {message.intent === "risk_handoff" || message.intent === "fallback" ? (
+            {message.intent === "HANDOFF_REQUIRED" ||
+            message.intent === "HANDOFF_LOCKED_STATUS" ||
+            message.intent === "UNABLE_TO_CONFIRM" ||
+            message.intent === "terminal_guard" ? (
               <a className="customer-service-inline-link" href="/feedback">
                 去提交风险与功能反馈
               </a>
@@ -87,7 +116,12 @@ export function CustomerServiceChat() {
 
       <div className="customer-service-quick-list" aria-label="快捷问题">
         {quickQuestions.map((question) => (
-          <button key={question} onClick={() => ask(question)} type="button">
+          <button
+            disabled={submitting}
+            key={question}
+            onClick={() => void ask(question)}
+            type="button"
+          >
             {question}
           </button>
         ))}
@@ -98,14 +132,15 @@ export function CustomerServiceChat() {
           输入客服问题
         </label>
         <input
+          disabled={submitting}
           id="customer-service-question"
           onChange={(event) => setInput(event.target.value)}
           placeholder="输入问题，例如：怎么联系老师？"
           type="text"
           value={input}
         />
-        <button className="button primary" type="submit">
-          发送
+        <button className="button primary" disabled={submitting} type="submit">
+          {submitting ? "发送中" : "发送"}
         </button>
       </form>
     </section>

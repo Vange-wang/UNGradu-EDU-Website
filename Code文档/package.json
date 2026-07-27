@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/clean-next-build.mjs && next build",
+    "build": "node scripts/run-next-build.mjs",
+    "build:clean": "node scripts/clean-next-build.mjs",
     "cloudbase:check": "node scripts/check-cloudbase-connection.mjs",
+    "customer-service:cloudbase:collections": "node scripts/check-customer-service-cloudbase-collections.mjs",
     "m5:cloudbase:collections": "node scripts/check-m5-cloudbase-collections.mjs",
     "m5:backfill:conversations": "node scripts/backfill-conversation-indexes.mjs",
     "m5:flow": "vitest run m5-server-flow-and-load",
@@ -17,7 +19,7 @@
     "lint": "eslint . --max-warnings=0",
     "production:ops:baseline": "node scripts/production-ops-baseline-check.mjs",
     "release:production:preflight": "node scripts/production-readiness-check.mjs",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {

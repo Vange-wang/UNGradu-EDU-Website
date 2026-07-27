@@ -43,8 +43,8 @@ export default function CustomerServicePage() {
             <li>风险反馈、虚假信息和骚扰记录。</li>
           </ul>
           <p>
-            <span>当前使用站内离线客服。</span>
-            <span>Dify WebApp 仅作为延后入口。</span>
+            <span>当前默认使用站内服务端安全客服代理。</span>
+            <span>Dify WebApp 仅作为备用演示入口。</span>
           </p>
           {difyWebAppUrl ? (
             <a

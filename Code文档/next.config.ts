@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import windowsRmRetry from "./scripts/next-windows-rm-retry.cjs";
+
+windowsRmRetry.installWindowsExportRmRetry();
 
 const contentSecurityPolicy = [
   "default-src 'self'",

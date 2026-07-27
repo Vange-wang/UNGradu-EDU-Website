@@ -1,10 +1,11 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { createServer } from "node:http";
+import { createServer, get, request } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import { promisify } from "node:util";
 
 import WebSocket from "ws";
 
@@ -60,6 +61,42 @@ const pageSelectors = {
   }
 };
 
+const publicDataOrigin = "https://ungradeedu.eu.cc";
+const execFileAsync = promisify(execFile);
+
+const approvedTutorVisualFixture = [{
+  abilityDescription: "善于梳理物理知识结构，重视基础与解题思路。",
+  feeRanges: [
+    { grade: "初中", max: 180, min: 120, subject: "数学" },
+    { grade: "高中", max: 180, min: 120, subject: "物理" }
+  ],
+  gender: "女",
+  grades: ["初中", "高中"],
+  id: "approved-tutor-visual-fixture",
+  major: "物理学",
+  school: "北京大学",
+  subjects: ["数学", "物理"]
+}];
+
+const approvedParentNeedVisualFixture = [{
+  budgetMax: 150,
+  budgetMin: 100,
+  childIntro: "希望周末进行数学辅导",
+  community: "",
+  createdAt: "2026-07-27T00:00:00.000Z",
+  grade: "初二",
+  id: "approved-parent-needs-visual-fixture",
+  region: {
+    city: "东莞",
+    district: "松山湖",
+    province: "广东省"
+  },
+  status: "published",
+  subjects: ["数学"],
+  teacherGenderPreference: "不限",
+  timeSlots: ["周末"]
+}];
+
 function parseArgs(argv) {
   const values = {};
   for (let index = 0; index < argv.length; index += 2) {
@@ -83,8 +120,14 @@ function parseArgs(argv) {
     throw new Error(`unsupported page: ${page}`);
   }
 
+  const dataSource = values["data-source"] ?? "fixture";
+  if (!["fixture", "public-real-data"].includes(dataSource)) {
+    throw new Error(`unsupported data source: ${dataSource}`);
+  }
+
   return {
     baseUrl: values["base-url"].replace(/\/$/, ""),
+    dataSource: values["data-source"] ?? "fixture",
     height: Number(values.height),
     interaction: values.interaction ?? "none",
     outputDir: values["output-dir"],
@@ -126,16 +169,92 @@ async function waitForJson(url, attempts = 100) {
   let lastError;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
-      const response = await fetch(url);
-      if (response.ok) {
-        return await response.json();
-      }
+      return await new Promise((resolve, reject) => {
+        const request = get(url, (response) => {
+          let payload = "";
+          response.setEncoding("utf8");
+          response.on("data", (chunk) => {
+            payload += chunk;
+          });
+          response.on("end", () => {
+            if (
+              response.statusCode &&
+              response.statusCode >= 200 &&
+              response.statusCode < 300
+            ) {
+              try {
+                resolve(JSON.parse(payload));
+              } catch (error) {
+                reject(error);
+              }
+              return;
+            }
+            reject(
+              new Error(`unexpected DevTools status ${response.statusCode}`)
+            );
+          });
+        });
+        request.once("error", reject);
+      });
     } catch (error) {
       lastError = error;
     }
     await delay(50);
   }
   throw lastError ?? new Error(`timed out waiting for ${url}`);
+}
+
+async function requestJson(url, method = "GET") {
+  return await new Promise((resolve, reject) => {
+    const clientRequest = request(url, { method }, (response) => {
+      let payload = "";
+      response.setEncoding("utf8");
+      response.on("data", (chunk) => {
+        payload += chunk;
+      });
+      response.on("end", () => {
+        if (
+          response.statusCode &&
+          response.statusCode >= 200 &&
+          response.statusCode < 300
+        ) {
+          try {
+            resolve(JSON.parse(payload));
+          } catch (error) {
+            reject(error);
+          }
+          return;
+        }
+        reject(new Error(`unexpected DevTools status ${response.statusCode}`));
+      });
+    });
+    clientRequest.once("error", reject);
+    clientRequest.end();
+  });
+}
+
+async function readPublicJson(url) {
+  const { stdout } = await execFileAsync(
+    "curl.exe",
+    [
+      "--fail",
+      "--silent",
+      "--show-error",
+      "--location",
+      "--max-time",
+      "20",
+      "--proto",
+      "=https",
+      "--tlsv1.2",
+      url
+    ],
+    {
+      encoding: "utf8",
+      maxBuffer: 5 * 1024 * 1024,
+      windowsHide: true
+    }
+  );
+  return JSON.parse(stdout);
 }
 
 function connectCdp(webSocketUrl) {
@@ -221,6 +340,136 @@ async function evaluate(cdp, expression) {
   return response.result.value;
 }
 
+async function dispatchKeyboardKey(cdp, {
+  code,
+  key,
+  nativeVirtualKeyCode,
+  text = "",
+  windowsVirtualKeyCode
+}) {
+  await cdp.send("Input.dispatchKeyEvent", {
+    code,
+    key,
+    nativeVirtualKeyCode,
+    type: "rawKeyDown",
+    unmodifiedText: text,
+    windowsVirtualKeyCode
+  });
+  if (text) {
+    await cdp.send("Input.dispatchKeyEvent", {
+      code,
+      key,
+      nativeVirtualKeyCode,
+      text,
+      type: "char",
+      unmodifiedText: text,
+      windowsVirtualKeyCode
+    });
+  }
+  await cdp.send("Input.dispatchKeyEvent", {
+    code,
+    key,
+    type: "keyUp",
+    windowsVirtualKeyCode
+  });
+}
+
+async function focusByTab(cdp, selector, maximumTabs = 24) {
+  await evaluate(
+    cdp,
+    `document.activeElement instanceof HTMLElement &&
+      document.activeElement.blur()`
+  );
+  for (let tabIndex = 1; tabIndex <= maximumTabs; tabIndex += 1) {
+    await dispatchKeyboardKey(cdp, {
+      code: "Tab",
+      key: "Tab",
+      nativeVirtualKeyCode: 9,
+      windowsVirtualKeyCode: 9
+    });
+    const matched = await evaluate(
+      cdp,
+      `document.activeElement?.matches(${JSON.stringify(selector)}) ?? false`
+    );
+    if (matched) {
+      return tabIndex;
+    }
+  }
+  throw new Error(
+    `keyboard Tab traversal did not reach ${selector} within ${maximumTabs} steps`
+  );
+}
+
+async function auditTabOrder(cdp, maximumTabs = 64) {
+  await evaluate(
+    cdp,
+    `document.activeElement instanceof HTMLElement &&
+      document.activeElement.blur()`
+  );
+  const entries = [];
+  const visitedIndexes = new Set();
+  for (let tabIndex = 1; tabIndex <= maximumTabs; tabIndex += 1) {
+    await dispatchKeyboardKey(cdp, {
+      code: "Tab",
+      key: "Tab",
+      nativeVirtualKeyCode: 9,
+      windowsVirtualKeyCode: 9
+    });
+    const entry = await evaluate(
+      cdp,
+      `(() => {
+        const element = document.activeElement;
+        if (!(element instanceof HTMLElement) || element === document.body) {
+          return null;
+        }
+        const focusable = Array.from(document.querySelectorAll(
+          'a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])'
+        ));
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return {
+          ariaLabel: element.getAttribute("aria-label"),
+          boxShadow: style.boxShadow,
+          className: element.className,
+          color: style.color,
+          disabled:
+            "disabled" in element ? Boolean(element.disabled) : false,
+          height: rect.height,
+          href:
+            element instanceof HTMLAnchorElement
+              ? element.getAttribute("href")
+              : null,
+          index: focusable.indexOf(element),
+          opacity: style.opacity,
+          outlineColor: style.outlineColor,
+          outlineStyle: style.outlineStyle,
+          outlineWidth: style.outlineWidth,
+          tagName: element.tagName,
+          text: (element.innerText || element.getAttribute("placeholder") || "")
+            .trim()
+            .slice(0, 80),
+          type:
+            element instanceof HTMLButtonElement ||
+            element instanceof HTMLInputElement
+              ? element.type
+              : null,
+          width: rect.width
+        };
+      })()`
+    );
+    if (!entry || entry.index < 0 || visitedIndexes.has(entry.index)) {
+      break;
+    }
+    visitedIndexes.add(entry.index);
+    entries.push({ ...entry, tabIndex });
+  }
+  await evaluate(
+    cdp,
+    `window.__visualKeyboardAudit = ${JSON.stringify(entries)}`
+  );
+  return entries;
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const profileDirectory = await mkdtemp(
@@ -251,14 +500,10 @@ async function main() {
   try {
     await waitForJson(`http://127.0.0.1:${port}/json/version`);
     const targetUrl = `${options.baseUrl}${options.route}`;
-    const targetResponse = await fetch(
+    const target = await requestJson(
       `http://127.0.0.1:${port}/json/new?${encodeURIComponent(targetUrl)}`,
-      { method: "PUT" }
+      "PUT"
     );
-    if (!targetResponse.ok) {
-      throw new Error(`failed to create Chrome target: ${targetResponse.status}`);
-    }
-    const target = await targetResponse.json();
     cdp = connectCdp(target.webSocketDebuggerUrl);
     await cdp.ready();
 
@@ -299,23 +544,52 @@ async function main() {
       cdp.send("Log.enable"),
       cdp.send("Network.enable")
     ]);
+    let captureDataProvenance = {
+      count: null,
+      mode: options.dataSource,
+      origin: null,
+      status: null
+    };
+    let tutorCaptureData = approvedTutorVisualFixture;
+    let parentNeedCaptureData = approvedParentNeedVisualFixture;
+
+    if (
+      options.dataSource === "public-real-data" &&
+      ["tutor-profiles", "parent-needs"].includes(options.page)
+    ) {
+      const endpoint =
+        options.page === "tutor-profiles"
+          ? "/api/tutor-profiles"
+          : "/api/parent-needs";
+      const publicPayload = await readPublicJson(
+        `${publicDataOrigin}${endpoint}`
+      );
+      if (
+        publicPayload?.ok !== true ||
+        !Array.isArray(publicPayload.value)
+      ) {
+        throw new Error(
+          `public real-data capture failed: ${endpoint}`
+        );
+      }
+      captureDataProvenance = {
+        count: publicPayload.value.length,
+        mode: "public-real-data",
+        origin: publicDataOrigin,
+        status: 200
+      };
+      if (options.page === "tutor-profiles") {
+        tutorCaptureData = publicPayload.value;
+      } else {
+        parentNeedCaptureData = publicPayload.value;
+      }
+    }
+
     if (options.page === "tutor-profiles") {
       await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
         source: `(() => {
           const originalFetch = window.fetch.bind(window);
-          const approvedTutorVisualFixture = [{
-            abilityDescription: "善于梳理物理知识结构，重视基础与解题思路。",
-            feeRanges: [
-              { grade: "初中", max: 180, min: 120, subject: "数学" },
-              { grade: "高中", max: 180, min: 120, subject: "物理" }
-            ],
-            gender: "女",
-            grades: ["初中", "高中"],
-            id: "approved-tutor-visual-fixture",
-            major: "物理学",
-            school: "北京大学",
-            subjects: ["数学", "物理"]
-          }];
+          const approvedTutorVisualFixture = ${JSON.stringify(tutorCaptureData)};
           window.fetch = async (input, init = {}) => {
             const requestUrl =
               input instanceof Request ? input.url : String(input);
@@ -359,24 +633,7 @@ async function main() {
       await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
         source: `(() => {
           const originalFetch = window.fetch.bind(window);
-          const approvedParentNeedVisualFixture = [{
-            budgetMax: 150,
-            budgetMin: 100,
-            childIntro: "希望周末进行数学辅导",
-            community: "",
-            createdAt: "2026-07-27T00:00:00.000Z",
-            grade: "初二",
-            id: "approved-parent-needs-visual-fixture",
-            region: {
-              city: "东莞",
-              district: "松山湖",
-              province: "广东省"
-            },
-            status: "published",
-            subjects: ["数学"],
-            teacherGenderPreference: "不限",
-            timeSlots: ["周末"]
-          }];
+          const approvedParentNeedVisualFixture = ${JSON.stringify(parentNeedCaptureData)};
           window.fetch = async (input, init = {}) => {
             const requestUrl =
               input instanceof Request ? input.url : String(input);
@@ -484,10 +741,7 @@ async function main() {
     );
 
     if (options.interaction === "home-focus-parent-entry") {
-      await evaluate(
-        cdp,
-        `document.querySelector(".home-entry-parent button")?.focus()`
-      );
+      await focusByTab(cdp, ".home-entry-parent button");
     } else if (options.interaction === "login-toggle-password") {
       await evaluate(
         cdp,
@@ -512,10 +766,7 @@ async function main() {
         `document.querySelector("#password-email")?.focus()`
       );
     } else if (options.interaction === "rules-focus-home") {
-      await evaluate(
-        cdp,
-        `document.querySelector('a[aria-label="返回首页"]')?.focus()`
-      );
+      await focusByTab(cdp, 'a[aria-label="返回首页"]');
     } else if (options.interaction === "focus-first-question") {
       await evaluate(
         cdp,
@@ -553,6 +804,19 @@ async function main() {
         cdp,
         `new Promise((resolve) => setTimeout(resolve, 300))`
       );
+    } else if (options.interaction === "activate-first-question-space") {
+      await focusByTab(cdp, ".customer-service-quick-list button");
+      await dispatchKeyboardKey(cdp, {
+        code: "Space",
+        key: " ",
+        nativeVirtualKeyCode: 32,
+        text: " ",
+        windowsVirtualKeyCode: 32
+      });
+      await evaluate(
+        cdp,
+        `new Promise((resolve) => setTimeout(resolve, 300))`
+      );
     } else if (options.interaction === "type-input") {
       await evaluate(
         cdp,
@@ -564,6 +828,64 @@ async function main() {
       await evaluate(
         cdp,
         `new Promise((resolve) => setTimeout(resolve, 150))`
+      );
+    } else if (options.interaction === "customer-manual-send") {
+      await evaluate(
+        cdp,
+        `document.querySelector("#customer-service-question")?.focus()`
+      );
+      await cdp.send("Input.insertText", {
+        text: "怎么联系老师？"
+      });
+      await evaluate(
+        cdp,
+        `new Promise((resolve) => setTimeout(resolve, 100))`
+      );
+      await evaluate(
+        cdp,
+        `(() => {
+          const form = document.querySelector(".customer-service-compose");
+          if (!(form instanceof HTMLFormElement)) {
+            throw new Error("customer-service compose form was not found");
+          }
+          form.requestSubmit();
+        })()`
+      );
+      await evaluate(
+        cdp,
+        `new Promise((resolve) => setTimeout(resolve, 300))`
+      );
+    } else if (options.interaction === "customer-scroll-history") {
+      await evaluate(
+        cdp,
+        `(() => {
+          const button = document.querySelector(
+            ".customer-service-quick-list button"
+          );
+          if (!(button instanceof HTMLButtonElement)) {
+            throw new Error("customer-service quick question was not found");
+          }
+          for (let index = 0; index < 10; index += 1) {
+            button.click();
+          }
+        })()`
+      );
+      await evaluate(
+        cdp,
+        `new Promise((resolve) => setTimeout(resolve, 350))`
+      );
+      await evaluate(
+        cdp,
+        `(() => {
+          const messages = document.querySelector(".customer-service-messages");
+          if (!(messages instanceof HTMLElement)) {
+            throw new Error("customer-service message history was not found");
+          }
+          messages.scrollTop = Math.min(
+            160,
+            Math.max(1, messages.scrollHeight - messages.clientHeight - 1)
+          );
+        })()`
       );
     } else if (options.interaction === "tutor-apply-subject-filter") {
       await evaluate(
@@ -663,6 +985,8 @@ async function main() {
           '.market-header a[href="/parent-needs/new"]'
         )?.focus()`
       );
+    } else if (options.interaction === "keyboard-audit") {
+      await auditTabOrder(cdp);
     } else if (options.interaction !== "none") {
       throw new Error(`unsupported interaction: ${options.interaction}`);
     }
@@ -695,6 +1019,7 @@ async function main() {
           })
         );
         return {
+          captureDataProvenance: ${JSON.stringify(captureDataProvenance)},
           devicePixelRatio: window.devicePixelRatio,
           documentElement: {
             clientHeight: document.documentElement.clientHeight,
@@ -704,6 +1029,7 @@ async function main() {
           },
           innerHeight: window.innerHeight,
           innerWidth: window.innerWidth,
+          keyboardAudit: window.__visualKeyboardAudit ?? [],
           interaction: {
             activeElement:
               document.activeElement?.id ||
@@ -729,6 +1055,33 @@ async function main() {
                   : null,
             messageCount:
               document.querySelectorAll(".customer-service-message").length,
+            messageScroll: (() => {
+              const element = document.querySelector(
+                ".customer-service-messages"
+              );
+              return element
+                ? {
+                    clientHeight: element.clientHeight,
+                    scrollHeight: element.scrollHeight,
+                    scrollTop: element.scrollTop
+                  }
+                : null;
+            })(),
+            focusedStyle: (() => {
+              const element = document.activeElement;
+              if (!(element instanceof HTMLElement)) {
+                return null;
+              }
+              const style = getComputedStyle(element);
+              return {
+                backgroundColor: style.backgroundColor,
+                color: style.color,
+                opacity: style.opacity,
+                outlineColor: style.outlineColor,
+                outlineStyle: style.outlineStyle,
+                outlineWidth: style.outlineWidth
+              };
+            })(),
             rulesHomeHref:
               document
                 .querySelector('a[aria-label="返回首页"]')

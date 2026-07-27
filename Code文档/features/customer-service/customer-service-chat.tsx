@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import {
   CustomerServiceReply,
@@ -33,7 +33,17 @@ const initialMessages: ChatMessage[] = [
 export function CustomerServiceChat() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
+  const messagesRef = useRef<HTMLDivElement>(null);
   const isPristine = messages.length === 1;
+
+  useEffect(() => {
+    const messageList = messagesRef.current;
+    if (!messageList || isPristine) {
+      return;
+    }
+
+    messageList.scrollTop = messageList.scrollHeight;
+  }, [isPristine, messages]);
 
   function ask(question: string) {
     const normalized = question.trim();
@@ -70,13 +80,17 @@ export function CustomerServiceChat() {
       className="customer-service-chat"
       data-chat-state={isPristine ? "pristine" : "active"}
     >
-      <div className="customer-service-messages">
+      <div className="customer-service-messages" ref={messagesRef}>
         {messages.map((message) => (
           <div
             className={
-              message.role === "user"
-                ? "customer-service-message customer-service-message-user"
-                : "customer-service-message"
+              [
+                "customer-service-message",
+                message.id === 1 ? "customer-service-message-initial" : "",
+                message.role === "user" ? "customer-service-message-user" : ""
+              ]
+                .filter(Boolean)
+                .join(" ")
             }
             key={message.id}
           >

@@ -4146,6 +4146,16 @@ body {
   width: 61px;
 }
 
+.home-refresh-page :is(a, button):focus-visible {
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 7px #1358c8;
+  outline: 4px solid #1358c8;
+  outline-offset: 4px;
+  position: relative;
+  z-index: 8;
+}
+
 /*
  * The approved desktop reference uses a generated display face that is not
  * available as a licensed webfont. At the source viewport only, these
@@ -5614,7 +5624,14 @@ body:has(.customer-service-shell) {
 
   .auth-page .auth-card:hover > .auth-form-shell,
   .auth-page .auth-card:focus-within > .auth-form-shell {
+    color: var(--dplus-ink);
     opacity: 1;
+  }
+
+  .auth-page .auth-card:focus-within .auth-form-heading h2,
+  .auth-page .auth-card:focus-within .field label,
+  .auth-page .auth-card:focus-within .auth-mode-link {
+    color: var(--dplus-ink);
   }
 }
 
@@ -5685,6 +5702,11 @@ body:has(.rules-refresh-page) .site-header {
   .rules-native-static-reference .notice-aside > *,
   .rules-native-static-reference .rules-card-list > * {
     opacity: 0;
+  }
+
+  .rules-native-static-reference .page-back-arrow:focus-visible {
+    outline: 4px solid #1358c8;
+    outline-offset: 4px;
   }
 }
 
@@ -6137,6 +6159,308 @@ body:has(.customer-service-shell) {
     > * {
     opacity: 1;
   }
+
+  /*
+   * The frozen skin remains the visual frame in every chat state. Live
+   * controls and dynamic messages occupy the same measured hit areas instead
+   * of replacing the approved composition after focus or submit.
+   */
+  body:has(.customer-service-native-static-reference) .site-header:hover,
+  body:has(.customer-service-native-static-reference) .site-header:focus-within {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  body:has(.customer-service-native-static-reference) .site-header:hover::before,
+  body:has(.customer-service-native-static-reference) .site-header:focus-within::before {
+    opacity: 1;
+  }
+
+  body:has(.customer-service-native-static-reference) .site-header > *,
+  body:has(.customer-service-native-static-reference) .site-header:hover > *,
+  body:has(.customer-service-native-static-reference) .site-header:focus-within > * {
+    opacity: 1;
+  }
+
+  body:has(.customer-service-native-static-reference) .site-header .brand-mark {
+    opacity: 0;
+  }
+
+  body:has(.customer-service-native-static-reference) .site-header .brand-name,
+  body:has(.customer-service-native-static-reference) .site-header .top-nav,
+  body:has(.customer-service-native-static-reference)
+    .site-header
+    .top-nav
+    :is(a, button) {
+    background: transparent;
+    color: transparent;
+  }
+
+  body:has(.customer-service-native-static-reference)
+    .site-header
+    :is(a, button):focus-visible {
+    outline: 3px solid #1358c8;
+    outline-offset: 2px;
+  }
+
+  .customer-service-native-static-reference .customer-service-info-strip:hover,
+  .customer-service-native-static-reference .customer-service-info-strip:focus-within {
+    background: url("/assets/sitewide-ui/customer-service-static-info.png")
+      left top / 1459px 143px no-repeat;
+    border-color: transparent;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .customer-service-native-static-reference .customer-service-info-strip:hover > *,
+  .customer-service-native-static-reference
+    .customer-service-info-strip:focus-within
+    > * {
+    opacity: 0;
+  }
+
+  .customer-service-native-static-reference .customer-service-info-strip .action-row,
+  .customer-service-native-static-reference
+    .customer-service-info-strip:hover
+    .action-row,
+  .customer-service-native-static-reference
+    .customer-service-info-strip:focus-within
+    .action-row {
+    opacity: 1;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-info-strip
+    .action-row
+    .button {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    color: transparent;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-info-strip
+    .action-row
+    .button:focus-visible {
+    outline: 3px solid #1358c8;
+    outline-offset: 2px;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state="active"] {
+    background: url("/assets/sitewide-ui/customer-service-static-chat-frame.png")
+      left top / 1043px 709px no-repeat;
+    background-origin: border-box;
+    border-color: transparent;
+    box-shadow: none;
+    padding: 0;
+    position: relative;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-messages {
+    align-content: start;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    display: grid;
+    gap: 12px;
+    height: 481px;
+    left: 23px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 151px 24px 20px;
+    position: absolute;
+    scrollbar-gutter: stable;
+    top: 24px;
+    width: 990px;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-messages::before {
+    background: url("/assets/sitewide-ui/customer-service-static-welcome.png")
+      left top / 653px 101px no-repeat;
+    content: "";
+    height: 101px;
+    left: 24px;
+    pointer-events: none;
+    position: absolute;
+    top: 25px;
+    width: 653px;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-message-initial {
+    height: 0;
+    margin: 0;
+    opacity: 0;
+    overflow: hidden;
+    padding: 0;
+    pointer-events: none;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-quick-list {
+    display: flex;
+    gap: 1px;
+    height: 51px;
+    left: 17px;
+    overflow: visible;
+    padding: 0;
+    position: absolute;
+    top: 525px;
+    width: 1003px;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-quick-list
+    button {
+    background-color: transparent;
+    background-position: left top;
+    background-repeat: no-repeat;
+    background-size: 100% 51px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    color: transparent;
+    flex: 0 0 auto;
+    font-size: 0;
+    height: 51px;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-quick-list
+    button:focus-visible {
+    outline: 3px solid #1358c8;
+    outline-offset: 2px;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-quick-list
+    button:nth-child(1) {
+    background-image: url("/assets/sitewide-ui/customer-service-static-chip-1.png");
+    width: 193px;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-quick-list
+    button:nth-child(2) {
+    background-image: url("/assets/sitewide-ui/customer-service-static-chip-2.png");
+    width: 201px;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-quick-list
+    button:nth-child(3) {
+    background-image: url("/assets/sitewide-ui/customer-service-static-chip-3.png");
+    width: 200px;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-quick-list
+    button:nth-child(4) {
+    background-image: url("/assets/sitewide-ui/customer-service-static-chip-4.png");
+    width: 219px;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-quick-list
+    button:nth-child(5) {
+    background-image: url("/assets/sitewide-ui/customer-service-static-chip-5.png");
+    width: 186px;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-compose {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: 834px 143px;
+    height: 76px;
+    left: 22px;
+    position: absolute;
+    top: 597px;
+    width: 993px;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-compose
+    input {
+    background: url("/assets/sitewide-ui/customer-service-static-input.png")
+      left top / 834px 76px no-repeat;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    color: transparent;
+    height: 76px;
+    padding: 0;
+    width: 834px;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-compose
+    input::placeholder {
+    color: transparent;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-compose[data-has-input="true"]
+    input,
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-compose
+    input:focus {
+    background: #fffdf7;
+    border: 4px solid var(--dplus-ink);
+    border-radius: 17px;
+    color: var(--dplus-ink);
+    font-size: 20px;
+    outline: 3px solid rgba(19, 88, 200, 0.36);
+    outline-offset: 2px;
+    padding: 0 20px;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-compose
+    .button {
+    background: url("/assets/sitewide-ui/customer-service-static-send.png")
+      left top / 143px 76px no-repeat;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    color: transparent;
+    height: 76px;
+    min-height: 0;
+    padding: 0;
+    width: 143px;
+  }
+
+  .customer-service-native-static-reference
+    .customer-service-chat[data-chat-state]
+    .customer-service-compose
+    .button:focus-visible {
+    outline: 3px solid #1358c8;
+    outline-offset: 2px;
+  }
 }
 
 /* Tutor marketplace native reference: three-frame geometry with live controls. */
@@ -6523,6 +6847,7 @@ body:has(.customer-service-shell) {
       left top / 118px 45px no-repeat;
     border: 0;
     border-radius: 0;
+    box-shadow: none;
     color: transparent;
     height: 45px;
     left: -1px;
@@ -6738,5 +7063,22 @@ body:has(.customer-service-shell) {
     .marketplace-refresh-shell
     .filter-actions {
     margin: 0;
+  }
+
+  .parent-needs-native-static-reference
+    .result-panel[data-result-state="live"]
+    .record-card-header {
+    min-height: 154px;
+  }
+
+  .parent-needs-native-static-reference
+    .result-panel[data-result-state="live"]
+    .record-card
+    h2 {
+    font-size: 28px;
+    line-height: 1.2;
+    margin-top: 18px;
+    max-width: 600px;
+    overflow-wrap: anywhere;
   }
 }

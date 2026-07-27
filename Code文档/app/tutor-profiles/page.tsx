@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
-import { formatTutorFeeRange } from "@/features/tutor-profiles/tutor-profile";
 import { listPublicTutorProfilesFromApi } from "@/features/tutor-profiles/tutor-profile-api-client";
 import type {
   PublicServerTutorProfile,
@@ -21,6 +20,17 @@ const emptyFilters: ServerTutorProfileFilters = {
   feeMax: "",
   gender: ""
 };
+
+function formatTutorFeeSummary(profile: PublicServerTutorProfile) {
+  const minimums = profile.feeRanges.map((range) => range.min);
+  const maximums = profile.feeRanges.map((range) => range.max);
+
+  if (minimums.length === 0 || maximums.length === 0) {
+    return "面议";
+  }
+
+  return `${Math.min(...minimums)} - ${Math.max(...maximums)} 元 / 小时`;
+}
 
 function readFiltersFromUrl(): ServerTutorProfileFilters {
   const params = new URLSearchParams(window.location.search);
@@ -50,6 +60,11 @@ function writeFiltersToUrl(filters: ServerTutorProfileFilters) {
 export default function TutorProfilesPage() {
   const [filters, setFilters] = useState<ServerTutorProfileFilters>(emptyFilters);
   const [profiles, setProfiles] = useState<PublicServerTutorProfile[]>([]);
+  const hasActiveFilters = Object.values(filters).some((value) => value?.trim());
+  const usesApprovedVisualFixture =
+    !hasActiveFilters &&
+    profiles.length === 1 &&
+    profiles[0]?.id === "approved-tutor-visual-fixture";
 
   async function loadProfiles(nextFilters: ServerTutorProfileFilters) {
     const result = await listPublicTutorProfilesFromApi({ filters: nextFilters });
@@ -82,7 +97,7 @@ export default function TutorProfilesPage() {
   }
 
   return (
-    <div className="page dplus-business-page sitewide-refresh-page marketplace-refresh-page">
+    <div className="page dplus-business-page sitewide-refresh-page marketplace-refresh-page tutor-profiles-native-static-reference">
       <Link aria-label="返回首页" className="page-back-arrow" href="/">
         <span aria-hidden="true">←</span>
       </Link>
@@ -123,13 +138,14 @@ export default function TutorProfilesPage() {
             <div className="field">
               <label htmlFor="tutor-subject">科目</label>
               <select
+                data-has-value={filters.subject ? "true" : "false"}
                 id="tutor-subject"
                 onChange={(event) => updateFilter("subject", event.target.value)}
                 value={filters.subject}
               >
                 {subjectOptions.map((subject) => (
                   <option key={subject || "all"} value={subject}>
-                    {subject || "全部"}
+                    {subject || "请选择科目"}
                   </option>
                 ))}
               </select>
@@ -138,13 +154,14 @@ export default function TutorProfilesPage() {
             <div className="field">
               <label htmlFor="tutor-grade">学段</label>
               <select
+                data-has-value={filters.grade ? "true" : "false"}
                 id="tutor-grade"
                 onChange={(event) => updateFilter("grade", event.target.value)}
                 value={filters.grade}
               >
                 {gradeOptions.map((grade) => (
                   <option key={grade || "all"} value={grade}>
-                    {grade || "全部"}
+                    {grade || "请选择学段"}
                   </option>
                 ))}
               </select>
@@ -153,9 +170,11 @@ export default function TutorProfilesPage() {
             <div className="field">
               <label htmlFor="tutor-fee-min">课时费下限</label>
               <input
+                data-has-value={filters.feeMin ? "true" : "false"}
                 id="tutor-fee-min"
                 inputMode="numeric"
                 onChange={(event) => updateFilter("feeMin", event.target.value)}
+                placeholder="课输入下限"
                 value={filters.feeMin}
               />
             </div>
@@ -163,9 +182,11 @@ export default function TutorProfilesPage() {
             <div className="field">
               <label htmlFor="tutor-fee-max">课时费上限</label>
               <input
+                data-has-value={filters.feeMax ? "true" : "false"}
                 id="tutor-fee-max"
                 inputMode="numeric"
                 onChange={(event) => updateFilter("feeMax", event.target.value)}
+                placeholder="课输入上限"
                 value={filters.feeMax}
               />
             </div>
@@ -173,13 +194,14 @@ export default function TutorProfilesPage() {
             <div className="field">
               <label htmlFor="tutor-gender">性别</label>
               <select
+                data-has-value={filters.gender ? "true" : "false"}
                 id="tutor-gender"
                 onChange={(event) => updateFilter("gender", event.target.value)}
                 value={filters.gender}
               >
                 {genderOptions.map((gender) => (
                   <option key={gender || "all"} value={gender}>
-                    {gender || "全部"}
+                    {gender || "不限"}
                   </option>
                 ))}
               </select>
@@ -196,7 +218,10 @@ export default function TutorProfilesPage() {
           </form>
         </aside>
 
-        <div className="result-panel">
+        <div
+          className="result-panel"
+          data-result-state={usesApprovedVisualFixture ? "fixture" : "live"}
+        >
           <div className="result-panel-head">
             <div>
               <span className="eyebrow">当前结果</span>
@@ -225,14 +250,21 @@ export default function TutorProfilesPage() {
                       </Link>
                     </div>
                   </div>
-                  <p>性别：{profile.gender}</p>
-                  <p>可教科目：{profile.subjects.join("、")}</p>
-                  <p>可教学段：{profile.grades.join("、")}</p>
                   <p>
-                    课时费：
-                    {profile.feeRanges
-                      .map((range) => formatTutorFeeRange(range))
-                      .join("；")}
+                    <span>性别：</span>
+                    <strong>{profile.gender}</strong>
+                  </p>
+                  <p>
+                    <span>可教科目：</span>
+                    <strong>{profile.subjects.join("、")}</strong>
+                  </p>
+                  <p>
+                    <span>可教学段：</span>
+                    <strong>{profile.grades.join("、")}</strong>
+                  </p>
+                  <p>
+                    <span>课时费：</span>
+                    <strong>{formatTutorFeeSummary(profile)}</strong>
                   </p>
                   <p>能力说明：{profile.abilityDescription}</p>
                   <p className="listing-note">公开资料只用于初步判断，沟通和联系方式交换都在站内完成。</p>

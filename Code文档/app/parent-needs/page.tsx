@@ -54,6 +54,16 @@ function writeFiltersToUrl(filters: ServerParentNeedFilters) {
   window.history.pushState(null, "", query ? `/parent-needs?${query}` : "/parent-needs");
 }
 
+function formatNeedRegion(need: PublicServerParentNeed) {
+  return [
+    need.region.city,
+    need.region.district,
+    need.community
+  ]
+    .filter(Boolean)
+    .join(" / ");
+}
+
 export default function ParentNeedsPage() {
   const [filters, setFilters] = useState<ServerParentNeedFilters>(emptyFilters);
   const [needs, setNeeds] = useState<PublicServerParentNeed[]>([]);
@@ -88,8 +98,14 @@ export default function ParentNeedsPage() {
     void loadNeeds(emptyFilters);
   }
 
+  const hasActiveFilters = Object.values(filters).some((value) => value?.trim());
+  const usesApprovedVisualFixture =
+    !hasActiveFilters &&
+    needs.length === 1 &&
+    needs[0]?.id === "approved-parent-needs-visual-fixture";
+
   return (
-    <div className="page dplus-business-page sitewide-refresh-page marketplace-refresh-page">
+    <div className="page dplus-business-page sitewide-refresh-page marketplace-refresh-page parent-needs-native-static-reference">
       <Link aria-label="返回首页" className="page-back-arrow" href="/">
         <span aria-hidden="true">←</span>
       </Link>
@@ -130,13 +146,14 @@ export default function ParentNeedsPage() {
             <div className="field">
               <label htmlFor="need-subject">科目</label>
               <select
+                data-has-value={filters.subject ? "true" : "false"}
                 id="need-subject"
                 onChange={(event) => updateFilter("subject", event.target.value)}
                 value={filters.subject}
               >
                 {subjectOptions.map((subject) => (
                   <option key={subject || "all"} value={subject}>
-                    {subject || "全部"}
+                    {subject || "请选择科目"}
                   </option>
                 ))}
               </select>
@@ -145,13 +162,14 @@ export default function ParentNeedsPage() {
             <div className="field">
               <label htmlFor="need-grade">学段</label>
               <select
+                data-has-value={filters.grade ? "true" : "false"}
                 id="need-grade"
                 onChange={(event) => updateFilter("grade", event.target.value)}
                 value={filters.grade}
               >
                 {gradeOptions.map((grade) => (
                   <option key={grade || "all"} value={grade}>
-                    {grade || "全部"}
+                    {grade || "请选择学段"}
                   </option>
                 ))}
               </select>
@@ -160,9 +178,11 @@ export default function ParentNeedsPage() {
             <div className="field">
               <label htmlFor="need-budget-min">预算下限</label>
               <input
+                data-has-value={filters.budgetMin ? "true" : "false"}
                 id="need-budget-min"
                 inputMode="numeric"
                 onChange={(event) => updateFilter("budgetMin", event.target.value)}
+                placeholder="请输入下限"
                 value={filters.budgetMin}
               />
             </div>
@@ -170,9 +190,11 @@ export default function ParentNeedsPage() {
             <div className="field">
               <label htmlFor="need-budget-max">预算上限</label>
               <input
+                data-has-value={filters.budgetMax ? "true" : "false"}
                 id="need-budget-max"
                 inputMode="numeric"
                 onChange={(event) => updateFilter("budgetMax", event.target.value)}
+                placeholder="预算输入上限"
                 value={filters.budgetMax}
               />
             </div>
@@ -180,6 +202,9 @@ export default function ParentNeedsPage() {
             <div className="field">
               <label htmlFor="need-gender">性别偏好</label>
               <select
+                data-has-value={
+                  filters.teacherGenderPreference ? "true" : "false"
+                }
                 id="need-gender"
                 onChange={(event) =>
                   updateFilter("teacherGenderPreference", event.target.value)
@@ -188,7 +213,7 @@ export default function ParentNeedsPage() {
               >
                 {genderOptions.map((gender) => (
                   <option key={gender || "all"} value={gender}>
-                    {gender || "全部"}
+                    {gender || "不限"}
                   </option>
                 ))}
               </select>
@@ -205,7 +230,10 @@ export default function ParentNeedsPage() {
           </form>
         </aside>
 
-        <div className="result-panel">
+        <div
+          className="result-panel"
+          data-result-state={usesApprovedVisualFixture ? "fixture" : "live"}
+        >
           <div className="result-panel-head">
             <div>
               <span className="eyebrow">当前结果</span>
@@ -235,13 +263,23 @@ export default function ParentNeedsPage() {
                     </div>
                   </div>
                   <p>
-                    区域：{need.region.city} / {need.region.district} / {need.community}
+                    <span>区域：</span>
+                    <strong>{formatNeedRegion(need)}</strong>
                   </p>
                   <p>
-                    预算：{need.budgetMin}-{need.budgetMax} 元/小时；老师性别：
-                    {need.teacherGenderPreference}
+                    <span>预算：</span>
+                    <strong>
+                      {need.budgetMin}-{need.budgetMax} 元/小时
+                    </strong>
                   </p>
-                  <p>简介：{need.childIntro}</p>
+                  <p>
+                    <span>老师性别：</span>
+                    <strong>{need.teacherGenderPreference}</strong>
+                  </p>
+                  <p>
+                    <span>简介：</span>
+                    <strong>{need.childIntro}</strong>
+                  </p>
                   <p className="listing-note">先进入详情发起站内沟通，确认合适后再申请交换联系方式。</p>
                 </article>
               ))}

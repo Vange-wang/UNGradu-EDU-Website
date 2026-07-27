@@ -4,7 +4,7 @@ import { CustomerServiceChat } from "@/features/customer-service/customer-servic
 
 export default function CustomerServicePage() {
   return (
-    <div className="page dplus-chat-page customer-service-shell sitewide-refresh-page">
+    <div className="page dplus-chat-page customer-service-shell sitewide-refresh-page customer-service-native-static-reference">
       <section className="customer-service-info-strip">
         <div className="customer-service-info-title">
           <span className="eyebrow">智能客服</span>

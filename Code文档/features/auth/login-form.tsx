@@ -233,25 +233,79 @@ export function LoginForm() {
   return (
     <div className="auth-form-shell">
       <div className="auth-form-heading">
-        <span className="eyebrow">选择方式</span>
-        <h2>用邮箱进入平台</h2>
-        <p className="field-hint">验证码登录用于注册 / 登录；密码登录仅在你已设置密码后可用。</p>
+        <h2>
+          {mode === "code"
+            ? "邮箱验证码登录 / 注册"
+            : mode === "password"
+              ? "邮箱密码登录"
+              : "重置邮箱密码"}
+        </h2>
       </div>
 
-      <div className="auth-tabs" role="tablist" aria-label="登录方式">
-        <button
-          className={mode === "code" ? "auth-tab active" : "auth-tab"}
-          onClick={() => {
-            setMode("code");
-            setFormMessage("");
-            setErrors({});
-          }}
-          type="button"
-        >
-          验证码登录
+      {mode === "code" ? <form className="form" onSubmit={submitLogin}>
+        <div className="field">
+          <label htmlFor="email">邮箱</label>
+          <div className="auth-input-shell">
+            <span
+              aria-hidden="true"
+              className="auth-input-icon"
+              style={{ backgroundImage: 'url("/assets/sitewide-ui/login-email-icon.png")' }}
+            />
+            <input
+              id="email"
+              inputMode="email"
+              name="email"
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setErrors((current) => ({ ...current, email: undefined }));
+              }}
+              placeholder="请输入邮箱"
+              value={email}
+            />
+          </div>
+          <span className="error">{errors.email}</span>
+        </div>
+        <div className="auth-code-field">
+          <div className="field">
+            <label htmlFor="code">验证码</label>
+            <div className="auth-input-shell">
+              <span
+                aria-hidden="true"
+                className="auth-input-icon"
+                style={{ backgroundImage: 'url("/assets/sitewide-ui/login-code-icon.png")' }}
+              />
+              <input
+                id="code"
+                inputMode="numeric"
+                name="code"
+                onChange={(event) => {
+                  setCode(event.target.value);
+                  setErrors((current) => ({ ...current, code: undefined }));
+                }}
+                placeholder="请输入验证码"
+                value={code}
+              />
+            </div>
+            <span className="error">{errors.code}</span>
+          </div>
+          <button
+            className="button secondary"
+            disabled={isSending || secondsUntilResend > 0}
+            onClick={sendCode}
+            type="button"
+          >
+            {secondsUntilResend > 0
+              ? `${secondsUntilResend} 秒后可重发`
+              : isSending
+                ? "发送中..."
+                : "获取验证码"}
+          </button>
+        </div>
+        <button className="button primary" type="submit">
+          {isLoggingIn ? "登录中..." : "登录 / 注册"}
         </button>
         <button
-          className={mode === "password" ? "auth-tab active" : "auth-tab"}
+          className="auth-mode-link"
           onClick={() => {
             setMode("password");
             setFormMessage("");
@@ -259,66 +313,7 @@ export function LoginForm() {
           }}
           type="button"
         >
-          密码登录
-        </button>
-        <button
-          className={mode === "reset" ? "auth-tab active" : "auth-tab"}
-          onClick={() => {
-            setMode("reset");
-            setFormMessage("");
-            setErrors({});
-          }}
-          type="button"
-        >
-          忘记密码
-        </button>
-      </div>
-
-      {mode === "code" ? <form className="form" onSubmit={submitLogin}>
-        <div className="field">
-          <label htmlFor="email">邮箱</label>
-          <input
-            id="email"
-            inputMode="email"
-            name="email"
-            onChange={(event) => {
-              setEmail(event.target.value);
-              setErrors((current) => ({ ...current, email: undefined }));
-            }}
-            placeholder="请输入邮箱地址"
-            value={email}
-          />
-          <span className="error">{errors.email}</span>
-        </div>
-        <div className="field">
-          <label htmlFor="code">邮箱验证码</label>
-          <input
-            id="code"
-            inputMode="numeric"
-            name="code"
-            onChange={(event) => {
-              setCode(event.target.value);
-              setErrors((current) => ({ ...current, code: undefined }));
-            }}
-            placeholder="请输入邮箱验证码"
-            value={code}
-          />
-          <span className="error">{errors.code}</span>
-        </div>
-        <button
-          className="button secondary"
-          disabled={isSending || secondsUntilResend > 0}
-          onClick={sendCode}
-          type="button"
-        >
-          {secondsUntilResend > 0
-            ? `${secondsUntilResend} 秒后可重发`
-            : isSending
-              ? "发送中..."
-              : "获取验证码"}
-        </button>
-        <button className="button primary" type="submit">
-          {isLoggingIn ? "登录中..." : "登录 / 注册"}
+          设置密码后，也可以使用邮箱和密码登录
         </button>
       </form> : null}
 
@@ -357,6 +352,30 @@ export function LoginForm() {
           <button className="button primary" type="submit">
             {isLoggingIn ? "登录中..." : "邮箱密码登录"}
           </button>
+          <div className="auth-mode-links">
+            <button
+              className="auth-mode-link"
+              onClick={() => {
+                setMode("code");
+                setFormMessage("");
+                setErrors({});
+              }}
+              type="button"
+            >
+              使用邮箱验证码登录 / 注册
+            </button>
+            <button
+              className="auth-mode-link"
+              onClick={() => {
+                setMode("reset");
+                setFormMessage("");
+                setErrors({});
+              }}
+              type="button"
+            >
+              忘记密码
+            </button>
+          </div>
         </form>
       ) : null}
 
@@ -437,6 +456,17 @@ export function LoginForm() {
           </div>
           <button className="button primary" type="submit">
             {isLoggingIn ? "重置中..." : "重置密码"}
+          </button>
+          <button
+            className="auth-mode-link"
+            onClick={() => {
+              setMode("password");
+              setFormMessage("");
+              setErrors({});
+            }}
+            type="button"
+          >
+            返回邮箱密码登录
           </button>
         </form>
       ) : null}

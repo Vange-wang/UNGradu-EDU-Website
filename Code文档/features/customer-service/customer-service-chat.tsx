@@ -33,6 +33,7 @@ const initialMessages: ChatMessage[] = [
 export function CustomerServiceChat() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
+  const isPristine = messages.length === 1;
 
   function ask(question: string) {
     const normalized = question.trim();
@@ -64,7 +65,11 @@ export function CustomerServiceChat() {
   }
 
   return (
-    <section className="customer-service-chat" aria-label="站内智能客服对话">
+    <section
+      aria-label="站内智能客服对话"
+      className="customer-service-chat"
+      data-chat-state={isPristine ? "pristine" : "active"}
+    >
       <div className="customer-service-messages">
         {messages.map((message) => (
           <div
@@ -93,7 +98,11 @@ export function CustomerServiceChat() {
         ))}
       </div>
 
-      <form className="customer-service-compose" onSubmit={submit}>
+      <form
+        className="customer-service-compose"
+        data-has-input={input.length > 0 ? "true" : "false"}
+        onSubmit={submit}
+      >
         <label className="sr-only" htmlFor="customer-service-question">
           输入客服问题
         </label>

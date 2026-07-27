@@ -1,8 +1,9 @@
-﻿import Link from "next/link";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function RulesPage() {
   return (
-    <div className="page sitewide-refresh-page rules-refresh-page">
+    <div className="page sitewide-refresh-page rules-refresh-page rules-native-static-reference">
       <Link aria-label="返回首页" className="page-back-arrow" href="/">
         <span aria-hidden="true">←</span>
       </Link>
@@ -15,8 +16,12 @@ export default function RulesPage() {
           </h1>
           <p>当前为小范围试运行，先发布、筛选、站内沟通，再确认是否交换联系方式。</p>
           <div className="rules-comic" aria-hidden="true">
-            <div className="dplus-person parent" />
-            <div className="rules-shield">✓</div>
+            <Image
+              alt=""
+              height={268}
+              src="/assets/sitewide-ui/rules-student-shield.png"
+              width={417}
+            />
           </div>
         </aside>
 

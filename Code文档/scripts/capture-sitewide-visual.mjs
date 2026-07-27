@@ -501,7 +501,7 @@ async function main() {
     await waitForJson(`http://127.0.0.1:${port}/json/version`);
     const targetUrl = `${options.baseUrl}${options.route}`;
     const target = await requestJson(
-      `http://127.0.0.1:${port}/json/new?${encodeURIComponent(targetUrl)}`,
+      `http://127.0.0.1:${port}/json/new?${encodeURIComponent("about:blank")}`,
       "PUT"
     );
     cdp = connectCdp(target.webSocketDebuggerUrl);
@@ -1067,6 +1067,41 @@ async function main() {
                   }
                 : null;
             })(),
+            messageLayout: (() => {
+              const list = document.querySelector(".customer-service-messages");
+              const initial = list?.querySelector(
+                ".customer-service-message-initial"
+              );
+              const messages = Array.from(
+                list?.querySelectorAll(".customer-service-message") ?? []
+              );
+              if (!(list instanceof HTMLElement) || !(initial instanceof HTMLElement)) {
+                return null;
+              }
+              const initialRect = initial.getBoundingClientRect();
+              const next = initial.nextElementSibling;
+              const nextRect =
+                next instanceof HTMLElement ? next.getBoundingClientRect() : null;
+              const overlapPairs = messages.slice(1).filter((message, index) => {
+                const previous = messages[index];
+                const previousRect = previous.getBoundingClientRect();
+                const currentRect = message.getBoundingClientRect();
+                return currentRect.top < previousRect.bottom - 0.5;
+              }).length;
+              return {
+                initialHeight: initialRect.height,
+                initialOffsetHeight: initial.offsetHeight,
+                initialOffsetTop: initial.offsetTop,
+                initialOpacity: getComputedStyle(initial).opacity,
+                initialText: initial.textContent?.trim() ?? "",
+                initialUsesFlowSpace:
+                  !nextRect ||
+                  next.offsetTop >= initial.offsetTop + initial.offsetHeight,
+                nextTop: nextRect?.top ?? null,
+                overlapPairs,
+                pseudoContent: getComputedStyle(list, "::before").content
+              };
+            })(),
             focusedStyle: (() => {
               const element = document.activeElement;
               if (!(element instanceof HTMLElement)) {
@@ -1097,6 +1132,24 @@ async function main() {
             tutorResultState:
               document.querySelector(".result-panel")?.dataset.resultState ??
               null,
+            tutorTeacherLabel: (() => {
+              const element = document.querySelector(
+                ".result-panel .listing-card-meta"
+              );
+              if (!(element instanceof HTMLElement)) {
+                return null;
+              }
+              const rect = element.getBoundingClientRect();
+              const style = getComputedStyle(element);
+              return {
+                backgroundImage: style.backgroundImage,
+                color: style.color,
+                height: rect.height,
+                text: element.textContent?.trim() ?? "",
+                whiteSpace: style.whiteSpace,
+                width: rect.width
+              };
+            })(),
             tutorSearch: location.search,
             parentDetailHref:
               document

@@ -68,3 +68,58 @@ Every interaction folder contains viewport/full-page screenshots and a geometry/
 ## Remaining gate
 
 The evidence package is ready for independent UI review. It is not evidence of merge, deployment, Issue closure, or user acceptance.
+
+## Focused SERIOUS-1 / SERIOUS-2 remediation after `97ad27b3`
+
+Independent UI review found two blocking interaction-state defects in
+`97ad27b3ff3268a0d25603db2e7f3ff3eae8fca9`. The focused remediation evidence
+root is:
+
+`C:\Users\86166\.codex\visualizations\2026\07\17\019f70ec-6331-7083-aecb-bb8484511518\sitewide-followup-rework\serious-01-02-fix-20260728`
+
+Direct screenshots:
+
+- Customer-service 21-message desktop scroll:
+  `serious-1-customer-history-desktop-final.png`
+- Customer-service 21-message mobile scroll:
+  `serious-1-customer-history-mobile-final.png`
+- Tutor public-real-data desktop live result:
+  `serious-2-tutor-label-desktop-final.png`
+- Tutor public-real-data mobile live result:
+  `serious-2-tutor-label-mobile-final.png`
+
+Geometry and interaction records:
+
+- Customer service desktop:
+  `customer-service-scroll-1536x1024-final3`; the message viewport stays at
+  `clientHeight=473`, while `scrollHeight=1637` and `scrollTop=160`.
+  The welcome item remains a real `101px` flow item, the absolute pseudo layer
+  is `none`, and the measured adjacent-message overlap count is `0`.
+- Customer service mobile:
+  `customer-service-scroll-390x844-final3`; `clientHeight=315`,
+  `scrollHeight=2268`, `scrollTop=160`, welcome flow height `95.0625px`,
+  overlap count `0`, and document overflow `0`.
+- Tutor profiles desktop:
+  `tutor-profiles-live-1536x1024-final2`; the public-real-data fetch records
+  HTTP `200`, one result, a real opaque detail ID, and the full `老师资料` label
+  at `106px` width with `white-space: nowrap`.
+- Tutor profiles mobile:
+  `tutor-profiles-live-390x844-final2`; public-real-data HTTP `200`, the full
+  `老师资料` label remains visible, and document overflow is `0`.
+
+The capture harness now creates an `about:blank` target, installs the public-data
+fetch override, and only then navigates to the page. This removes the
+pre-instrumentation local API request from the evidence. The only retained
+error-class network response is the existing anonymous
+`GET /api/auth/session` `401`.
+
+The `regression` directory contains 22 fresh viewport/full-page/geometry/network
+sets covering the six default pages at 1536×1024 and 390×844, home focus,
+login password mode, rules focus, customer Enter/Space/manual-send, and parent
+public-real-data live filtering. Every set has one main page node and zero
+horizontal overflow. The new customer-service default captures are byte-for-byte
+identical to the previously approved default captures at both viewports.
+
+This focused package is developer-side rework evidence only. The two independent
+UI findings require a fresh independent review; no merge, deployment, Issue
+transition, or user acceptance is implied.

@@ -39,11 +39,16 @@ const WebSocketClient = require("ws") as WebSocketConstructor;
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 type LayoutMetrics = {
+  chatBackgroundColor: string;
   chatClientHeight: number;
   chatWidthRatio: number;
   composeContained: boolean;
   documentScrollWidth: number;
   inputUsable: boolean;
+  initialMessageHeight: number;
+  initialMessageOpacity: string;
+  initialMessageText: string;
+  initialMessageUsesFlowSpace: boolean;
   layoutClientWidth: number;
   layoutBottomAligned: boolean;
   layoutTopAligned: boolean;
@@ -66,6 +71,7 @@ type LayoutMetrics = {
   sideWidthRatio: number;
   viewportHeight: number;
   viewportWidth: number;
+  welcomePseudoContent: string;
 };
 
 function renderFixture(css: string, messageCount: number) {
@@ -80,7 +86,7 @@ function renderFixture(css: string, messageCount: number) {
   </head>
   <body>
     <main>
-      <div class="page dplus-chat-page customer-service-shell sitewide-refresh-page">
+      <div class="page dplus-chat-page customer-service-shell customer-service-native-static-reference sitewide-refresh-page">
         <section class="customer-service-info-strip">
           <div class="customer-service-info-title">
             <span class="eyebrow">智能客服</span>
@@ -129,6 +135,9 @@ function renderFixture(css: string, messageCount: number) {
               : "第 " + (index + 1) + " 条智能客服布局回归消息";
           list.appendChild(message);
         }
+        document
+          .querySelector(".customer-service-chat")
+          ?.setAttribute("data-chat-state", "active");
       })();
     </script>
   </body>
@@ -334,6 +343,8 @@ describeWithBrowser("真实智能客服消息区域布局", () => {
           const side = document.querySelector(".customer-service-side");
           const main = document.querySelector(".customer-service-main");
           const page = document.querySelector(".customer-service-shell");
+          const initialMessage = list.querySelector(".customer-service-message-initial");
+          const nextMessage = initialMessage?.nextElementSibling;
           const chatRect = chat.getBoundingClientRect();
           const listRect = list.getBoundingClientRect();
           const quickQuestionsRect = quickQuestions.getBoundingClientRect();
@@ -348,6 +359,7 @@ describeWithBrowser("真实智能客服消息区域布局", () => {
           list.scrollTop = 50;
           quickQuestions.scrollLeft = 50;
           return {
+            chatBackgroundColor: getComputedStyle(chat).backgroundColor,
             chatClientHeight: chat.clientHeight,
             chatWidthRatio: mainRect.width / layoutRect.width,
             composeContained: composeRect.bottom <= chatRect.bottom + 1,
@@ -355,6 +367,13 @@ describeWithBrowser("真实智能客服消息区域布局", () => {
             inputUsable:
               input.getBoundingClientRect().width > 120 &&
               input.getBoundingClientRect().height >= 44,
+            initialMessageHeight: initialMessage.getBoundingClientRect().height,
+            initialMessageOpacity: getComputedStyle(initialMessage).opacity,
+            initialMessageText: initialMessage.textContent.trim(),
+            initialMessageUsesFlowSpace:
+              !nextMessage ||
+              nextMessage.offsetTop >=
+                initialMessage.offsetTop + initialMessage.offsetHeight,
             layoutClientWidth: layout.clientWidth,
             layoutBottomAligned: Math.abs(sideRect.bottom - mainRect.bottom) <= 1,
             layoutTopAligned: Math.abs(sideRect.top - mainRect.top) <= 1,
@@ -379,7 +398,8 @@ describeWithBrowser("真实智能客服消息区域布局", () => {
             quickQuestionsBeforeCompose: quickQuestionsRect.bottom <= composeRect.top + 1,
             sideWidthRatio: sideRect.width / layoutRect.width,
             viewportHeight: window.innerHeight,
-            viewportWidth: window.innerWidth
+            viewportWidth: window.innerWidth,
+            welcomePseudoContent: getComputedStyle(list, "::before").content
           };
         })()`,
         returnByValue: true
@@ -499,6 +519,28 @@ describeWithBrowser("真实智能客服消息区域布局", () => {
         expect(longConversation.chatWidthRatio).toBeGreaterThanOrEqual(0.7);
         expect(longConversation.chatWidthRatio).toBeLessThanOrEqual(0.76);
       }
+    },
+    30_000
+  );
+
+  it(
+    "1536px 长历史把欢迎消息保留为真实滚动内容且不使用绝对伪元素占位",
+    async () => {
+      const longConversation = await measure(21, 1536, 1024);
+
+      expect(longConversation.chatClientHeight).toBeGreaterThan(0);
+      expect(longConversation.chatBackgroundColor).toBe("rgb(255, 255, 255)");
+      expect(longConversation.listScrollHeight).toBeGreaterThan(
+        longConversation.listClientHeight
+      );
+      expect(longConversation.listCanScroll).toBe(true);
+      expect(longConversation.initialMessageText).toContain(
+        "UNGradu EDU 智能客服助手"
+      );
+      expect(longConversation.initialMessageHeight).toBeGreaterThanOrEqual(90);
+      expect(longConversation.initialMessageOpacity).toBe("1");
+      expect(longConversation.initialMessageUsesFlowSpace).toBe(true);
+      expect(longConversation.welcomePseudoContent).toBe("none");
     },
     30_000
   );

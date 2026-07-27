@@ -43,8 +43,28 @@ function createFakeDatabase() {
     async runTransaction<T>(
       operation: (transaction: { collection: typeof collection }) => Promise<T>
     ) {
+      function transactionCollection(name: string) {
+        const reference = collection(name);
+
+        return {
+          doc(id: string) {
+            const document = reference.doc(id);
+
+            return {
+              ...document,
+              async get() {
+                const result = await document.get();
+                return { data: result.data[0] ?? null };
+              }
+            };
+          }
+        };
+      }
+
       return {
-        result: await operation({ collection })
+        result: await operation({
+          collection: transactionCollection as unknown as typeof collection
+        })
       };
     }
   } satisfies CustomerServiceCloudBaseDatabase;

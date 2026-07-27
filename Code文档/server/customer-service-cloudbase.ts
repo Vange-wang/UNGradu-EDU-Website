@@ -10,7 +10,7 @@ import type {
 } from "@/server/customer-service";
 
 type CloudBaseDocumentResult = {
-  data?: Array<Record<string, unknown>>;
+  data?: Array<Record<string, unknown>> | Record<string, unknown> | null;
 };
 
 type CloudBaseDocumentReference = {
@@ -57,7 +57,9 @@ function documentId(prefix: string, value: string) {
 }
 
 function readDocument<T>(result: CloudBaseDocumentResult) {
-  const document = result.data?.[0];
+  const document = Array.isArray(result.data)
+    ? result.data[0]
+    : result.data;
 
   if (!document) {
     return null;

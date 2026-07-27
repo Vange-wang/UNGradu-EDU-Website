@@ -25,8 +25,8 @@ describe("chat layout CSS", () => {
 
   it("prioritizes customer service chat controls on mobile", () => {
     expect(globalsCss).toContain(".customer-service-main {\n    order: -1;");
-    expect(globalsCss).toContain(
-      ".customer-service-messages {\n    height: clamp(180px, 32dvh, 260px);"
+    expect(globalsCss).toMatch(
+      /\.customer-service-messages\s*\{\s*height: clamp\(306px, 38dvh, 340px\);/
     );
     expect(globalsCss).not.toContain(".customer-service-dify-frame");
   });
@@ -40,5 +40,23 @@ describe("chat layout CSS", () => {
     expect(messagesRule).toContain("overflow-x: hidden");
     expect(messagesRule).toContain("overscroll-behavior: contain");
     expect(messagesRule).toContain("touch-action: pan-y");
+  });
+
+  it("keeps the customer service workspace dense without wrapping quick questions", () => {
+    const layoutRule = readRule(".customer-service-layout");
+    const messageTextRule = readRule(".customer-service-message p");
+    const quickListRule = readRule(".customer-service-quick-list");
+    const quickButtonRule = readRule(".customer-service-quick-list button");
+
+    expect(layoutRule).toContain(
+      "grid-template-columns: minmax(220px, 24%) minmax(0, 1fr)"
+    );
+    expect(messageTextRule).toContain("font-size: 14px");
+    expect(quickListRule).toContain("flex-wrap: nowrap");
+    expect(quickListRule).toContain("overflow-x: auto");
+    expect(quickListRule).toContain("touch-action: pan-x");
+    expect(quickButtonRule).toContain("flex: 0 0 auto");
+    expect(quickButtonRule).toContain("min-height: 40px");
+    expect(quickButtonRule).toContain("white-space: nowrap");
   });
 });

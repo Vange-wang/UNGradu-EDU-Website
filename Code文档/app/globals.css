@@ -2618,6 +2618,10 @@ body {
   width: 100%;
 }
 
+.customer-service-shell {
+  max-width: 1296px;
+}
+
 .customer-service-page h1,
 .customer-service-page h2,
 .customer-service-page p {
@@ -2643,7 +2647,12 @@ body {
 .customer-service-layout {
   display: grid;
   gap: var(--space-lg);
-  grid-template-columns: minmax(240px, 0.34fr) minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 24%) minmax(0, 1fr);
+  margin: -10px auto 0;
+  max-width: 1240px;
+  position: relative;
+  width: 100%;
+  z-index: 1;
 }
 
 .customer-service-side,
@@ -2700,7 +2709,7 @@ body {
   box-shadow: var(--dplus-shadow-small);
   display: grid;
   gap: 16px;
-  padding: clamp(16px, 3vw, 22px);
+  padding: clamp(14px, 2vw, 16px);
 }
 
 .customer-service-messages {
@@ -2710,7 +2719,7 @@ body {
   border-radius: 24px;
   display: grid;
   gap: 12px;
-  height: clamp(300px, 42vh, 420px);
+  height: clamp(390px, 50dvh, 500px);
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
@@ -2738,7 +2747,8 @@ body {
 
 .customer-service-message p {
   color: var(--dplus-ink);
-  line-height: 1.65;
+  font-size: 14px;
+  line-height: 1.55;
   margin: 0;
   overflow-wrap: anywhere;
 }
@@ -2755,8 +2765,16 @@ body {
 
 .customer-service-quick-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-wrap: nowrap;
+  gap: 3px;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  padding: 2px 3px 6px 2px;
+  scrollbar-width: thin;
+  touch-action: pan-x;
 }
 
 .customer-service-quick-list button {
@@ -2766,10 +2784,13 @@ body {
   box-shadow: 3px 3px 0 var(--dplus-ink);
   color: var(--dplus-ink);
   cursor: pointer;
-  font-size: 13px;
+  flex: 0 0 auto;
+  font-size: 12px;
   font-weight: 900;
   line-height: 1.2;
-  padding: 8px 12px;
+  min-height: 40px;
+  padding: 7px 5px;
+  white-space: nowrap;
 }
 
 .customer-service-compose {
@@ -2874,7 +2895,7 @@ body {
   }
 
   .customer-service-messages {
-    height: clamp(180px, 32dvh, 260px);
+    height: clamp(306px, 38dvh, 340px);
   }
 
   .customer-service-compose {

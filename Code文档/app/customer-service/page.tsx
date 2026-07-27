@@ -6,7 +6,7 @@ export default function CustomerServicePage() {
   const difyWebAppUrl = process.env.NEXT_PUBLIC_DIFY_CUSTOMER_SERVICE_URL?.trim();
 
   return (
-    <div className="page dplus-chat-page">
+    <div className="page dplus-chat-page customer-service-shell">
       <section className="wide-panel customer-service-page">
         <div className="workspace-header">
           <div>
@@ -29,41 +29,41 @@ export default function CustomerServicePage() {
             </Link>
           </div>
         </div>
-
-        <div className="customer-service-layout">
-          <aside className="customer-service-side">
-            <span className="eyebrow">可咨询内容</span>
-            <h2>平台客服助手</h2>
-            <ul>
-              <li>家长 / 学生如何发布找老师需求。</li>
-              <li>大学生如何发布可教资料。</li>
-              <li>什么时候可以交换联系方式。</li>
-              <li>课时费、付款和平台边界说明。</li>
-              <li>风险反馈、虚假信息和骚扰记录。</li>
-            </ul>
-            <p>
-              <span>当前使用站内离线客服。</span>
-              <span>Dify WebApp 仅作为延后入口。</span>
-            </p>
-            {difyWebAppUrl ? (
-              <a
-                className="customer-service-dify-entry"
-                href={difyWebAppUrl}
-                rel="noreferrer"
-                target="_blank"
-              >
-                打开 Dify 客服
-              </a>
-            ) : (
-              <code>NEXT_PUBLIC_DIFY_CUSTOMER_SERVICE_URL</code>
-            )}
-          </aside>
-
-          <div className="customer-service-main">
-            <CustomerServiceChat />
-          </div>
-        </div>
       </section>
+
+      <div className="customer-service-layout">
+        <aside className="customer-service-side">
+          <span className="eyebrow">可咨询内容</span>
+          <h2>平台客服助手</h2>
+          <ul>
+            <li>家长 / 学生如何发布找老师需求。</li>
+            <li>大学生如何发布可教资料。</li>
+            <li>什么时候可以交换联系方式。</li>
+            <li>课时费、付款和平台边界说明。</li>
+            <li>风险反馈、虚假信息和骚扰记录。</li>
+          </ul>
+          <p>
+            <span>当前使用站内离线客服。</span>
+            <span>Dify WebApp 仅作为延后入口。</span>
+          </p>
+          {difyWebAppUrl ? (
+            <a
+              className="customer-service-dify-entry"
+              href={difyWebAppUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              打开 Dify 客服
+            </a>
+          ) : (
+            <code>NEXT_PUBLIC_DIFY_CUSTOMER_SERVICE_URL</code>
+          )}
+        </aside>
+
+        <div className="customer-service-main">
+          <CustomerServiceChat />
+        </div>
+      </div>
     </div>
   );
 }

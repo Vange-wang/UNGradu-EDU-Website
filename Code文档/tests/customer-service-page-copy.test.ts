@@ -28,9 +28,8 @@ describe("customer service page copy", () => {
 
   it("keeps the offline customer service chat available on first render", () => {
     expect(pageSource).not.toContain('dynamic = "force-dynamic"');
-    expect(pageSource).toContain(`<div className="customer-service-main">
-            <CustomerServiceChat />
-          </div>`);
+    expect(pageSource).toContain('<div className="customer-service-main">');
+    expect(pageSource).toContain("<CustomerServiceChat />");
     expect(pageSource).toContain("NEXT_PUBLIC_DIFY_CUSTOMER_SERVICE_URL");
     expect(pageSource).toContain("customer-service-dify-entry");
     expect(pageSource).not.toContain("<iframe");

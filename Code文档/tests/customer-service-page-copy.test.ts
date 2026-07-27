@@ -30,8 +30,10 @@ describe("customer service page copy", () => {
     expect(pageSource).not.toContain('dynamic = "force-dynamic"');
     expect(pageSource).toContain('<div className="customer-service-main">');
     expect(pageSource).toContain("<CustomerServiceChat />");
-    expect(pageSource).toContain("NEXT_PUBLIC_DIFY_CUSTOMER_SERVICE_URL");
-    expect(pageSource).toContain("customer-service-dify-entry");
+    expect(pageSource).not.toContain("NEXT_PUBLIC_DIFY_CUSTOMER_SERVICE_URL");
+    expect(pageSource).not.toContain("customer-service-dify-entry");
+    expect(pageSource).not.toContain("当前使用站内离线客服");
+    expect(pageSource).not.toContain("Dify WebApp 仅作为延后入口");
     expect(pageSource).not.toContain("<iframe");
     expect(pageSource).not.toContain("customer-service-dify-frame");
   });

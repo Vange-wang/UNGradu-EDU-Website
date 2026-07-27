@@ -9,14 +9,14 @@ const rulesSource = readFileSync(
 );
 
 describe("public access and safety copy", () => {
-  it("keeps public safety hints neutral and visible", () => {
+  it("keeps business safety boundaries visible without infrastructure copy", () => {
     const combinedSource = `${homeSource}\n${rulesSource}`;
 
-    expect(combinedSource).toContain("HTTPS 入口");
-    expect(combinedSource).toContain("Cloudflare Worker");
-    expect(combinedSource).toContain("基础安全加固");
-    expect(combinedSource).toContain("ISSUE-0020");
-    expect(combinedSource).toContain("不做支付、担保、认证或人工仲裁");
+    expect(combinedSource).not.toContain("HTTPS 入口");
+    expect(combinedSource).not.toContain("Cloudflare Worker");
+    expect(combinedSource).not.toContain("基础安全加固");
+    expect(combinedSource).not.toContain("ISSUE-0020");
+    expect(combinedSource).toContain("不做支付、抽佣、成交追踪或评价");
     expect(combinedSource).toContain("不提供担保交易、认证、退款、合同或人工仲裁");
     expect(combinedSource).toContain("手机号、微信号、详细住址、证件或支付凭证");
     expect(combinedSource).not.toContain("已认证安全");

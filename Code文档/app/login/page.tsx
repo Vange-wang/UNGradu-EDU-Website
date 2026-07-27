@@ -4,12 +4,12 @@ import { LoginPageContent } from "@/features/auth/login-page-content";
 
 export default function LoginPage() {
   return (
-    <div className="page auth-page">
-      <section className="auth-shell">
+    <div className="page auth-page sitewide-refresh-page">
+      <Link aria-label="返回首页" className="page-back-arrow" href="/">
+        <span aria-hidden="true">←</span>
+      </Link>
+      <section className="auth-shell sitewide-auth-shell">
         <div className="auth-intro">
-          <Link className="button secondary" href="/">
-            返回首页
-          </Link>
           <div>
             <span className="eyebrow">邮箱账号入口</span>
             <h1>登录 / 注册</h1>

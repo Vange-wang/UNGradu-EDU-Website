@@ -1,136 +1,94 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 
 import { GuardedEntryLink } from "@/features/auth/guarded-entry-link";
 
-const steps = [
-  ["发布", "填写需求或家教资料。"],
-  ["筛选", "按科目、学段、价格查看合适对象。"],
-  ["沟通", "先站内确认上课安排。"],
-  ["确认", "二次确认后才展示联系方式。"]
-];
-
 export default function HomePage() {
   return (
-    <div className="page">
-      <section className="gateway-hero">
-        <div className="gateway-layout">
-          <div className="hero-copy">
-            <span className="eyebrow">东莞大学城 · 先聊清楚</span>
-            <h1>找家教这件事，要清楚也要安心。</h1>
-            <p>
-              先发布需求或资料，再站内沟通；双方确认后才交换联系方式。
-            </p>
-            <div className="gateway-entry-grid" aria-label="身份入口">
-              <div className="gateway-entry parent-entry">
-                <span>家长 / 学生</span>
-                <strong>发布找老师需求</strong>
-                <small>填写科目、预算和上课偏好。</small>
-                <GuardedEntryLink className="button primary full-width" href="/parent-needs/new">
-                  我要找家教
-                </GuardedEntryLink>
-              </div>
-              <div className="gateway-entry tutor-entry">
-                <span>大学生家教</span>
-                <strong>发布可教资料</strong>
-                <small>填写可教科目、时间和课时费。</small>
-                <GuardedEntryLink className="button primary full-width" href="/tutor-profiles/new">
-                  我要做家教
-                </GuardedEntryLink>
-              </div>
+    <div className="page sitewide-refresh-page home-refresh-page">
+      <section className="home-refresh-layout" aria-labelledby="home-title">
+        <div className="home-refresh-main">
+          <div className="home-title-block">
+            <span className="home-kicker">大学生家教 · 先聊清楚</span>
+            <div aria-hidden="true" className="home-title-decor home-title-decor-left" />
+            <div aria-hidden="true" className="home-title-decor home-title-decor-right" />
+            <h1 id="home-title">大学生家教平台</h1>
+            <div className="home-benefits" aria-label="平台特点">
+              <strong>更安心</strong>
+              <strong>更便捷</strong>
+              <strong>选择多</strong>
             </div>
-            <div className="action-row">
-              <Link className="button secondary" href="/parent-needs">
-                浏览需求广场
-              </Link>
-              <Link className="button secondary" href="/tutor-profiles">
-                浏览家教信息
-              </Link>
-              <GuardedEntryLink className="button secondary" href="/profile">
-                个人页
+          </div>
+
+          <div className="home-entry-grid" aria-label="发布入口">
+            <article className="home-entry-card home-entry-parent">
+              <span>家长 / 学生</span>
+              <h2>发布找老师需求</h2>
+              <p>填写科目、预算和上课偏好。</p>
+              <GuardedEntryLink
+                className="button home-entry-button"
+                href="/parent-needs/new"
+              >
+                我要找家教
               </GuardedEntryLink>
-            </div>
+            </article>
+            <article className="home-entry-card home-entry-tutor">
+              <span>大学生家教</span>
+              <h2>发布老师信息</h2>
+              <p>填写可教科目、时间和课时费。</p>
+              <GuardedEntryLink
+                className="button home-entry-button"
+                href="/tutor-profiles/new"
+              >
+                我要做家教
+              </GuardedEntryLink>
+            </article>
           </div>
 
-          <div className="gateway-status-panel" aria-label="平台边界">
-            <span className="eyebrow">试运行</span>
-            <h2>先站内聊，再放心联系</h2>
-            <div className="dplus-comic-stage" aria-hidden="true">
-              <div className="dplus-comic-duo">
-                <div className="dplus-person parent" />
-                <div className="dplus-chat-card">
-                  <strong>站内沟通</strong>
-                  <span>确认科目、时间、预算和意向</span>
-                </div>
-                <div className="dplus-person tutor" />
+          <nav className="home-link-grid" aria-label="核心入口">
+            <Link className="home-link-card home-link-blue" href="/parent-needs">
+              <strong>需求广场</strong>
+              <span>大学生浏览家长需求，按科目、学段、预算和性别偏好筛选。</span>
+            </Link>
+            <Link className="home-link-card home-link-lime" href="/tutor-profiles">
+              <strong>家教信息广场</strong>
+              <span>家长浏览大学生家教信息，查看可教科目、学校和课时费。</span>
+            </Link>
+            <Link className="home-link-card home-link-purple" href="/feedback">
+              <strong>风险与功能反馈</strong>
+              <span>记录联系方式滥用、虚假信息、骚扰和功能异常反馈。</span>
+            </Link>
+            <Link className="home-link-card home-link-cream" href="/customer-service">
+              <strong>智能客服</strong>
+              <span>咨询发布流程、联系方式交换、课时费边界和风险反馈入口。</span>
+            </Link>
+          </nav>
+        </div>
+
+        <aside className="home-principles-card" aria-label="沟通原则">
+          <span className="home-trial-pill">试运行</span>
+          <h2>
+            先站内聊
+            <span>再放心联系</span>
+          </h2>
+          <div className="dplus-comic-stage home-comic-stage" aria-hidden="true">
+            <div className="dplus-comic-duo">
+              <div className="dplus-person parent" />
+              <div className="dplus-chat-card">
+                <strong>站内沟通</strong>
+                <span>确认科目</span>
+                <span>确认时间</span>
+                <span>确认预算</span>
+                <span>确认意向</span>
               </div>
+              <div className="dplus-person tutor" />
             </div>
-            <p>
-              平台不做支付、担保、认证或人工仲裁。
-            </p>
-            <div className="status-strip">
-              <span>公开页不展示联系方式</span>
-              <span>交换前二次确认</span>
-              <span>风险反馈仅记录排查</span>
-            </div>
-            <p>
-              推荐使用项目方提供的 HTTPS 入口；临时 Cloudflare Worker 入口仅用于访问和基础安全加固，不代表完整安全防护或认证背书。
-            </p>
           </div>
-        </div>
-      </section>
-
-      <section className="process-band" aria-labelledby="process-title">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">使用流程</span>
-            <h2 className="section-title" id="process-title">
-              发布、沟通、确认
-            </h2>
-          </div>
-          <Link className="button secondary" href="/rules">
-            查看规则
-          </Link>
-        </div>
-        <ol className="flow-list flow-list-dark">
-          {steps.map(([title, description], index) => (
-            <li key={title}>
-              <span className="step-number">{index + 1}</span>
-              <span>
-                <strong>{title}</strong>
-                <span>{description}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section aria-labelledby="entry-title">
-        <div className="section-heading-row">
-          <div>
-            <span className="eyebrow">核心入口</span>
-            <h2 className="section-title" id="entry-title">
-              从广场开始筛选
-            </h2>
-          </div>
-        </div>
-        <div className="dplus-mini-grid">
-          <Link className="dplus-mini-card" href="/parent-needs">
-            <strong>需求广场</strong>
-            <span>大学生浏览家长需求，按科目、学段、预算和性别偏好筛选。</span>
-          </Link>
-          <Link className="dplus-mini-card" href="/tutor-profiles">
-            <strong>家教信息广场</strong>
-            <span>家长浏览大学生家教信息，查看可教科目、学段和课时费。</span>
-          </Link>
-          <Link className="dplus-mini-card" href="/feedback">
-            <strong>风险与功能反馈</strong>
-            <span>记录联系方式滥用、虚假信息、骚扰和功能异常反馈。</span>
-          </Link>
-          <Link className="dplus-mini-card" href="/customer-service">
-            <strong>智能客服</strong>
-            <span>咨询发布流程、联系方式交换、课时费边界和风险反馈入口。</span>
-          </Link>
-        </div>
+          <ol className="home-principles-list">
+            <li>联系方式仅在双方确认后交换</li>
+            <li>交换联系信息前再次确认</li>
+            <li>异常情况可提交记录并排查</li>
+          </ol>
+        </aside>
       </section>
     </div>
   );

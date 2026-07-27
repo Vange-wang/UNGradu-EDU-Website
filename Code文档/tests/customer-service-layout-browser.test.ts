@@ -60,6 +60,7 @@ type LayoutMetrics = {
   quickCanScrollHorizontally: boolean;
   quickClientWidth: number;
   quickOverflowX: string;
+  quickRowCount: number;
   quickScrollWidth: number;
   quickQuestionsBeforeCompose: boolean;
   sideWidthRatio: number;
@@ -79,21 +80,20 @@ function renderFixture(css: string, messageCount: number) {
   </head>
   <body>
     <main>
-      <div class="page dplus-chat-page customer-service-shell">
-        <section class="wide-panel customer-service-page">
-          <div class="workspace-header">
-            <div>
-              <span class="eyebrow">智能客服</span>
-              <h1>先问清规则<span>再开始找家教</span></h1>
-              <p>
-                <span>回答发布、沟通和联系方式交换。</span>
-                <span>投诉、退款、合同或纠纷不由智能客服裁决。</span>
-              </p>
-            </div>
-            <div class="action-row compact-actions">
-              <a class="button secondary" href="/rules">查看规则</a>
-              <a class="button secondary" href="/feedback">风险反馈</a>
-            </div>
+      <div class="page dplus-chat-page customer-service-shell sitewide-refresh-page">
+        <section class="customer-service-info-strip">
+          <div class="customer-service-info-title">
+            <span class="eyebrow">智能客服</span>
+            <h1>先问清规则 再开始找家教</h1>
+          </div>
+          <div class="customer-service-info-copy">
+            <p>回答发布、沟通和联系方式交换。</p>
+            <p>投诉、退款、合同或纠纷不由智能客服裁决。</p>
+          </div>
+          <div class="customer-service-info-orb"></div>
+          <div class="action-row compact-actions">
+            <a class="button secondary" href="/rules">查看规则</a>
+            <a class="button secondary" href="/feedback">风险反馈</a>
           </div>
         </section>
         <div class="customer-service-layout">
@@ -107,10 +107,6 @@ function renderFixture(css: string, messageCount: number) {
               <li>课时费、付款和平台边界说明。</li>
               <li>风险反馈、虚假信息和骚扰记录。</li>
             </ul>
-            <p>
-              <span>当前使用站内离线客服。</span>
-              <span>Dify WebApp 仅作为延后入口。</span>
-            </p>
           </aside>
           <div class="customer-service-main">${chat}</div>
         </div>
@@ -337,7 +333,7 @@ describeWithBrowser("真实智能客服消息区域布局", () => {
           const layout = document.querySelector(".customer-service-layout");
           const side = document.querySelector(".customer-service-side");
           const main = document.querySelector(".customer-service-main");
-          const page = document.querySelector(".customer-service-page");
+          const page = document.querySelector(".customer-service-shell");
           const chatRect = chat.getBoundingClientRect();
           const listRect = list.getBoundingClientRect();
           const quickQuestionsRect = quickQuestions.getBoundingClientRect();
@@ -378,6 +374,7 @@ describeWithBrowser("真实智能客服消息区域布局", () => {
             quickCanScrollHorizontally: quickQuestions.scrollLeft > 0,
             quickClientWidth: quickQuestions.clientWidth,
             quickOverflowX: getComputedStyle(quickQuestions).overflowX,
+            quickRowCount: new Set(quickButtonTops).size,
             quickScrollWidth: quickQuestions.scrollWidth,
             quickQuestionsBeforeCompose: quickQuestionsRect.bottom <= composeRect.top + 1,
             sideWidthRatio: sideRect.width / layoutRect.width,
@@ -418,8 +415,11 @@ describeWithBrowser("真实智能客服消息区域布局", () => {
       minListHeight: 380,
       minLayoutWidth: 1160,
       name: "桌面",
-      preservedPageWidth: 980,
+      preservedPageWidth: 1280,
+      quickQuestionsSingleRow: true,
       quickQuestionsShouldScroll: false,
+      quickRowCount: 1,
+      quickOverflowX: "auto",
       width: 1280,
       viewportHeight: 800
     },
@@ -428,8 +428,11 @@ describeWithBrowser("真实智能客服消息区域布局", () => {
       minListHeight: 300,
       minLayoutWidth: 350,
       name: "390px 移动端",
-      preservedPageWidth: 310,
-      quickQuestionsShouldScroll: true,
+      preservedPageWidth: 390,
+      quickQuestionsSingleRow: false,
+      quickQuestionsShouldScroll: false,
+      quickRowCount: 2,
+      quickOverflowX: "hidden",
       width: 390,
       viewportHeight: 844
     }
@@ -440,7 +443,10 @@ describeWithBrowser("真实智能客服消息区域布局", () => {
       minListHeight,
       minLayoutWidth,
       preservedPageWidth,
+      quickQuestionsSingleRow,
       quickQuestionsShouldScroll,
+      quickRowCount,
+      quickOverflowX,
       width,
       viewportHeight
     }) => {
@@ -467,8 +473,9 @@ describeWithBrowser("真实智能客服消息区域布局", () => {
       expect(longConversation.inputUsable).toBe(true);
       expect(longConversation.messageFontSize).toBeLessThanOrEqual(maxMessageFontSize);
       expect(longConversation.quickButtonCount).toBe(5);
-      expect(longConversation.quickButtonsSingleRow).toBe(true);
-      expect(longConversation.quickOverflowX).toBe("auto");
+      expect(longConversation.quickButtonsSingleRow).toBe(quickQuestionsSingleRow);
+      expect(longConversation.quickRowCount).toBe(quickRowCount);
+      expect(longConversation.quickOverflowX).toBe(quickOverflowX);
       expect(longConversation.quickCanScrollHorizontally).toBe(
         quickQuestionsShouldScroll
       );

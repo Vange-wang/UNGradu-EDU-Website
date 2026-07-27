@@ -16,8 +16,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="zh-CN">
       <body>
         <header className="site-header">
-          <Link className="brand" href="/">
-            UNGradu EDU
+          <Link aria-label="UNGradu EDU 首页" className="brand" href="/">
+            <span aria-hidden="true" className="brand-mark" />
+            <span className="brand-name">UNGradu EDU</span>
           </Link>
           <nav className="top-nav" aria-label="主导航">
             <SessionNav />

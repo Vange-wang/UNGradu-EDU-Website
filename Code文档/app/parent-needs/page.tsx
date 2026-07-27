@@ -89,8 +89,12 @@ export default function ParentNeedsPage() {
   }
 
   return (
-    <div className="page dplus-business-page">
-      <section className="market-header">
+    <div className="page dplus-business-page sitewide-refresh-page marketplace-refresh-page">
+      <Link aria-label="返回首页" className="page-back-arrow" href="/">
+        <span aria-hidden="true">←</span>
+      </Link>
+      <div className="marketplace-refresh-shell">
+        <section className="market-header">
         <div className="market-copy">
           <span className="eyebrow">家长需求</span>
           <h1 className="section-title">需求广场</h1>
@@ -104,16 +108,16 @@ export default function ParentNeedsPage() {
           </div>
         </div>
         <div className="action-row compact-actions">
-          <Link className="button secondary" href="/">
-            返回首页
-          </Link>
           <Link className="button primary" href="/parent-needs/new">
             发布需求
           </Link>
         </div>
       </section>
 
-      <section className="workbench-layout" aria-label="需求筛选与结果">
+      <section
+        className="workbench-layout marketplace-refresh-main"
+        aria-label="需求筛选与结果"
+      >
         <aside className="filter-panel">
           <div className="filter-panel-heading">
             <span className="eyebrow">筛选需求</span>
@@ -245,6 +249,7 @@ export default function ParentNeedsPage() {
           )}
         </div>
       </section>
+      </div>
     </div>
   );
 }

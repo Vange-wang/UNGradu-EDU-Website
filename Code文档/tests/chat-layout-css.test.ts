@@ -24,9 +24,9 @@ describe("chat layout CSS", () => {
   });
 
   it("prioritizes customer service chat controls on mobile", () => {
-    expect(globalsCss).toContain(".customer-service-main {\n    order: -1;");
+    expect(globalsCss).toMatch(/\.customer-service-main\s*\{\s*order:\s*-1;/);
     expect(globalsCss).toMatch(
-      /\.customer-service-messages\s*\{\s*height: clamp\(306px, 38dvh, 340px\);/
+      /\.customer-service-messages\s*\{\s*height:\s*clamp\((?:300|306)px,\s*38dvh,\s*340px\);/
     );
     expect(globalsCss).not.toContain(".customer-service-dify-frame");
   });

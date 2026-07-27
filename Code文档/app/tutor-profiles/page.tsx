@@ -82,8 +82,12 @@ export default function TutorProfilesPage() {
   }
 
   return (
-    <div className="page dplus-business-page">
-      <section className="market-header">
+    <div className="page dplus-business-page sitewide-refresh-page marketplace-refresh-page">
+      <Link aria-label="返回首页" className="page-back-arrow" href="/">
+        <span aria-hidden="true">←</span>
+      </Link>
+      <div className="marketplace-refresh-shell">
+        <section className="market-header">
         <div className="market-copy">
           <span className="eyebrow">老师资料</span>
           <h1 className="section-title">家教信息广场</h1>
@@ -97,16 +101,16 @@ export default function TutorProfilesPage() {
           </div>
         </div>
         <div className="action-row compact-actions">
-          <Link className="button secondary" href="/">
-            返回首页
-          </Link>
           <Link className="button primary" href="/tutor-profiles/new">
             发布家教信息
           </Link>
         </div>
       </section>
 
-      <section className="workbench-layout" aria-label="家教信息筛选与结果">
+      <section
+        className="workbench-layout marketplace-refresh-main"
+        aria-label="家教信息筛选与结果"
+      >
         <aside className="filter-panel">
           <div className="filter-panel-heading">
             <span className="eyebrow">筛选老师</span>
@@ -238,6 +242,7 @@ export default function TutorProfilesPage() {
           )}
         </div>
       </section>
+      </div>
     </div>
   );
 }

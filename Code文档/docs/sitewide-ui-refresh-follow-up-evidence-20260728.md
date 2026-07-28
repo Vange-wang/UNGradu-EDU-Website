@@ -201,3 +201,78 @@ Engineering gates:
   `node_modules` junction.
 - No production deployment, Cloudflare/CloudBase/DNS/Secret/Issue change, or
   user-acceptance claim is included.
+
+## Return-button outer-board single-point remediation after `09b1c645`
+
+The evidence root for the user-requested pale-yellow board removal is:
+
+`C:\Users\86166\.codex\visualizations\2026\07\17\019f70ec-6331-7083-aecb-bb8484511518\sitewide-followup-rework\return-edge-pixel-fix-20260728`
+
+The red asset contract established two independent asset layers:
+
+- Both 57×53 return-button slices were fully opaque, so their rounded black
+  frames retained captured yellow pixels in the outer corners.
+- Both 1536×1024 page backgrounds retained a rectangular pale-yellow backing at
+  `x=47..111, y=86..146`, four pixels beyond the positioned return-button slice.
+
+No CSS or TSX change was necessary. The final repair changes alpha only outside
+the button's detected black frame and reconstructs only the corresponding
+exposed background pixels from the nearest exterior gradient sample.
+
+Approved pixel boundary:
+
+- Tutor return slice: 350 exterior pixels became transparent; its complete RGB
+  stream remains
+  `ac051994581ace666f71c313d8f60f084def75d6c9fda5de88c6584ae690a23e`.
+- Parent return slice: 328 exterior pixels became transparent; its complete RGB
+  stream remains
+  `9df41ed7a47f53c3eecfab54cb5df77612ea546c8d968571ada1f811a9aa59c6`.
+- Tutor background: 1,294 approved pixels rebuilt; the desktop screenshot
+  changes 1,293 pixels.
+- Parent background: 1,272 approved pixels rebuilt; the desktop screenshot
+  changes 1,270 pixels.
+- Both screenshot change boxes are exactly `x=47..111, y=86..146`; changed
+  pixels outside the approved exterior mask are `0`. The black border, white
+  fill, arrow, element geometry, hit target, and all other page pixels are
+  therefore unchanged from `09b1c645`.
+
+Direct evidence:
+
+- Final tutor desktop:
+  `captures\tutor-default-1536x1024\tutor-profiles-1536x1024-viewport.png`
+- Final parent desktop:
+  `captures\parent-default-1536x1024\parent-needs-1536x1024-viewport.png`
+- Local 8× before/after/diff:
+  `tutor-return-before-8x.png`, `tutor-return-after-8x.png`,
+  `tutor-return-diff-8x.png`, and the corresponding `parent-return-*` files.
+- Machine-readable pixel proof: `return-pixel-diff-metrics.json`.
+
+Regression evidence:
+
+- Both 390×844 page screenshots are byte-for-byte identical to the
+  `09b1c645` screenshots; both retain zero horizontal overflow.
+- The desktop diff has no changes outside the return-board mask, so the
+  previously repaired filter-frame area is byte-identical.
+- Home, Login, Rules, and Customer Service default desktop screenshots are
+  byte-for-byte identical to their `09b1c645` evidence. All hashes are recorded
+  in `unchanged-screenshot-hashes.json`.
+- Public-real-data filtering returns HTTP 200 for both marketplaces at desktop
+  and mobile widths. `browser-regression-summary.json` records no unexpected
+  network or console errors; anonymous `GET /api/auth/session` HTTP 401 remains
+  the expected authentication boundary.
+- Focus captures preserve return `href="/"` and the existing 3px blue
+  `focus-visible` outline. The link box was not changed.
+
+Engineering gates:
+
+- Red: 4/6 focused asset tests failed; return slices had zero transparent
+  exterior pixels and background discontinuity was 17.
+- Green: 6/6 focused asset tests pass.
+- `npm run typecheck` and `npm run lint`: exit 0.
+- Full isolated run: 236 pass / 1 known operations-fixture failure. Excluding
+  only that file: 59 files / 235 tests pass. The exact operations test passes
+  2/2 read-only in the original worktree.
+- `npm run build`: exit 0 with 31 static pages; only the known Windows shared
+  `node_modules` junction `EPERM` warning remains.
+- No production, Cloudflare, CloudBase, DNS, Secret, Issue, or original-worktree
+  file was changed.

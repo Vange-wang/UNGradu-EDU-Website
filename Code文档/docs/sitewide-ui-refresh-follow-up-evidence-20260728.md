@@ -123,3 +123,81 @@ identical to the previously approved default captures at both viewports.
 This focused package is developer-side rework evidence only. The two independent
 UI findings require a fresh independent review; no merge, deployment, Issue
 transition, or user acceptance is implied.
+
+## Filter outer-edge single-point remediation after `cd086f3a`
+
+The evidence root for the user-requested pale-outline removal is:
+
+`C:\Users\86166\.codex\visualizations\2026\07\17\019f70ec-6331-7083-aecb-bb8484511518\sitewide-followup-rework\filter-edge-pixel-fix-20260728`
+
+The initial asset contract proved that both 415×882 filter slices were fully
+opaque and retained captured background pixels outside their rounded black
+frames. After those pixels were made transparent, a fresh page capture proved
+that the two 1536×1024 background assets also contained the same pale panel
+backing four pixels outside the filter slice bounds. This was the evidence-gated
+exception that required editing the two background PNGs; no CSS, TSX, component,
+layout, text, control, or other page asset changed.
+
+Approved pixel boundary:
+
+- Tutor filter slice: 403 exterior pixels became transparent; its complete RGB
+  byte stream still hashes to
+  `587746b19ba9e5ad8b066325ebeb83559b4c04e2de7509ce54f49bc252d1c807`.
+- Parent filter slice: 390 exterior pixels became transparent; its complete RGB
+  byte stream still hashes to
+  `3b4a3f02cb76c5491dfe8384a77c4885cea0395310451dc9eca876ee93255857`.
+- Tutor background: only the 10,843 pixels exposed outside the black frame were
+  rebuilt from their nearest exterior gradient sample.
+- Parent background: only the 10,830 pixels exposed outside the black frame were
+  rebuilt the same way.
+- Desktop before/after comparison changed 10,837 tutor pixels and 10,818 parent
+  pixels. Both changed bounding boxes are exactly `x=137..559, y=83..972`;
+  changed pixels outside the approved exterior mask are `0`.
+- The black frame and every pixel inside it are therefore byte-identical to the
+  `cd086f3a` page capture.
+
+Direct visual evidence:
+
+- Final tutor desktop:
+  `final-captures\tutor-default-1536x1024\tutor-profiles-1536x1024-viewport.png`
+- Final parent desktop:
+  `final-captures\parent-default-1536x1024\parent-needs-1536x1024-viewport.png`
+- Before/after/diff crops:
+  `tutor-filter-before-crop.png`, `tutor-filter-after-crop.png`,
+  `tutor-filter-diff-crop.png`, and the corresponding `parent-filter-*` files.
+- Nearest-neighbor 10× corner evidence:
+  `tutor-filter-before-top-left-10x.png`,
+  `tutor-filter-after-top-left-10x.png`, and the corresponding parent files.
+- Machine-readable boundary proof: `pixel-diff-metrics.json`.
+
+Responsive and interaction evidence:
+
+- `final-captures` contains fixture and public-real-data viewport/full-page/
+  geometry records for both pages at 1536×1024 and 390×844.
+- Public-real-data subject filtering returned HTTP 200 at both widths; document
+  horizontal overflow is `0`.
+- `reset-regression\reset-summary.json` records a real `数学` filter followed by
+  Reset for both pages: final subject and query string are empty, result state is
+  `live`, public-data status is HTTP 200, and horizontal overflow is `0`.
+- `browser-network-console-summary.json` records no unexpected network or
+  console errors. The only error-class request is the pre-existing anonymous
+  `GET /api/auth/session` HTTP 401 boundary.
+- Fresh default screenshots for Home, Login, Rules, and Customer Service match
+  the `cd086f3a` regression screenshots byte-for-byte; hashes are in
+  `unchanged-page-hashes.json`.
+
+Engineering gates:
+
+- Red asset contract: 2 background tests failed with a maximum channel
+  discontinuity of 14; after the minimal repair, all 4 asset tests pass and the
+  preserved-pixel hashes remain unchanged.
+- `npm run typecheck` and `npm run lint`: exit 0.
+- Full isolated test run: 234 pass / 1 fail; the sole failure is the known
+  missing untracked S2 operations-document fixture. Excluding only that file:
+  59 files / 233 tests pass. The exact operations test passes 2/2 in the
+  original worktree without modifying it.
+- `npm run build`: exit 0 with 31 static pages. The only warning is the known
+  Windows `EPERM` when the standalone collector encounters the shared
+  `node_modules` junction.
+- No production deployment, Cloudflare/CloudBase/DNS/Secret/Issue change, or
+  user-acceptance claim is included.

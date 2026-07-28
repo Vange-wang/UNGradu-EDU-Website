@@ -4,6 +4,14 @@ compatibility_date = "2026-07-08"
 workers_dev = false
 
 [[routes]]
+pattern = "ungraduedu.eu.cc"
+custom_domain = true
+
+[[routes]]
+pattern = "www.ungraduedu.eu.cc"
+custom_domain = true
+
+[[routes]]
 pattern = "ungradeedu.eu.cc"
 custom_domain = true
 
@@ -14,7 +22,8 @@ custom_domain = true
 [vars]
 UPSTREAM_ORIGIN = "https://ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbase.com"
 
-# ungradeedu.eu.cc is the canonical public domain.
-# www.ungradeedu.eu.cc redirects to the canonical root domain in the Worker.
-# workers.dev public access is disabled; keep the Worker resource and Custom Domains.
+# ungraduedu.eu.cc is the new canonical public domain.
+# Each www hostname redirects to its matching root domain in the Worker.
+# Keep the legacy ungradeedu.eu.cc root and www routes for rollback.
+# workers.dev public access is disabled; keep the Worker resource and all Custom Domains.
 # Do not put secrets in this file. Use Cloudflare Worker variables/secrets instead.

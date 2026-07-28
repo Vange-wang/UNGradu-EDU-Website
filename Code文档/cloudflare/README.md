@@ -4,8 +4,11 @@ This folder contains the Worker proxy and the staged origin-verification impleme
 
 ## Public domain policy
 
-- Canonical public domain: `https://ungradeedu.eu.cc`
-- `https://www.ungradeedu.eu.cc` redirects permanently to the canonical root domain while preserving path and query string.
+- Canonical public domain: `https://ungraduedu.eu.cc`
+- `https://www.ungraduedu.eu.cc` redirects permanently to the new canonical root domain while preserving path and query string.
+- Legacy rollback domain: `https://ungradeedu.eu.cc`
+- `https://www.ungradeedu.eu.cc` keeps its existing permanent redirect to the legacy root domain, preserving path and query string.
+- Do not remove the legacy root or `www` Custom Domain until the new-domain production acceptance and rollback-retention gate are both explicitly complete.
 - The existing Worker resource remains, but its public `workers.dev` URL is disabled.
 - The CloudBase URL remains the upstream origin, not a public URL to promote.
 
@@ -18,7 +21,7 @@ Shortest Dashboard path:
 1. Open Cloudflare Dashboard -> Workers & Pages -> your Worker -> Edit Code.
 2. Replace the whole editor content with `Code文档/cloudflare/worker.js`.
 3. Click Save and Deploy.
-4. Open the canonical domain and check `/`, `/rules`, `/feedback`, and `/api/feedback`.
+4. Open both the new canonical domain and retained legacy domain and check `/`, `/rules`, `/feedback`, and `/api/feedback`.
 
 `worker.js` has the CloudBase default production domain as a fallback. Keep `UPSTREAM_ORIGIN` set to the same CloudBase origin. Origin verification additionally uses the masked `ORIGIN_VERIFY_SECRET` binding during the approved staged rollout.
 
@@ -27,27 +30,42 @@ Shortest Dashboard path:
 - Worker environment variable: `UPSTREAM_ORIGIN=https://ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbase.com`
 - Worker name: `ungradu-edu-proxy`.
 - Keep the Worker resource, but leave its Production Worker URL disabled.
-- The `ungradeedu.eu.cc` zone must be Active in the same Cloudflare account before attaching a Custom Domain.
-- Attach both `ungradeedu.eu.cc` and `www.ungradeedu.eu.cc` as Custom Domains to the existing Worker. The Worker redirects `www` to the root domain.
+- The `ungraduedu.eu.cc` zone must be Active in the same Cloudflare account before attaching a Custom Domain. The 2026-07-28 handoff reports it Active; re-check the target zone immediately before any production change.
+- Attach `ungraduedu.eu.cc` and `www.ungraduedu.eu.cc` as additional Custom Domains to the existing Worker. The Worker redirects the new `www` hostname to the new root domain.
+- Keep the existing `ungradeedu.eu.cc` and `www.ungradeedu.eu.cc` Custom Domains unchanged as the rollback entry. The legacy `www` hostname continues redirecting to the legacy root.
 - TLS: keep Cloudflare SSL/TLS enabled. Do not disable HTTPS.
 - Secret binding: `ORIGIN_VERIFY_SECRET`, added only through the platform secret UI/CLI during the approved window. Do not store it in Wrangler config or Git.
 - Do not add CloudBase keys, session secrets, SMTP secrets, or TencentCloud keys to the Worker.
 
-The executable Wrangler example is `Code文档/cloudflare/wrangler.example.toml`. It declares both Custom Domains and keeps `workers_dev = false`. Use it only after `wrangler whoami` succeeds for the account that owns an Active `ungradeedu.eu.cc` zone. A deploy changes the existing Worker, so first confirm the Worker name, account, zone, and routes in the dashboard. Do not deploy from an unauthenticated or mismatched account.
+The executable Wrangler example is `Code文档/cloudflare/wrangler.example.toml`. It declares the new root and `www` Custom Domains plus both retained legacy routes, and keeps `workers_dev = false`. Use it only after `wrangler whoami` succeeds for the account that owns the Active `ungraduedu.eu.cc` zone. A deploy changes the existing Worker, so first confirm the Worker name, account, zone, current legacy routes, and proposed new routes in the dashboard. Do not deploy from an unauthenticated or mismatched account.
 
 Dashboard-only path:
 
-1. Add `ungradeedu.eu.cc` to Cloudflare and change the authoritative nameservers to the pair assigned by Cloudflare.
-2. Wait until the zone status is Active and confirm there is no conflicting CNAME on the root or `www` hostname.
+1. Confirm `ungraduedu.eu.cc` is Active in Cloudflare and its authoritative nameservers match the independent pair assigned to that zone.
+2. Confirm there is no conflicting CNAME on the new root or `www` hostname.
 3. Open Workers & Pages -> `ungradu-edu-proxy` -> Settings -> Domains & Routes.
-4. Add Custom Domain `ungradeedu.eu.cc`.
-5. Add Custom Domain `www.ungradeedu.eu.cc`.
-6. Keep the existing Worker resource but leave the public Production Worker URL disabled.
-7. Wait for both certificates to become active before public promotion.
+4. Confirm the existing `ungradeedu.eu.cc` and `www.ungradeedu.eu.cc` routes remain present; do not delete or replace them.
+5. Add Custom Domain `ungraduedu.eu.cc`.
+6. Add Custom Domain `www.ungraduedu.eu.cc`.
+7. Keep the existing Worker resource but leave the public Production Worker URL disabled.
+8. Wait for both new certificates to become active before public promotion.
+9. Verify new `www` redirects to the new root, legacy `www` redirects to the legacy root, and both roots serve the expected application before changing any public promotion.
+
+This repository change is configuration preparation only. Do not deploy it while either new Custom Domain, certificate, or rollback check remains unverified.
+
+## Production gates before promotion
+
+- Confirm both new Custom Domains and their edge certificates are Active without removing either legacy route.
+- Reproduce the required zone-level security posture on the new zone; settings on `ungradeedu.eu.cc` do not automatically transfer to `ungraduedu.eu.cc`. Re-check SSL/TLS mode, Always Use HTTPS, Minimum TLS, WAF/Bot controls, and any host-specific rate-limit expression before promotion.
+- Deploy only the reviewed Worker commit and verify `/`, `/login`, `/rules`, `/feedback`, and the anonymous API authentication boundaries on both root domains.
+- Verify `www.ungraduedu.eu.cc` returns 308 to the new root and `www.ungradeedu.eu.cc` still returns 308 to the legacy root with exact path/query preservation.
+- Verify HTTPS enforcement, TLS policy, security headers, upstream-header removal, and origin-verification behavior on the new entry.
+- Authentication cookies are host-scoped. A session established on the legacy domain is not proof of a valid session on the new domain; use a non-sensitive acceptance account to verify a fresh new-domain login without exposing credentials.
 
 ## What the Worker does
 
 - Preserves request path and query string when proxying to CloudBase.
+- Redirects each `www` hostname to its matching root domain, so the legacy rollback entry does not depend on the new zone.
 - Rewrites `Host` to the CloudBase origin host.
 - Drops forwarded client/origin headers that are unnecessary for this temporary proxy.
 - Removes any client-supplied `x-ungrade-origin-verify` header, then injects the masked Worker secret when configured.

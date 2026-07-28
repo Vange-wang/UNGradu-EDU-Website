@@ -3,9 +3,13 @@ type Env = {
   ORIGIN_VERIFY_SECRET?: string;
 };
 
-const PRIMARY_PUBLIC_ORIGIN = "https://ungradeedu.eu.cc";
+const PRIMARY_PUBLIC_ORIGIN = "https://ungraduedu.eu.cc";
+const LEGACY_PUBLIC_ORIGIN = "https://ungradeedu.eu.cc";
 const ORIGIN_VERIFY_HEADER = "x-ungrade-origin-verify";
-const canonicalRedirectHosts = new Set(["www.ungradeedu.eu.cc"]);
+const canonicalRedirectOrigins = new Map([
+  ["www.ungraduedu.eu.cc", PRIMARY_PUBLIC_ORIGIN],
+  ["www.ungradeedu.eu.cc", LEGACY_PUBLIC_ORIGIN]
+]);
 
 const defaultSecurityHeaders = new Headers({
   "Content-Security-Policy": [
@@ -77,11 +81,12 @@ function normalizeOrigin(origin: string) {
 
 function buildCanonicalRedirect(request: Request) {
   const incomingUrl = new URL(request.url);
-  if (!canonicalRedirectHosts.has(incomingUrl.hostname.toLowerCase())) {
+  const canonicalOrigin = canonicalRedirectOrigins.get(incomingUrl.hostname.toLowerCase());
+  if (!canonicalOrigin) {
     return null;
   }
 
-  const canonicalUrl = new URL(incomingUrl.pathname + incomingUrl.search, PRIMARY_PUBLIC_ORIGIN);
+  const canonicalUrl = new URL(incomingUrl.pathname + incomingUrl.search, canonicalOrigin);
   return Response.redirect(canonicalUrl, 308);
 }
 

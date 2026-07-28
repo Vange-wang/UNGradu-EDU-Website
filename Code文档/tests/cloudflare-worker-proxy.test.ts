@@ -9,6 +9,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const workerTsPath = join(here, "..", "cloudflare", "worker.ts");
 const workerJsPath = join(here, "..", "cloudflare", "worker.js");
 const wranglerConfigPath = join(here, "..", "cloudflare", "wrangler.example.toml");
+const cloudflareReadmePath = join(here, "..", "cloudflare", "README.md");
 
 type WorkerEnv = {
   UPSTREAM_ORIGIN: string;
@@ -44,11 +45,17 @@ describe("Cloudflare Worker reverse proxy example", () => {
     expect(workerJs).not.toContain("Promise<Response>");
   });
 
-  it("declares the custom root and www domains while disabling workers.dev", () => {
+  it("declares the new and legacy custom domains while disabling workers.dev", () => {
     const wranglerConfig = readFileSync(wranglerConfigPath, "utf8");
 
     expect(wranglerConfig).toContain('name = "ungradu-edu-proxy"');
     expect(wranglerConfig).toContain("workers_dev = false");
+    expect(wranglerConfig).toMatch(
+      /\[\[routes\]\]\s+pattern = "ungraduedu\.eu\.cc"\s+custom_domain = true/
+    );
+    expect(wranglerConfig).toMatch(
+      /\[\[routes\]\]\s+pattern = "www\.ungraduedu\.eu\.cc"\s+custom_domain = true/
+    );
     expect(wranglerConfig).toMatch(
       /\[\[routes\]\]\s+pattern = "ungradeedu\.eu\.cc"\s+custom_domain = true/
     );
@@ -60,23 +67,72 @@ describe("Cloudflare Worker reverse proxy example", () => {
   it.each([
     ["TypeScript source", workerTsPath],
     ["Dashboard JavaScript paste version", workerJsPath]
-  ])("redirects www to the canonical root domain while preserving path and query: %s", async (_, workerPath) => {
+  ])("redirects each www host to its matching root domain while preserving path and query: %s", async (_, workerPath) => {
     const worker = await importWorker(workerPath);
     expect(worker).not.toBeNull();
 
     const fetchMock = vi.fn<(request: Request) => Promise<Response>>();
     vi.stubGlobal("fetch", fetchMock);
 
-    const response = await worker!.default.fetch(
-      new Request("https://www.ungradeedu.eu.cc/feedback?from=www"),
-      { UPSTREAM_ORIGIN: "https://ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbase.com" }
-    );
+    for (const [wwwOrigin, rootOrigin] of [
+      ["https://www.ungraduedu.eu.cc", "https://ungraduedu.eu.cc"],
+      ["https://www.ungradeedu.eu.cc", "https://ungradeedu.eu.cc"]
+    ]) {
+      const response = await worker!.default.fetch(
+        new Request(`${wwwOrigin}/feedback?from=www`),
+        {
+          UPSTREAM_ORIGIN:
+            "https://ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbase.com"
+        }
+      );
 
-    expect(response.status).toBe(308);
-    expect(response.headers.get("location")).toBe("https://ungradeedu.eu.cc/feedback?from=www");
+      expect(response.status).toBe(308);
+      expect(response.headers.get("location")).toBe(
+        `${rootOrigin}/feedback?from=www`
+      );
+    }
     expect(fetchMock).not.toHaveBeenCalled();
 
     vi.unstubAllGlobals();
+  });
+
+  it.each([
+    ["TypeScript source", workerTsPath],
+    ["Dashboard JavaScript paste version", workerJsPath]
+  ])("keeps both root domains available as proxy entry points: %s", async (_, workerPath) => {
+    const worker = await importWorker(workerPath);
+    expect(worker).not.toBeNull();
+
+    const fetchMock = vi.fn<(request: Request) => Promise<Response>>(
+      async () => new Response("ok")
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    for (const rootOrigin of [
+      "https://ungraduedu.eu.cc",
+      "https://ungradeedu.eu.cc"
+    ]) {
+      const response = await worker!.default.fetch(
+        new Request(`${rootOrigin}/rules?from=rollback-check`),
+        {
+          UPSTREAM_ORIGIN:
+            "https://ungradu-edu-prod-275285-6-1445807473.sh.run.tcloudbase.com"
+        }
+      );
+
+      expect(response.status).toBe(200);
+    }
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
+  });
+
+  it("documents the new canonical domain and the retained legacy rollback entry", () => {
+    const readme = readFileSync(cloudflareReadmePath, "utf8");
+
+    expect(readme).toContain("Canonical public domain: `https://ungraduedu.eu.cc`");
+    expect(readme).toContain("Legacy rollback domain: `https://ungradeedu.eu.cc`");
+    expect(readme).toContain("Do not remove the legacy root or `www` Custom Domain");
   });
 
   it.each([

@@ -521,7 +521,7 @@ async function main() {
       }
     });
     cdp.on("Network.responseReceived", ({ requestId, response, type }) => {
-      if (response.status >= 400) {
+      if (response.status >= 400 || type === "Image") {
         networkEntries.push({
           mimeType: response.mimeType,
           requestId,
@@ -727,6 +727,39 @@ async function main() {
           })
         );
       })`
+    );
+
+    await evaluate(
+      cdp,
+      `(() => {
+        const urls = new Set();
+        const collect = (style) => {
+          const backgroundImage = style?.backgroundImage ?? "";
+          for (const match of backgroundImage.matchAll(/url\\((['"]?)(.*?)\\1\\)/g)) {
+            if (match[2]) {
+              urls.add(new URL(match[2], document.baseURI).href);
+            }
+          }
+        };
+        for (const element of document.querySelectorAll("*")) {
+          collect(getComputedStyle(element));
+          collect(getComputedStyle(element, "::before"));
+          collect(getComputedStyle(element, "::after"));
+        }
+        return Promise.all(
+          Array.from(urls).map(
+            (src) =>
+              new Promise((resolve, reject) => {
+                const image = new Image();
+                image.onload = () =>
+                  image.decode?.().then(resolve, reject) ?? resolve();
+                image.onerror = () =>
+                  reject(new Error("background image failed: " + src));
+                image.src = src;
+              })
+          )
+        ).then(() => Array.from(urls));
+      })()`
     );
 
     await evaluate(
@@ -1029,7 +1062,38 @@ async function main() {
           },
           innerHeight: window.innerHeight,
           innerWidth: window.innerWidth,
+          imageStates: Array.from(document.images).map((image) => ({
+            alt: image.alt,
+            complete: image.complete,
+            currentSrc: image.currentSrc || image.src,
+            display: getComputedStyle(image).display,
+            naturalHeight: image.naturalHeight,
+            naturalWidth: image.naturalWidth,
+            visibility: getComputedStyle(image).visibility
+          })),
+          backgroundImageUrls: Array.from(
+            new Set(
+              performance
+                .getEntriesByType("resource")
+                .filter(
+                  (entry) =>
+                    entry.initiatorType === "css" ||
+                    entry.initiatorType === "img"
+                )
+                .map((entry) => entry.name)
+                .filter((url) => url.includes("/assets/"))
+            )
+          ),
           keyboardAudit: window.__visualKeyboardAudit ?? [],
+          visualViewport: window.visualViewport
+            ? {
+                height: window.visualViewport.height,
+                offsetLeft: window.visualViewport.offsetLeft,
+                offsetTop: window.visualViewport.offsetTop,
+                scale: window.visualViewport.scale,
+                width: window.visualViewport.width
+              }
+            : null,
           interaction: {
             activeElement:
               document.activeElement?.id ||

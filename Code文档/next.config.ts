@@ -54,6 +54,9 @@ const nextConfig: NextConfig = {
   experimental: {
     webpackBuildWorker: false
   },
+  images: {
+    unoptimized: true
+  },
   output: "standalone"
 };
 

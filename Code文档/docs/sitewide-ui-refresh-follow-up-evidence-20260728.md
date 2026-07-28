@@ -276,3 +276,85 @@ Engineering gates:
   `node_modules` junction `EPERM` warning remains.
 - No production, Cloudflare, CloudBase, DNS, Secret, Issue, or original-worktree
   file was changed.
+
+## ISSUE-0022 default-zoom, asset-delivery, and title remediation
+
+Task: `ISSUE-0022 / SITEWIDE-UI-REFRESH-20260727-001`
+
+Baseline: `79d6775a8d519ea8db36efd0e889e38b3c6acbff`
+
+Evidence root:
+
+`C:\Users\86166\.codex\visualizations\2026\07\17\019f70ec-6331-7083-aecb-bb8484511518\issue-0022-fix`
+
+### Reproducible red evidence and root cause
+
+- The CloudBase-origin probe returned HTTP 403 `text/plain` for direct
+  `/assets/sitewide-ui/brand-mark.png` and `home-boy.png`; corresponding
+  `/_next/image` requests returned HTTP 400 because the internal image fetch
+  could not carry the outer Worker's origin-verification header.
+- The pre-fix DPR-1 matrix reproduced the layout at 1536×768 and 1920×974.
+  Home, Login, and Rules had no composition cap at common desktop widths;
+  the approved source-sized skins only activated inside narrow native viewport
+  media windows. Browser zoom changed visible area, not the intrinsic layout.
+- The pre-fix live title was a system-font approximation with a 5px stroke and
+  a 9px/16px shadow, while the approved 978×290 title/decor raster already
+  existed in the repository.
+- Focused TDD red command:
+  `npm test -- --run tests/issue-0022-production-ui-regression.test.ts`;
+  all three initial contracts failed before implementation.
+
+### Fix and final browser evidence
+
+- Next image delivery is unoptimized, so bundled design assets use direct
+  `/assets` URLs instead of the incompatible internal optimizer path.
+- The approved Home, Login, and Rules desktop compositions are centered and
+  capped at 1460px, 1410px, and 1495px respectively. No page-level `zoom` or
+  `transform: scale()` was added.
+- At desktop widths, the Home title/decor layer uses the approved
+  `home-static-hero.png`; the real `h1` remains in the DOM for semantics.
+- Title pixel proof:
+  `home-title-native-1635x962-v2\home-title-slice-comparison-*`.
+  The approved 978×290 asset and the real-browser crop have
+  `changedPixelRatio=0`, `meanAbsoluteError=0`, and `RMSE=0`.
+- Final 100% Chrome matrix:
+  `final\100pct-1920x974`. Final mobile matrix:
+  `final\mobile-390x844`. Additional controlled matrices are
+  `matrix-1536x768`, `matrix-1536x1024`,
+  `matrix-2133x1082-zoom90-equivalent`, and
+  `worker-proxy-1920x974`.
+- Every geometry record has DPR 1, `visualViewport.scale=1`, and
+  `documentElement.scrollWidth=innerWidth`. Across all final six-page captures,
+  visible broken-image count, `/_next/image` dependency count, asset 4xx count,
+  and unexpected console-error count are all zero. Anonymous
+  `/api/auth/session` 401 remains the expected authentication boundary.
+- The production-like verification script keeps a random 32-byte test secret
+  in memory, makes its guarded local origin return 403 without the Worker,
+  then runs the repository Worker and six real Chrome captures. Three
+  representative PNGs return HTTP 200 `image/png` with valid PNG signatures;
+  the six pages contain no optimizer request and no visible decode failure.
+  Machine-readable result:
+  `worker-proxy-1920x974\worker-asset-verification.json`.
+- The Customer Service page is included only as an unchanged control page; no
+  Customer Service component, CSS rule, behavior, or approved scope changed.
+
+### Engineering gates
+
+- Focused scripts and tests: Node syntax checks pass; 4 focused test files /
+  20 tests pass.
+- `npm run typecheck`: exit 0.
+- `npm run lint`: exit 0, zero warnings.
+- Full isolated run: 241/242 passed; the sole failure is the known absent
+  untracked S2 operations-document fixture. Excluding only that fixture test,
+  60 files / 240 tests pass. Its exact test passes 2/2 read-only in the
+  original worktree, whose status is unchanged.
+- A transient empty-result failure in three Chrome chat-layout tests passed
+  3/3 on immediate focused rerun and then passed in the clean 240/240 full
+  rerun; no Customer Service implementation was changed.
+- `npm run build`: exit 0, 31 static pages. The only warning is the existing
+  Windows `EPERM` while standalone tracing encounters the shared
+  `node_modules` junction.
+- No generated screenshots, `.next`, logs, cache, dependency directory, real
+  secret, production configuration, Issue file, or original-worktree file is
+  included. This remains developer-side evidence pending independent review;
+  it is not deployment, Issue closure, or user acceptance.

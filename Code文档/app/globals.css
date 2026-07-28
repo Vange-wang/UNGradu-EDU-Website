@@ -3820,6 +3820,9 @@ body {
   display: grid;
   gap: 76px;
   grid-template-columns: minmax(0, 1fr) 465px;
+  margin-inline: auto;
+  max-width: 1460px;
+  width: 100%;
 }
 
 .home-refresh-main {
@@ -4156,6 +4159,27 @@ body {
   z-index: 8;
 }
 
+@media (min-width: 861px) {
+  .home-native-static-reference .home-title-block::after {
+    aspect-ratio: 978 / 290;
+    background-image: url("/assets/sitewide-ui/home-static-hero.png");
+    background-position: left top;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    content: "";
+    left: -34px;
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    width: min(978px, calc(100% + 60px));
+    z-index: 1;
+  }
+
+  .home-native-static-reference .home-title-block > * {
+    opacity: 0;
+  }
+}
+
 /*
  * The approved desktop reference uses a generated display face that is not
  * available as a licensed webfont. At the source viewport only, these
@@ -4305,7 +4329,10 @@ body:has(.rules-refresh-page) .site-header {
 .rules-refresh-page .rules-refresh-layout {
   gap: 29px;
   grid-template-columns: minmax(0, 0.474fr) minmax(0, 1fr);
+  margin-inline: auto;
+  max-width: 1495px;
   min-height: 0;
+  width: 100%;
 }
 
 .rules-refresh-page .rules-comic {
@@ -4646,8 +4673,10 @@ body:has(.customer-service-shell) {
 .sitewide-auth-shell {
   gap: 33px;
   grid-template-columns: minmax(0, 1.052fr) minmax(0, 1fr);
-  margin-left: 0;
+  margin-inline: auto;
+  max-width: 1410px;
   min-height: 739px;
+  width: 100%;
 }
 
 .sitewide-auth-shell .auth-intro,

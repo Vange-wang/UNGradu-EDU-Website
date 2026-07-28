@@ -358,3 +358,70 @@ Evidence root:
   secret, production configuration, Issue file, or original-worktree file is
   included. This remains developer-side evidence pending independent review;
   it is not deployment, Issue closure, or user acceptance.
+
+## ISSUE-0023 customer-service standard back arrow
+
+Branch: `codex/customer-service-back-arrow-20260728`
+
+Baseline: `52f88ca69872c653a75be4a4d7106405f13c937e`
+
+Evidence root:
+
+`C:\Users\86166\.codex\visualizations\2026\07\17\019f70ec-6331-7083-aecb-bb8484511518\issue-0023-customer-service-back-arrow`
+
+### TDD and implementation
+
+- Red command:
+  `npm test -- --run tests/customer-service-back-arrow.test.ts`.
+  One of two tests failed because `/customer-service` had no standard
+  `a.page-back-arrow[href="/"][aria-label="返回首页"]`; the frozen-content
+  contract passed.
+- The implementation adds only the same `Link` and arrow span already used by
+  the other refreshed secondary pages. No CSS, chat behavior, copy, layout,
+  API, or other route changed.
+- Green command covers the focused contract, sitewide structure contract, and
+  real-Chrome customer-service layout: 3 files / 13 tests pass.
+
+### Real Chrome evidence
+
+- Desktop viewport:
+  `customer-service-back-arrow-1920x974-viewport.png`.
+- Desktop full page:
+  `customer-service-back-arrow-1920x974-fullpage.png`.
+- Mobile viewport:
+  `customer-service-back-arrow-390x844-viewport.png`.
+- Mobile full page:
+  `customer-service-back-arrow-390x844-fullpage.png`.
+- Focus evidence:
+  `customer-service-back-arrow-1920x974-focus-visible.png` and
+  `customer-service-back-arrow-390x844-focus-visible.png`.
+- At 1920×974 the unique link is 52×52 at `(52,132)` with the shared white
+  background, 3px black border, 12px radius, and 3px hard shadow. At 390×844
+  it is 44×44 at `(14,137.594)` with the shared responsive 2px border.
+- Desktop Enter and pointer activation, plus mobile pointer activation, all
+  navigate to `/`. In both viewports the first quick question preserves the
+  established transition `pristine/1 -> active/3`, with `overlapPairs=0`.
+- Both geometry records have DPR 1, `visualViewport.scale=1`, and
+  `documentElement.scrollWidth=documentElement.clientWidth`. Chrome reports
+  zero console warnings or errors.
+- Machine-readable evidence:
+  `customer-service-back-arrow-1920x974-metrics.json`,
+  `customer-service-back-arrow-390x844-metrics.json`,
+  `back-arrow-style-comparison.json`, `interaction-evidence.json`, and
+  `chrome-console-warn-error.json`.
+
+### Engineering gates
+
+- `npm run typecheck`: exit 0.
+- `npm run lint`: exit 0, zero warnings.
+- Full isolated test run: 243/244 pass; the sole failure is the known absent
+  untracked S2 operations-document fixture. Excluding only that file:
+  61 files / 242 tests pass. Its exact test passes 2/2 read-only in the
+  original worktree, whose status remains unchanged.
+- `npm run build`: exit 0, 31 static pages. The only warning is the existing
+  Windows `EPERM` while standalone tracing encounters the shared
+  `node_modules` junction.
+- No screenshot, `.next`, log, cache, dependency directory, real secret,
+  production configuration, Issue file, or original-worktree file is included.
+  This is developer-side evidence pending independent UI review; it is not a
+  deployment, Issue closure, or user acceptance.

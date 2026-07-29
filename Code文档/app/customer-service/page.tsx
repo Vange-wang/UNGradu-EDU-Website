@@ -25,10 +25,6 @@ export default function CustomerServicePage() {
         </div>
       </section>
 
-      <Link aria-label="返回首页" className="page-back-arrow" href="/">
-        <span aria-hidden="true">←</span>
-      </Link>
-
       <div className="customer-service-layout">
         <aside className="customer-service-side">
           <span className="eyebrow">可咨询内容</span>

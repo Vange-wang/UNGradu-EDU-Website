@@ -7,17 +7,24 @@ const customerServiceSource = readFileSync(
   join(process.cwd(), "app/customer-service/page.tsx"),
   "utf8"
 );
+const siteHeaderSource = readFileSync(
+  join(process.cwd(), "features/navigation/site-header.tsx"),
+  "utf8"
+);
 const globalCss = readFileSync(join(process.cwd(), "app/globals.css"), "utf8");
 const homeEntryGridCss =
   globalCss.match(/\.home-entry-grid\s*\{([^}]*)\}/)?.[1] ?? "";
 
-describe("customer-service standard back arrow", () => {
-  it("renders exactly one standard link back to the home page", () => {
-    const standardBackArrows = customerServiceSource.match(
+describe("customer-service shared back arrow", () => {
+  it("renders the standard home link only in the shared header", () => {
+    const standardBackArrows = siteHeaderSource.match(
       /<Link\s+aria-label="返回首页"\s+className="page-back-arrow"\s+href="\/">/g
     );
 
-    expect(standardBackArrows).toHaveLength(1);
+    expect(standardBackArrows).toBeNull();
+    expect(siteHeaderSource).toContain('aria-label="返回首页"');
+    expect(siteHeaderSource).toContain('className="site-back-link"');
+    expect(customerServiceSource).not.toContain('aria-label="返回首页"');
   });
 
   it("keeps the frozen customer-service content and chat entry unchanged", () => {
@@ -31,20 +38,19 @@ describe("customer-service standard back arrow", () => {
     );
   });
 
-  it("places the back link after the hero and before the customer-service work area", () => {
+  it("keeps the customer-service work area directly after its hero", () => {
     const heroStart = customerServiceSource.indexOf(
       '<section className="customer-service-info-strip">'
-    );
-    const backArrowStart = customerServiceSource.indexOf(
-      'className="page-back-arrow"'
     );
     const workspaceStart = customerServiceSource.indexOf(
       '<div className="customer-service-layout">'
     );
 
     expect(heroStart).toBeGreaterThanOrEqual(0);
-    expect(backArrowStart).toBeGreaterThan(heroStart);
-    expect(workspaceStart).toBeGreaterThan(backArrowStart);
+    expect(workspaceStart).toBeGreaterThan(heroStart);
+    expect(customerServiceSource.slice(heroStart, workspaceStart)).not.toContain(
+      "page-back-arrow"
+    );
   });
 
   it("lets home entry grid rows expand when the tutor card copy wraps", () => {

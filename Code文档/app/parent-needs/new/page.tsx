@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 import { RequireTestSession } from "@/features/auth/require-test-session";
@@ -95,9 +94,6 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
           <h1 className="section-title">发布家教需求</h1>
           <p>填写孩子情况、科目、预算和时间；公开说明不要写联系方式。</p>
         </div>
-        <Link className="button secondary" href="/profile/parent-needs">
-          返回我的需求
-        </Link>
       </div>
 
       <div className="step-form-layout">

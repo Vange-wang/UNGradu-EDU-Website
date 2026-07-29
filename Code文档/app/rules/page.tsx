@@ -1,12 +1,8 @@
 import Image from "next/image";
-import Link from "next/link";
 
 export default function RulesPage() {
   return (
     <div className="page sitewide-refresh-page rules-refresh-page rules-native-static-reference">
-      <Link aria-label="返回首页" className="page-back-arrow" href="/">
-        <span aria-hidden="true">←</span>
-      </Link>
       <section className="notice-layout rules-refresh-layout">
         <aside className="notice-aside">
           <span className="eyebrow">平台边界</span>

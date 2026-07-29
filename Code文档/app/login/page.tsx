@@ -1,14 +1,10 @@
 import Image from "next/image";
-import Link from "next/link";
 
 import { LoginPageContent } from "@/features/auth/login-page-content";
 
 export default function LoginPage() {
   return (
     <div className="page auth-page sitewide-refresh-page">
-      <Link aria-label="返回首页" className="page-back-arrow" href="/">
-        <span aria-hidden="true">←</span>
-      </Link>
       <section className="auth-shell sitewide-auth-shell">
         <div className="auth-intro sitewide-auth-intro">
           <div>

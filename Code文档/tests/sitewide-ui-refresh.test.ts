@@ -14,11 +14,13 @@ const customerServiceSource = read("app/customer-service/page.tsx");
 const parentNeedsSource = read("app/parent-needs/page.tsx");
 const tutorProfilesSource = read("app/tutor-profiles/page.tsx");
 const globalsCss = read("app/globals.css");
+const siteHeaderSource = read("features/navigation/site-header.tsx");
 
 describe("sitewide D+ refresh structure", () => {
   it("keeps the logged-out navigation contract and adds the shared brand mark", () => {
-    expect(layoutSource).toContain('className="brand-mark"');
-    expect(layoutSource).toContain('className="brand-name"');
+    expect(layoutSource).toContain("<SiteHeader />");
+    expect(siteHeaderSource).toContain('className="brand-mark"');
+    expect(siteHeaderSource).toContain('className="brand-name"');
     expect(read("features/auth/session-nav.tsx")).toContain("登录 / 注册");
     expect(read("features/auth/session-nav.tsx")).toContain("智能客服");
     expect(read("features/auth/session-nav.tsx")).toContain("规则");
@@ -36,15 +38,17 @@ describe("sitewide D+ refresh structure", () => {
     expect(read("features/auth/session-nav.tsx")).not.toContain('href="/feedback"');
   });
 
-  it("uses one standard back-arrow pattern on the refreshed secondary pages", () => {
+  it("uses one shared back-arrow pattern without page-level duplicates", () => {
+    expect(siteHeaderSource).toContain('className="site-back-link"');
+    expect(siteHeaderSource).toContain('aria-label="返回首页"');
     for (const source of [
       loginSource,
       rulesSource,
       parentNeedsSource,
       tutorProfilesSource
     ]) {
-      expect(source).toContain('className="page-back-arrow"');
-      expect(source).toContain('aria-label="返回首页"');
+      expect(source).not.toContain('className="page-back-arrow"');
+      expect(source).not.toContain('aria-label="返回首页"');
     }
   });
 

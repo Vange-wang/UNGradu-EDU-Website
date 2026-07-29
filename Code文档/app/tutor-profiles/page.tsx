@@ -98,9 +98,6 @@ export default function TutorProfilesPage() {
 
   return (
     <div className="page dplus-business-page sitewide-refresh-page marketplace-refresh-page tutor-profiles-native-static-reference">
-      <Link aria-label="返回首页" className="page-back-arrow" href="/">
-        <span aria-hidden="true">←</span>
-      </Link>
       <div className="marketplace-refresh-shell">
         <section className="market-header">
         <div className="market-copy">

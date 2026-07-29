@@ -6,6 +6,10 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const homeSource = fs.readFileSync(path.join(root, "app", "page.tsx"), "utf8");
 const layoutSource = fs.readFileSync(path.join(root, "app", "layout.tsx"), "utf8");
+const siteHeaderSource = fs.readFileSync(
+  path.join(root, "features", "navigation", "site-header.tsx"),
+  "utf8"
+);
 const globalCss = fs.readFileSync(path.join(root, "app", "globals.css"), "utf8");
 
 describe("approved home visual contract", () => {
@@ -21,8 +25,9 @@ describe("approved home visual contract", () => {
   });
 
   it("uses the approved local brand mark and keeps all interactive home copy as DOM text", () => {
-    expect(layoutSource).toContain('from "next/image"');
-    expect(layoutSource).toContain("/assets/sitewide-ui/brand-mark.png");
+    expect(layoutSource).toContain("<SiteHeader />");
+    expect(siteHeaderSource).toContain('from "next/image"');
+    expect(siteHeaderSource).toContain("/assets/sitewide-ui/brand-mark.png");
     expect(homeSource).toContain("发布找老师需求");
     expect(homeSource).toContain("发布老师信息");
     expect(homeSource).toContain("我要找家教");

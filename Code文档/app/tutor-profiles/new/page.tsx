@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 import { RequireTestSession } from "@/features/auth/require-test-session";
@@ -133,9 +132,6 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
           <h1 className="section-title">发布家教信息</h1>
           <p>填写学校专业、可教范围和课时费；公开说明不要写联系方式。</p>
         </div>
-        <Link className="button secondary" href="/profile/tutor-profiles">
-          返回我的家教信息
-        </Link>
       </div>
 
       <div className="step-form-layout">

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -113,9 +112,6 @@ export default function FeedbackPage() {
           <p>反馈仅用于记录排查，不承诺客服介入、仲裁、退款或担保。</p>
           <p>推荐通过项目方提供的 HTTPS 入口访问；入口变化以项目方通知为准。</p>
           <p>Cloudflare Worker 如被使用，仅作为临时访问与基础安全加固方案。</p>
-          <Link className="button secondary" href="/">
-            返回首页
-          </Link>
         </aside>
 
         <form className="notice-panel dplus-notice-list" onSubmit={submitForm}>

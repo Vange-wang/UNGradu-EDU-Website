@@ -3222,6 +3222,11 @@ body {
   }
 }
 
+.dplus-profile-page .workspace-header > div .eyebrow {
+  justify-self: start;
+  width: fit-content;
+}
+
 /* Parent-needs marketplace native reference: approved three-frame composition. */
 @media (min-width: 1500px) and (max-width: 1560px) and (min-height: 990px) and (max-height: 1050px) {
   body:has(.parent-needs-native-static-reference) {

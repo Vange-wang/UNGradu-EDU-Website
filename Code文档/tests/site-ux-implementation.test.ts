@@ -162,5 +162,8 @@ describe("SITE-UX-IMPLEMENT-20260729-001", () => {
     expect(globalsCss).toMatch(
       /@media\s*\(max-width:\s*720px\)[\s\S]*?\.dplus-profile-page \.wide-panel::before\s*\{[^}]*height:\s*56px[^}]*right:\s*16px[^}]*top:\s*18px[^}]*width:\s*56px/s
     );
+    expect(globalsCss).toMatch(
+      /\.dplus-profile-page \.workspace-header > div \.eyebrow\s*\{[^}]*justify-self:\s*start[^}]*width:\s*fit-content/s
+    );
   });
 });

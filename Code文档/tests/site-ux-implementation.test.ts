@@ -111,4 +111,33 @@ describe("SITE-UX-IMPLEMENT-20260729-001", () => {
       /@media\s*\(max-width:\s*720px\)[\s\S]*?\.account-card-chat\s*\{[^}]*grid-column:\s*auto/s
     );
   });
+
+  it("uses the confirmed warm-neutral account panel without changing the profile card grid", () => {
+    const globalsCss = read("app/globals.css");
+
+    expect(globalsCss).toMatch(
+      /\.dplus-profile-page \.account-summary\s*\{[^}]*background:\s*#FFF9E8[^}]*border:\s*3px solid #1B1B1A[^}]*box-shadow:\s*4px 4px 0 #1B1B1A/s
+    );
+    expect(globalsCss).toMatch(
+      /\.dplus-profile-page \.account-status-grid\s*\{[^}]*background:\s*#E7EEE6[^}]*border:\s*2px solid #1B1B1A[^}]*border-radius:\s*14px/s
+    );
+    expect(globalsCss).toMatch(
+      /\.dplus-profile-page \.account-status-grid > div \+ div\s*\{[^}]*border-left:\s*1px solid #C5CEC2/s
+    );
+    expect(globalsCss).toMatch(
+      /\.dplus-profile-page \.dplus-account-rules span\s*\{[^}]*background:\s*#FFF1A8[^}]*border:\s*2px solid #1B1B1A/s
+    );
+    expect(globalsCss).toMatch(
+      /\.dplus-profile-page \.dplus-account-rules span:nth-child\(2\)\s*\{[^}]*background:\s*#D9E7D5/s
+    );
+    expect(globalsCss).toMatch(
+      /\.dplus-profile-page \.dplus-account-rules span:nth-child\(3\)\s*\{[^}]*background:\s*#FFD1B3/s
+    );
+    expect(globalsCss).toMatch(
+      /\.dplus-profile-page \.account-summary \.button\.secondary\s*\{[^}]*background:\s*#FFFDF7[^}]*min-height:\s*48px/s
+    );
+    expect(globalsCss).toMatch(
+      /@media\s*\(max-width:\s*720px\)[\s\S]*?\.dplus-profile-page \.account-summary\s*\{[^}]*padding:\s*20px/s
+    );
+  });
 });

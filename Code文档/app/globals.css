@@ -7394,3 +7394,112 @@ body:has(.customer-service-shell) {
     grid-column: auto;
   }
 }
+
+/* Confirmed profile account-panel palette: keep black for structure, not fill. */
+.dplus-profile-page .account-summary {
+  background: #FFF9E8;
+  border: 3px solid #1B1B1A;
+  border-radius: 24px;
+  box-shadow: 4px 4px 0 #1B1B1A;
+  color: #1B1B1A;
+  gap: 12px;
+  padding: 24px;
+}
+
+.dplus-profile-page .account-summary .eyebrow {
+  background: #F4DA6B;
+  border: 2px solid #1B1B1A;
+  border-radius: 999px;
+  color: #1B1B1A;
+  padding: 7px 11px;
+  width: fit-content;
+}
+
+.dplus-profile-page .account-summary h2 {
+  color: #1B1B1A;
+  font-size: clamp(44px, 4vw, 48px);
+  font-weight: 900;
+  line-height: 1.03;
+}
+
+.dplus-profile-page .account-summary p {
+  color: #586250;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.dplus-profile-page .account-status-grid {
+  background: #E7EEE6;
+  border: 2px solid #1B1B1A;
+  border-radius: 14px;
+  gap: 0;
+  overflow: hidden;
+}
+
+.dplus-profile-page .account-status-grid > div {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 12px;
+}
+
+.dplus-profile-page .account-status-grid > div + div {
+  border-left: 1px solid #C5CEC2;
+}
+
+.dplus-profile-page .account-status-grid strong,
+.dplus-profile-page .account-status-grid span {
+  color: #1B1B1A;
+}
+
+.dplus-profile-page .dplus-account-rules {
+  gap: 10px;
+}
+
+.dplus-profile-page .dplus-account-rules span {
+  align-items: center;
+  background: #FFF1A8;
+  border: 2px solid #1B1B1A;
+  box-shadow: none;
+  color: #1B1B1A;
+  display: flex;
+  min-height: 34px;
+  width: 100%;
+}
+
+.dplus-profile-page .dplus-account-rules span:nth-child(2) {
+  background: #D9E7D5;
+}
+
+.dplus-profile-page .dplus-account-rules span:nth-child(3) {
+  background: #FFD1B3;
+}
+
+.dplus-profile-page .account-summary .button.secondary {
+  background: #FFFDF7;
+  border: 3px solid #1B1B1A;
+  border-radius: 14px;
+  box-shadow: none;
+  color: #1B1B1A;
+  min-height: 48px;
+}
+
+.dplus-profile-page .account-summary .button.secondary:hover:not(:disabled) {
+  background: #F4DA6B;
+  border-color: #1B1B1A;
+}
+
+@media (max-width: 720px) {
+  .dplus-profile-page .account-summary {
+    padding: 20px;
+  }
+
+  .dplus-profile-page .account-summary h2 {
+    font-size: clamp(36px, 11vw, 40px);
+  }
+
+  .dplus-profile-page .account-status-grid > div + div {
+    border-left: 0;
+    border-top: 1px solid #C5CEC2;
+  }
+}

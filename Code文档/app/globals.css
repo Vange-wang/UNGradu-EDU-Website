@@ -7503,3 +7503,73 @@ body:has(.customer-service-shell) {
     border-top: 1px solid #C5CEC2;
   }
 }
+
+@media (min-width: 721px) {
+  .dplus-profile-page .workspace-header {
+    min-height: 164px;
+    padding: 18px 32px 16px;
+    margin-bottom: 16px;
+  }
+
+  .dplus-profile-page .workspace-header > div {
+    display: grid;
+    gap: 6px;
+    max-width: calc(100% - 112px);
+  }
+
+  .dplus-profile-page .workspace-header .section-title {
+    font-size: clamp(32px, 3.4vw, 38px);
+    line-height: 1.05;
+    margin: 0;
+  }
+
+  .dplus-profile-page .workspace-header p {
+    font-size: 16px;
+    line-height: 1.45;
+    margin: 2px 0 0;
+  }
+
+  .dplus-profile-page .wide-panel::before {
+    border: 3px solid var(--dplus-ink);
+    box-shadow: 4px 4px 0 var(--dplus-ink);
+    height: 68px;
+    right: 32px;
+    top: 24px;
+    width: 68px;
+  }
+}
+
+@media (max-width: 720px) {
+  .dplus-profile-page .workspace-header {
+    min-height: 148px;
+    padding: 6px 16px 8px;
+    margin-bottom: 12px;
+  }
+
+  .dplus-profile-page .workspace-header > div {
+    display: grid;
+    gap: 4px;
+    max-width: calc(100% - 72px);
+  }
+
+  .dplus-profile-page .workspace-header .section-title {
+    font-size: clamp(32px, 9vw, 36px);
+    line-height: 1.05;
+    margin: 0;
+  }
+
+  .dplus-profile-page .workspace-header p {
+    font-size: 14px;
+    line-height: 1.45;
+    margin: 2px 0 0;
+  }
+
+  .dplus-profile-page .wide-panel::before {
+    border: 3px solid var(--dplus-ink);
+    box-shadow: 4px 4px 0 var(--dplus-ink);
+    height: 56px;
+    right: 16px;
+    top: 18px;
+    width: 56px;
+  }
+}

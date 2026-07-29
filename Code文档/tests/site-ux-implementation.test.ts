@@ -140,4 +140,27 @@ describe("SITE-UX-IMPLEMENT-20260729-001", () => {
       /@media\s*\(max-width:\s*720px\)[\s\S]*?\.dplus-profile-page \.account-summary\s*\{[^}]*padding:\s*20px/s
     );
   });
+
+  it("compresses only the profile hero while preserving readable copy and its yellow ornament", () => {
+    const globalsCss = read("app/globals.css");
+
+    expect(globalsCss).toMatch(
+      /@media\s*\(min-width:\s*721px\)[\s\S]*?\.dplus-profile-page \.workspace-header\s*\{[^}]*min-height:\s*164px[^}]*padding:\s*18px 32px 16px[^}]*margin-bottom:\s*16px/s
+    );
+    expect(globalsCss).toMatch(
+      /@media\s*\(min-width:\s*721px\)[\s\S]*?\.dplus-profile-page \.workspace-header > div\s*\{[^}]*display:\s*grid[^}]*gap:\s*6px[^}]*max-width:\s*calc\(100% - 112px\)/s
+    );
+    expect(globalsCss).toMatch(
+      /@media\s*\(min-width:\s*721px\)[\s\S]*?\.dplus-profile-page \.wide-panel::before\s*\{[^}]*height:\s*68px[^}]*right:\s*32px[^}]*top:\s*24px[^}]*width:\s*68px/s
+    );
+    expect(globalsCss).toMatch(
+      /@media\s*\(max-width:\s*720px\)[\s\S]*?\.dplus-profile-page \.workspace-header\s*\{[^}]*min-height:\s*148px[^}]*padding:\s*6px 16px 8px[^}]*margin-bottom:\s*12px/s
+    );
+    expect(globalsCss).toMatch(
+      /@media\s*\(max-width:\s*720px\)[\s\S]*?\.dplus-profile-page \.workspace-header > div\s*\{[^}]*display:\s*grid[^}]*gap:\s*4px[^}]*max-width:\s*calc\(100% - 72px\)/s
+    );
+    expect(globalsCss).toMatch(
+      /@media\s*\(max-width:\s*720px\)[\s\S]*?\.dplus-profile-page \.wide-panel::before\s*\{[^}]*height:\s*56px[^}]*right:\s*16px[^}]*top:\s*18px[^}]*width:\s*56px/s
+    );
+  });
 });

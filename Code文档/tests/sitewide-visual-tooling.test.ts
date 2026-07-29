@@ -89,5 +89,8 @@ describe("sitewide visual fidelity tooling", () => {
     expect(source).toContain("Network.responseReceived");
     expect(source).toContain("networkRequestId");
     expect(source).toContain("networkEntries");
+    expect(source).toContain("entryTutorCta");
+    expect(source).toContain("backArrow");
+    expect(source).toContain("customer-back-arrow-keyboard");
   });
 });

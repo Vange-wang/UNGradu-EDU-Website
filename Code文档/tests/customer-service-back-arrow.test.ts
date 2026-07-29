@@ -7,6 +7,9 @@ const customerServiceSource = readFileSync(
   join(process.cwd(), "app/customer-service/page.tsx"),
   "utf8"
 );
+const globalCss = readFileSync(join(process.cwd(), "app/globals.css"), "utf8");
+const homeEntryGridCss =
+  globalCss.match(/\.home-entry-grid\s*\{([^}]*)\}/)?.[1] ?? "";
 
 describe("customer-service standard back arrow", () => {
   it("renders exactly one standard link back to the home page", () => {
@@ -25,6 +28,34 @@ describe("customer-service standard back arrow", () => {
     expect(customerServiceSource).not.toContain("Dify WebApp 仅作为延后入口");
     expect(customerServiceSource).not.toContain(
       "NEXT_PUBLIC_DIFY_CUSTOMER_SERVICE_URL"
+    );
+  });
+
+  it("places the back link after the hero and before the customer-service work area", () => {
+    const heroStart = customerServiceSource.indexOf(
+      '<section className="customer-service-info-strip">'
+    );
+    const backArrowStart = customerServiceSource.indexOf(
+      'className="page-back-arrow"'
+    );
+    const workspaceStart = customerServiceSource.indexOf(
+      '<div className="customer-service-layout">'
+    );
+
+    expect(heroStart).toBeGreaterThanOrEqual(0);
+    expect(backArrowStart).toBeGreaterThan(heroStart);
+    expect(workspaceStart).toBeGreaterThan(backArrowStart);
+  });
+
+  it("lets home entry grid rows expand when the tutor card copy wraps", () => {
+    expect(homeEntryGridCss).toMatch(
+      /grid-auto-rows:\s*minmax\(219px,\s*max-content\);/
+    );
+  });
+
+  it("keeps both home entry columns shrinkable instead of reserving a fixed parent-card width", () => {
+    expect(homeEntryGridCss).toMatch(
+      /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/
     );
   });
 });

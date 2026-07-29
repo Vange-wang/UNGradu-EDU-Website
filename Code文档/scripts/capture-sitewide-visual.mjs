@@ -13,6 +13,10 @@ const pageSelectors = {
   home: {
     benefits: ".home-benefits",
     entryGrid: ".home-entry-grid",
+    entryParent: ".home-entry-parent",
+    entryParentCta: ".home-entry-parent .home-entry-button",
+    entryTutor: ".home-entry-tutor",
+    entryTutorCta: ".home-entry-tutor .home-entry-button",
     header: ".site-header",
     kicker: ".home-kicker",
     linkGrid: ".home-link-grid",
@@ -37,13 +41,15 @@ const pageSelectors = {
     title: "h1"
   },
   "customer-service": {
+    backArrow: ".customer-service-shell > .page-back-arrow",
     chat: ".customer-service-chat",
     header: ".site-header",
     hero: ".customer-service-info-strip",
     messages: ".customer-service-messages",
     quickQuestions: ".customer-service-quick-list",
     root: ".customer-service-shell",
-    side: ".customer-service-side"
+    side: ".customer-service-side",
+    workspace: ".customer-service-layout"
   },
   "tutor-profiles": {
     filters: ".filter-panel",
@@ -800,6 +806,33 @@ async function main() {
       );
     } else if (options.interaction === "rules-focus-home") {
       await focusByTab(cdp, 'a[aria-label="返回首页"]');
+    } else if (options.interaction === "customer-back-arrow-keyboard") {
+      await focusByTab(cdp, 'a[aria-label="返回首页"]');
+      await dispatchKeyboardKey(cdp, {
+        code: "Enter",
+        key: "Enter",
+        nativeVirtualKeyCode: 13,
+        text: "\r",
+        windowsVirtualKeyCode: 13
+      });
+      await evaluate(
+        cdp,
+        `new Promise((resolve, reject) => {
+          const deadline = Date.now() + 2_000;
+          const verify = () => {
+            if (location.pathname === "/") {
+              resolve();
+              return;
+            }
+            if (Date.now() >= deadline) {
+              reject(new Error("customer-service back arrow did not navigate home"));
+              return;
+            }
+            setTimeout(verify, 50);
+          };
+          verify();
+        })`
+      );
     } else if (options.interaction === "focus-first-question") {
       await evaluate(
         cdp,

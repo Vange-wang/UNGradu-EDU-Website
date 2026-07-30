@@ -28,6 +28,11 @@ describe("chat layout CSS", () => {
     expect(globalsCss).toMatch(
       /\.dplus-chat-page \.chat-compose\s*\{[\s\S]*?min-height: 118px;/
     );
+    expect(globalsCss).toMatch(
+      /\.dplus-chat-page \.conversation-main\s*\{[\s\S]*?height: 726px;/
+    );
+    expect(globalsCss).toMatch(/@media \(min-height: 850px\)[\s\S]*?height: 766px;/);
+    expect(globalsCss).toMatch(/@media \(min-height: 1000px\)[\s\S]*?height: 846px;/);
   });
 
   it("constrains the D+ chat message list to scroll inside the chat panel", () => {

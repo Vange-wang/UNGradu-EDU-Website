@@ -3242,7 +3242,7 @@ body {
 }
 
 .dplus-chat-page .conversation-main {
-  height: clamp(854px, calc(100vh + 48px), 1000px);
+  height: 726px;
   grid-template-rows: auto minmax(506px, 1fr) auto;
   min-height: 0;
 }
@@ -3254,7 +3254,38 @@ body {
 }
 
 .dplus-chat-page .chat-compose {
-  min-height: clamp(116px, 14vh, 132px);
+  height: 122px;
+  min-height: 0;
+  margin-top: 0;
+  padding: 8px;
+}
+
+.dplus-chat-page .conversation-main-header {
+  padding: 2px 12px;
+}
+
+@media (min-width: 721px) {
+  .dplus-chat-page .conversation-main {
+    padding: 2px;
+  }
+}
+
+@media (min-height: 850px) {
+  .dplus-chat-page .conversation-main { height: 766px; }
+  .dplus-chat-page .conversation-main { grid-template-rows: auto minmax(546px, 1fr) auto; }
+  .dplus-chat-page .chat-compose { height: 130px; }
+  .dplus-chat-page .message-list { height: 546px; }
+  .dplus-chat-page .conversation-main-header { padding: 1px 12px; }
+}
+
+@media (min-height: 1000px) {
+  .dplus-chat-page .conversation-main { height: 846px; }
+  .dplus-chat-page .conversation-main { grid-template-rows: auto minmax(626px, 1fr) auto; }
+  .dplus-chat-page .chat-compose { height: 138px; }
+  .dplus-chat-page .conversation-main-header { padding: 0; }
+  .dplus-chat-page .conversation-main-header h2 { font-size: 20px; }
+  .dplus-chat-page .conversation-main-header p { line-height: 1.2; }
+  .dplus-chat-page .message-list { height: 626px; }
 }
 
 @media (min-width: 981px) and (max-width: 1199px) {

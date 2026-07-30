@@ -426,6 +426,8 @@ describeWithBrowser("真实聊天消息面板布局", () => {
       width: 1280,
       viewportHeight: 800,
       minComposeHeight: 116,
+      targetMainHeight: 720,
+      targetComposeHeight: 116,
       minConversationWidth: 620,
       minListHeight: 500,
       mustFitViewport: false,
@@ -436,6 +438,8 @@ describeWithBrowser("真实聊天消息面板布局", () => {
       width: 1440,
       viewportHeight: 900,
       minComposeHeight: 124,
+      targetMainHeight: 760,
+      targetComposeHeight: 124,
       minConversationWidth: 620,
       minListHeight: 540,
       mustFitViewport: false,
@@ -446,6 +450,8 @@ describeWithBrowser("真实聊天消息面板布局", () => {
       width: 1920,
       viewportHeight: 1080,
       minComposeHeight: 132,
+      targetMainHeight: 840,
+      targetComposeHeight: 132,
       minConversationWidth: 620,
       minListHeight: 620,
       mustFitViewport: false,
@@ -477,6 +483,8 @@ describeWithBrowser("真实聊天消息面板布局", () => {
       width,
       viewportHeight,
       minComposeHeight,
+      targetMainHeight,
+      targetComposeHeight,
       minConversationWidth,
       minListHeight,
       mustFitViewport,
@@ -493,6 +501,12 @@ describeWithBrowser("真实聊天消息面板布局", () => {
       expect(Math.round(longConversation.visualViewportWidth)).toBe(width);
       expect(longConversation.inputFocused).toBe(true);
       expect(longConversation.mainClientHeight).toBe(shortConversation.mainClientHeight);
+      if (targetMainHeight) {
+        expect(longConversation.mainClientHeight).toBeGreaterThanOrEqual(targetMainHeight - 2);
+        expect(longConversation.mainClientHeight).toBeLessThanOrEqual(targetMainHeight + 2);
+        expect(longConversation.composeClientHeight).toBeGreaterThanOrEqual(targetComposeHeight - 2);
+        expect(longConversation.composeClientHeight).toBeLessThanOrEqual(targetComposeHeight + 8);
+      }
       expect(longConversation.listClientHeight).toBe(shortConversation.listClientHeight);
       expect(longConversation.listClientHeight).toBeGreaterThanOrEqual(minListHeight);
       expect(longConversation.composeClientHeight).toBeGreaterThanOrEqual(minComposeHeight);

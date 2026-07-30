@@ -12,6 +12,24 @@ function readRule(selector: string) {
 }
 
 describe("chat layout CSS", () => {
+  it("uses the enlarged three-column desktop and single-column mobile contract", () => {
+    expect(globalsCss).toMatch(
+      /\.dplus-chat-page\s*\{[^}]*max-width:\s*1600px;/
+    );
+    expect(globalsCss).toMatch(
+      /\.dplus-chat-page \.conversation-workspace\s*\{[^}]*minmax\(620px, 1fr\)/
+    );
+    expect(globalsCss).toMatch(
+      /@media \(min-width: 981px\) and \(max-width: 1199px\)[\s\S]*?\.conversation-workspace\s*\{\s*grid-template-columns: 1fr;/
+    );
+    expect(globalsCss).toMatch(
+      /@media \(max-width: 720px\)[\s\S]*?\.conversation-main\s*\{[\s\S]*?grid-template-rows: auto minmax\(326px, 1fr\) auto;/
+    );
+    expect(globalsCss).toMatch(
+      /\.dplus-chat-page \.chat-compose\s*\{[\s\S]*?min-height: 118px;/
+    );
+  });
+
   it("constrains the D+ chat message list to scroll inside the chat panel", () => {
     const conversationMainRule = readRule(".dplus-chat-page .conversation-main");
     const messageListRule = readRule(".dplus-chat-page .message-list");

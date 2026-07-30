@@ -33,9 +33,10 @@ describe("SITE-UX-IMPLEMENT-20260729-001", () => {
     const headerSource = read("features/navigation/site-header.tsx");
     const globalsCss = read("app/globals.css");
 
-    expect(headerSource).toContain('aria-label="返回首页"');
+    expect(headerSource).toContain('aria-label="返回上一级"');
     expect(headerSource).toContain('className="site-back-link"');
-    expect(headerSource).toContain('href="/"');
+    expect(headerSource).not.toMatch(/className="site-back-link"[^>]*href="\//);
+    expect(headerSource).toContain("getParentRoute(pathname ?? \"/\")");
     expect(headerSource).toContain('pathname !== "/"');
     expect(globalsCss).toMatch(
       /\.site-header\.site-header\s*\{[^}]*height:\s*72px[^}]*background:\s*#fff/s

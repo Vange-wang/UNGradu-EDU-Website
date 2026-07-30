@@ -40,7 +40,7 @@ describe("sitewide D+ refresh structure", () => {
 
   it("uses one shared back-arrow pattern without page-level duplicates", () => {
     expect(siteHeaderSource).toContain('className="site-back-link"');
-    expect(siteHeaderSource).toContain('aria-label="返回首页"');
+    expect(siteHeaderSource).toContain('aria-label="返回上一级"');
     for (const source of [
       loginSource,
       rulesSource,

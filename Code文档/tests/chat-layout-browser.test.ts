@@ -42,16 +42,24 @@ const WebSocketClient = require("ws") as WebSocketConstructor;
 type LayoutMetrics = {
   composeContained: boolean;
   composeBottom: number;
+  composeClientHeight: number;
   composeTop: number;
+  conversationColumnCount: number;
+  conversationWidth: number;
+  mainWidth: number;
   documentScrollWidth: number;
   inputFocused: boolean;
   listCanScroll: boolean;
+  listBottom: number;
   listComesBeforeCompose: boolean;
   listClientHeight: number;
   listScrollHeight: number;
   listTabIndex: number;
+  listTop: number;
   mainBottom: number;
   mainClientHeight: number;
+  mainGridRows: string;
+  listMarginTop: string;
   mainTop: number;
   pageClientWidth: number;
   pageScrollWidth: number;
@@ -331,6 +339,7 @@ describeWithBrowser("真实聊天消息面板布局", () => {
           const main = document.querySelector(".conversation-main");
           const list = document.querySelector(".message-list");
           const compose = document.querySelector(".chat-compose");
+          const conversation = document.querySelector(".conversation-workspace");
           const page = document.querySelector(".dplus-chat-page");
           const siteHeader = document.querySelector(".site-header");
           const textarea = document.querySelector("#message-text");
@@ -339,6 +348,7 @@ describeWithBrowser("真实聊天消息面板布局", () => {
             const mainRect = main.getBoundingClientRect();
             const listRect = list.getBoundingClientRect();
             const composeRect = compose.getBoundingClientRect();
+            const conversationRect = conversation.getBoundingClientRect();
             const visualViewportHeight = window.visualViewport
               ? window.visualViewport.height
               : window.innerHeight;
@@ -349,16 +359,24 @@ describeWithBrowser("真实聊天消息面板布局", () => {
             resolve({
               composeContained: composeRect.bottom <= mainRect.bottom + 1,
               composeBottom: composeRect.bottom,
+              composeClientHeight: compose.clientHeight,
               composeTop: composeRect.top,
+              conversationColumnCount: getComputedStyle(conversation).gridTemplateColumns.split(" ").length,
+              conversationWidth: conversationRect.width,
+              mainWidth: mainRect.width,
               documentScrollWidth: document.documentElement.scrollWidth,
               inputFocused: document.activeElement === textarea,
               listCanScroll: list.scrollTop > 0,
+              listBottom: listRect.bottom,
               listComesBeforeCompose: listRect.bottom <= composeRect.top + 1,
               listClientHeight: list.clientHeight,
               listScrollHeight: list.scrollHeight,
               listTabIndex: list.tabIndex,
+              listTop: listRect.top,
               mainBottom: mainRect.bottom,
               mainClientHeight: main.clientHeight,
+              mainGridRows: getComputedStyle(main).gridTemplateRows,
+              listMarginTop: getComputedStyle(list).marginTop,
               mainTop: mainRect.top,
               pageClientWidth: page.clientWidth,
               pageScrollWidth: page.scrollWidth,
@@ -404,33 +422,66 @@ describeWithBrowser("真实聊天消息面板布局", () => {
 
   it.each([
     {
-      name: "桌面",
+      name: "1280 桌面",
       width: 1280,
       viewportHeight: 800,
-      minListHeight: 200,
-      mustFitViewport: false
+      minComposeHeight: 116,
+      minConversationWidth: 620,
+      minListHeight: 500,
+      mustFitViewport: false,
+      expectedColumnCount: 3
+    },
+    {
+      name: "1440 桌面",
+      width: 1440,
+      viewportHeight: 900,
+      minComposeHeight: 124,
+      minConversationWidth: 620,
+      minListHeight: 540,
+      mustFitViewport: false,
+      expectedColumnCount: 3
+    },
+    {
+      name: "1920 桌面",
+      width: 1920,
+      viewportHeight: 1080,
+      minComposeHeight: 132,
+      minConversationWidth: 620,
+      minListHeight: 620,
+      mustFitViewport: false,
+      expectedColumnCount: 3
     },
     {
       name: "移动端",
       width: 390,
       viewportHeight: 844,
-      minListHeight: 150,
-      mustFitViewport: false
+      minComposeHeight: 112,
+      minListHeight: 320,
+      mustFitViewport: false,
+      expectedColumnCount: 1,
+      maxListHeight: 520
     },
     {
       name: "390×600 移动端键盘压缩视口",
       width: 390,
       viewportHeight: 600,
-      minListHeight: 120,
-      mustFitViewport: true
+      minComposeHeight: 112,
+      minListHeight: 320,
+      mustFitViewport: true,
+      expectedColumnCount: 1,
+      maxListHeight: 520
     }
   ])(
     "$name 消息增多时只增加内部 scrollHeight",
     async ({
       width,
       viewportHeight,
+      minComposeHeight,
+      minConversationWidth,
       minListHeight,
-      mustFitViewport
+      mustFitViewport,
+      expectedColumnCount,
+      maxListHeight
     }) => {
       const shortConversation = await measure(3, width, viewportHeight);
       const longConversation = await measure(80, width, viewportHeight);
@@ -444,6 +495,19 @@ describeWithBrowser("真实聊天消息面板布局", () => {
       expect(longConversation.mainClientHeight).toBe(shortConversation.mainClientHeight);
       expect(longConversation.listClientHeight).toBe(shortConversation.listClientHeight);
       expect(longConversation.listClientHeight).toBeGreaterThanOrEqual(minListHeight);
+      expect(longConversation.composeClientHeight).toBeGreaterThanOrEqual(minComposeHeight);
+      expect(longConversation.conversationColumnCount).toBe(expectedColumnCount);
+      expect(longConversation.conversationWidth).toBeLessThanOrEqual(
+        longConversation.pageClientWidth
+      );
+      if (minConversationWidth) {
+        expect(longConversation.mainWidth).toBeGreaterThanOrEqual(
+          minConversationWidth
+        );
+      }
+      if (maxListHeight) {
+        expect(longConversation.listClientHeight).toBeLessThanOrEqual(maxListHeight);
+      }
       expect(longConversation.listScrollHeight).toBeGreaterThan(
         longConversation.listClientHeight
       );

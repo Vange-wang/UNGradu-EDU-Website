@@ -5,15 +5,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { SessionNav } from "@/features/auth/session-nav";
+import { getParentRoute } from "@/features/navigation/parent-route";
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const parentRoute = getParentRoute(pathname ?? "/");
 
   return (
     <header className="site-header">
       <div className="site-header-leading">
         {pathname !== "/" ? (
-          <Link aria-label="返回首页" className="site-back-link" href="/">
+          <Link aria-label="返回上一级" className="site-back-link" href={parentRoute}>
             <span aria-hidden="true">←</span>
           </Link>
         ) : null}

@@ -18,11 +18,11 @@ const homeEntryGridCss =
 describe("customer-service shared back arrow", () => {
   it("renders the standard home link only in the shared header", () => {
     const standardBackArrows = siteHeaderSource.match(
-      /<Link\s+aria-label="返回首页"\s+className="page-back-arrow"\s+href="\/">/g
+      /<Link\s+aria-label="返回上一级"\s+className="page-back-arrow"\s+href="\/">/g
     );
 
     expect(standardBackArrows).toBeNull();
-    expect(siteHeaderSource).toContain('aria-label="返回首页"');
+    expect(siteHeaderSource).toContain('aria-label="返回上一级"');
     expect(siteHeaderSource).toContain('className="site-back-link"');
     expect(customerServiceSource).not.toContain('aria-label="返回首页"');
   });

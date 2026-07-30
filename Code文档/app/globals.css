@@ -8143,3 +8143,86 @@ body:has(.customer-service-shell) {
     height: 866px;
   }
 }
+
+/* Business-confirmed preview: shared intro geometry and four-row home CTAs. */
+.home-entry-card {
+  grid-template-rows: 18px 48px 32px 64px;
+}
+
+.home-entry-card h2 {
+  font-size: 40px;
+  white-space: nowrap;
+}
+
+@media (min-width: 721px) {
+  .dplus-business-page .publish-hero,
+  .dplus-business-page .detail-hero,
+  .dplus-chat-page .workspace-header {
+    height: 164.16px;
+  }
+
+  .dplus-business-page .publish-hero {
+    padding-block: 16px;
+  }
+
+  .dplus-business-page .detail-hero {
+    padding-block: 5px;
+  }
+
+  .dplus-chat-page .workspace-header {
+    padding-block: 12px;
+  }
+
+  .dplus-business-page .publish-copy,
+  .dplus-business-page .detail-hero .market-copy,
+  .dplus-chat-page .workspace-header > div {
+    align-items: center;
+    column-gap: 16px;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    row-gap: 0;
+  }
+
+  .dplus-business-page :is(.publish-copy, .detail-hero .market-copy) .eyebrow,
+  .dplus-chat-page .workspace-header > div .eyebrow {
+    margin-bottom: 0;
+  }
+
+  .dplus-business-page :is(.publish-copy, .detail-hero .market-copy) .section-title,
+  .dplus-chat-page .workspace-header > div .section-title {
+    margin: 0;
+  }
+
+  .dplus-business-page :is(.publish-copy, .detail-hero .market-copy) > p,
+  .dplus-chat-page .workspace-header > div > p {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1340px) {
+  .dplus-business-page .publish-hero,
+  .dplus-business-page .detail-hero,
+  .dplus-chat-page .workspace-header {
+    height: 132.41px;
+  }
+}
+
+@media (min-width: 1700px) {
+  .dplus-business-page .publish-hero,
+  .dplus-business-page .detail-hero,
+  .dplus-chat-page .workspace-header {
+    height: 135.69px;
+  }
+}
+
+@media (max-width: 720px) {
+  .home-entry-card {
+    grid-template-rows: 18px 48px 32px 56px;
+  }
+
+  .dplus-business-page .publish-hero,
+  .dplus-business-page .detail-hero,
+  .dplus-chat-page .workspace-header {
+    height: auto;
+  }
+}

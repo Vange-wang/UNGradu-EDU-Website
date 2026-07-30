@@ -215,7 +215,11 @@ type PendingUiMetrics = {
   homeCtaTextCenterDelta: number;
   homeCtaWidthDelta: number;
   homeHeroGridGap: number;
+  homeRowTopDeltas: number[];
+  homeTitleFontSizes: number[];
+  homeTitleLineCounts: number[];
   introHeights: Record<string, number>;
+  introOverflows: Record<string, number>;
 };
 
 describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
@@ -329,10 +333,35 @@ describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
           );
           const benefits = rect(".home-benefits");
           const grid = rect(".home-entry-grid");
+          const cards = Array.from(document.querySelectorAll(".home-entry-card"));
+          const homeRowTopDeltas = [":scope > span", ":scope > h2", ":scope > p", ":scope > .home-entry-button"].map(
+            (selector) => {
+              const rowOffsets = cards.map((card) => {
+                const cardRect = card.getBoundingClientRect();
+                return card.querySelector(selector).getBoundingClientRect().top - cardRect.top;
+              });
+              return Math.abs(rowOffsets[0] - rowOffsets[1]);
+            }
+          );
+          const homeTitleLineCounts = cards.map((card) => {
+            const title = card.querySelector("h2");
+            const titleRect = title.getBoundingClientRect();
+            const lineHeight = Number.parseFloat(getComputedStyle(title).lineHeight);
+            return Math.round(titleRect.height / lineHeight);
+          });
+          const homeTitleFontSizes = cards.map((card) =>
+            Number.parseFloat(getComputedStyle(card.querySelector("h2")).fontSize)
+          );
           const introHeights = Object.fromEntries(
             Array.from(document.querySelectorAll("[data-intro]"), (node) => [
               node.getAttribute("data-intro"),
               node.getBoundingClientRect().height
+            ])
+          );
+          const introOverflows = Object.fromEntries(
+            Array.from(document.querySelectorAll("[data-intro]"), (node) => [
+              node.getAttribute("data-intro"),
+              Math.max(0, node.scrollHeight - node.clientHeight)
             ])
           );
           const horizontalGap = Math.max(
@@ -374,7 +403,11 @@ describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
             ),
             homeCtaWidthDelta: Math.abs(buttons[0].width - buttons[1].width),
             homeHeroGridGap: grid.top - benefits.bottom,
-            introHeights
+            homeRowTopDeltas,
+            homeTitleFontSizes,
+            homeTitleLineCounts,
+            introHeights,
+            introOverflows
           };
         })()`,
         returnByValue: true
@@ -466,39 +499,31 @@ describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
         ? {
             chatHeaderHeight: 92,
             ctaHeight: 56,
-            detailHero: [212, 236],
+            desktopHero: null,
             homeGap: 16,
-            regularHero: [156, 188],
-            chatHero: [180, 204]
           }
         : width === 1920
           ? {
               chatHeaderHeight: 60,
               chatHeaderGap: 24,
               ctaHeight: 64,
-              detailHero: [204, 204],
+              desktopHero: 135.69,
               homeGap: 24,
-              regularHero: [172, 172],
-              chatHero: [168, 168]
             }
           : width === 1440
             ? {
                 chatHeaderHeight: 60,
                 chatHeaderGap: 20,
                 ctaHeight: 64,
-                detailHero: [196, 196],
+                desktopHero: 132.41,
                 homeGap: 20,
-                regularHero: [164, 164],
-                chatHero: [164, 164]
               }
             : {
                 chatHeaderHeight: 56,
                 chatHeaderGap: 16,
                 ctaHeight: 60,
-                detailHero: [196, 196],
+                desktopHero: 164.16,
                 homeGap: 20,
-                regularHero: [164, 164],
-                chatHero: [164, 164]
               };
     const detailHeights = [
       metrics.introHeights["detail-parent"],
@@ -524,6 +549,13 @@ describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
     expect
       .soft(metrics.homeCtaTextCenterDelta, JSON.stringify(metrics))
       .toBeLessThanOrEqual(1);
+    expect
+      .soft(Math.max(...metrics.homeRowTopDeltas), JSON.stringify(metrics))
+      .toBeLessThanOrEqual(1);
+    expect
+      .soft(Math.max(...metrics.homeTitleFontSizes), JSON.stringify(metrics))
+      .toBeLessThanOrEqual(40);
+    expect.soft(metrics.homeTitleLineCounts, JSON.stringify(metrics)).toEqual([1, 1]);
 
     for (const ctaHeight of metrics.homeCtaHeights) {
       expect.soft(ctaHeight, JSON.stringify(metrics)).toBeCloseTo(expected.ctaHeight, 0);
@@ -547,39 +579,33 @@ describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
       .soft(metrics.documentScrollWidth, JSON.stringify(metrics))
       .toBeLessThanOrEqual(metrics.documentClientWidth);
 
-    for (const heightValue of regularHeights) {
-      expect.soft(heightValue, JSON.stringify(metrics)).toBeGreaterThanOrEqual(
-        expected.regularHero[0]
-      );
-      expect.soft(heightValue, JSON.stringify(metrics)).toBeLessThanOrEqual(
-        expected.regularHero[1]
-      );
-    }
-
-    for (const heightValue of detailHeights) {
-      expect.soft(heightValue, JSON.stringify(metrics)).toBeGreaterThanOrEqual(
-        expected.detailHero[0]
-      );
-      expect.soft(heightValue, JSON.stringify(metrics)).toBeLessThanOrEqual(
-        expected.detailHero[1]
-      );
-    }
-
-    expect
-      .soft(metrics.introHeights.chat, JSON.stringify(metrics))
-      .toBeGreaterThanOrEqual(expected.chatHero[0]);
-    expect
-      .soft(metrics.introHeights.chat, JSON.stringify(metrics))
-      .toBeLessThanOrEqual(expected.chatHero[1]);
-
     if (width === 390) {
+      for (const heightValue of [
+        ...regularHeights,
+        ...detailHeights,
+        metrics.introHeights.chat
+      ]) {
+        expect.soft(heightValue, JSON.stringify(metrics)).toBeGreaterThan(0);
+      }
       expect
         .soft(metrics.chatHeaderUsesTwoRows, JSON.stringify(metrics))
         .toBe(true);
     } else {
+      for (const heightValue of [
+        ...regularHeights,
+        ...detailHeights,
+        metrics.introHeights.chat
+      ]) {
+        expect
+          .soft(heightValue, JSON.stringify(metrics))
+          .toBeCloseTo(expected.desktopHero ?? 0, 1);
+      }
       expect
         .soft(metrics.chatHeaderChildGap, JSON.stringify(metrics))
         .toBeGreaterThanOrEqual(expected.chatHeaderGap ?? 0);
     }
+    expect
+      .soft(Math.max(...Object.values(metrics.introOverflows)), JSON.stringify(metrics))
+      .toBe(0);
   });
 });

@@ -108,9 +108,30 @@ type IntroMetrics = PageMetrics & {
 
 type HomeMetrics = PageMetrics & {
   cardOverflowXs: number[];
+  ctaCards: Array<{
+    buttonBottomToBorder: number;
+    buttonHeight: number;
+    buttonTop: number;
+    cardHeight: number;
+  }>;
   rowTopDeltas: number[];
   titleFontSizes: number[];
   titleLineCounts: number[];
+};
+
+type ProfileMetrics = {
+  contentBottom: number;
+  contentHeight: number;
+  contentTop: number;
+  decorationBottom: number;
+  decorationLeft: number;
+  decorationTop: number;
+  documentClientWidth: number;
+  documentScrollWidth: number;
+  height: number;
+  overflowY: number;
+  paddingBottom: number;
+  paddingTop: number;
 };
 
 type RouteContract = {
@@ -153,6 +174,13 @@ const viewports = [
   { height: 1080, key: "1920x1080", targetHeight: 135.69, width: 1920 },
   { height: 844, key: "390x844", targetHeight: null, width: 390 }
 ] as const;
+
+const profileHeroMaximumHeights = {
+  "1280x800": 164.16,
+  "1440x900": 132.41,
+  "1920x1080": 135.69,
+  "390x844": 148
+} as const;
 
 function readRuntimeValue<T>(result: unknown) {
   return (result as { result?: { value?: T } }).result?.value;
@@ -318,7 +346,10 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
   const screenshotDirectory =
     process.env.UI_PREVIEW_ACTUAL_DIR ??
     path.join(tmpdir(), "site-ux-preview-confirmed-actual");
-  const measurements: Record<string, Record<string, HomeMetrics | IntroMetrics>> = {};
+  const measurements: Record<
+    string,
+    Record<string, HomeMetrics | IntroMetrics | ProfileMetrics>
+  > = {};
   const mobileCrops: Array<{ buffer: Buffer; label: string }> = [];
 
   async function evaluate<T>(expression: string) {
@@ -429,10 +460,24 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
         const lineHeight = Number.parseFloat(getComputedStyle(title).lineHeight);
         return Math.round(titleRect.height / lineHeight);
       });
+      const ctaCards = cards.map((card) => {
+        const cardRect = card.getBoundingClientRect();
+        const buttonRect = card
+          .querySelector(".home-entry-button")
+          .getBoundingClientRect();
+
+        return {
+          buttonBottomToBorder: cardRect.bottom - buttonRect.bottom,
+          buttonHeight: buttonRect.height,
+          buttonTop: buttonRect.top - cardRect.top,
+          cardHeight: cardRect.height
+        };
+      });
       return {
         cardOverflowXs: cards.map((card) =>
           Math.max(0, card.scrollWidth - card.clientWidth)
         ),
+        ctaCards,
         clientHeight: node.clientHeight,
         clientWidth: node.clientWidth,
         documentClientWidth: document.documentElement.clientWidth,
@@ -449,6 +494,44 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
 
     if (!metrics) {
       throw new Error("未返回首页发布入口几何。");
+    }
+
+    return metrics;
+  }
+
+  async function measureProfile() {
+    const metrics = await evaluate<ProfileMetrics>(`(() => {
+      const hero = document.querySelector(".dplus-profile-page .workspace-header");
+      const panel = document.querySelector(".dplus-profile-page .wide-panel");
+      const copy = hero.querySelector(":scope > div");
+      const heroRect = hero.getBoundingClientRect();
+      const copyRect = copy.getBoundingClientRect();
+      const heroStyle = getComputedStyle(hero);
+      const decorationStyle = getComputedStyle(panel, "::before");
+      const decorationHeight = Number.parseFloat(decorationStyle.height);
+      const decorationRight = Number.parseFloat(decorationStyle.right);
+      const decorationTop = Number.parseFloat(decorationStyle.top);
+      const decorationWidth = Number.parseFloat(decorationStyle.width);
+
+      return {
+        contentBottom: heroRect.bottom - copyRect.bottom,
+        contentHeight: copyRect.height,
+        contentTop: copyRect.top - heroRect.top,
+        decorationBottom:
+          panel.clientHeight - decorationTop - decorationHeight,
+        decorationLeft: panel.clientWidth - decorationRight - decorationWidth,
+        decorationTop,
+        documentClientWidth: document.documentElement.clientWidth,
+        documentScrollWidth: document.documentElement.scrollWidth,
+        height: heroRect.height,
+        overflowY: Math.max(0, hero.scrollHeight - hero.clientHeight),
+        paddingBottom: Number.parseFloat(heroStyle.paddingBottom),
+        paddingTop: Number.parseFloat(heroStyle.paddingTop)
+      };
+    })()`);
+
+    if (!metrics) {
+      throw new Error("未返回个人中心 Hero 几何。");
     }
 
     return metrics;
@@ -736,14 +819,78 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
         .soft(home.documentScrollWidth, JSON.stringify(home))
         .toBeLessThanOrEqual(home.documentClientWidth);
 
-      if (viewport.width === 1440) {
-        await captureViewport("1440-home-cta.png");
+      const ctaBottomMinimum = viewport.width === 390 ? 16 : 20;
+      const ctaBottomMaximum = viewport.width === 390 ? 20 : 24;
+      const [leftCta, rightCta] = home.ctaCards;
+
+      for (const cta of home.ctaCards) {
+        expect
+          .soft(cta.buttonBottomToBorder, JSON.stringify(home))
+          .toBeGreaterThanOrEqual(ctaBottomMinimum);
+        expect
+          .soft(cta.buttonBottomToBorder, JSON.stringify(home))
+          .toBeLessThanOrEqual(ctaBottomMaximum);
       }
+
+      expect
+        .soft(Math.abs(leftCta.buttonTop - rightCta.buttonTop), JSON.stringify(home))
+        .toBeLessThanOrEqual(1);
+      expect
+        .soft(
+          Math.abs(leftCta.buttonHeight - rightCta.buttonHeight),
+          JSON.stringify(home)
+        )
+        .toBeLessThanOrEqual(1);
+      expect
+        .soft(
+          Math.abs(leftCta.buttonBottomToBorder - rightCta.buttonBottomToBorder),
+          JSON.stringify(home)
+        )
+        .toBeLessThanOrEqual(1);
+      expect
+        .soft(Math.abs(leftCta.cardHeight - rightCta.cardHeight), JSON.stringify(home))
+        .toBeLessThanOrEqual(1);
+
+      await captureViewport(`${viewport.key}-home-cta.png`);
 
       if (viewport.width === 390) {
         mobileCrops.push({
           buffer: await captureElement(".home-entry-grid"),
           label: "首页发布入口"
+        });
+      }
+
+      await navigate("/profile", ".dplus-profile-page .workspace-header");
+      const profile = await measureProfile();
+      measurements[viewport.key].profile = profile;
+
+      expect
+        .soft(profile.documentScrollWidth, JSON.stringify(profile))
+        .toBeLessThanOrEqual(profile.documentClientWidth);
+      expect.soft(profile.overflowY, JSON.stringify(profile)).toBe(0);
+      expect
+        .soft(profile.height, JSON.stringify(profile))
+        .toBeLessThanOrEqual(profileHeroMaximumHeights[viewport.key]);
+      expect.soft(profile.contentTop, JSON.stringify(profile)).toBeGreaterThanOrEqual(0);
+      expect
+        .soft(profile.contentBottom, JSON.stringify(profile))
+        .toBeGreaterThanOrEqual(0);
+      expect
+        .soft(profile.decorationLeft, JSON.stringify(profile))
+        .toBeGreaterThanOrEqual(0);
+      expect
+        .soft(profile.decorationTop, JSON.stringify(profile))
+        .toBeGreaterThanOrEqual(0);
+      expect
+        .soft(profile.decorationBottom, JSON.stringify(profile))
+        .toBeGreaterThanOrEqual(0);
+
+      await captureViewport(`${viewport.key}-profile-hero.png`);
+
+      if (viewport.width === 390) {
+        mobileCrops.push({
+          buffer: await captureElement(".dplus-profile-page .workspace-header"),
+          label: "/profile"
         });
       }
 

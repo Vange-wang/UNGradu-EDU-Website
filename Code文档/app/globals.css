@@ -8246,3 +8246,24 @@ body:has(.customer-service-shell) {
     height: auto;
   }
 }
+
+@media (min-width: 721px) and (max-width: 1339px) {
+  .home-entry-card {
+    align-content: space-between;
+    grid-template-rows: 18px 48px 32px 60px;
+  }
+}
+
+@media (min-width: 1340px) and (max-width: 1699px) {
+  .dplus-profile-page .workspace-header {
+    min-height: 132.41px;
+    padding-block: 4px 5px;
+  }
+}
+
+@media (min-width: 1700px) {
+  .dplus-profile-page .workspace-header {
+    min-height: 135.69px;
+    padding-block: 4px 5px;
+  }
+}

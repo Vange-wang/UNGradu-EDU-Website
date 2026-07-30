@@ -34,6 +34,34 @@ type WebSocketConstructor = new (url: string) => WebSocketClient;
 
 const WebSocketClient = require("ws") as WebSocketConstructor;
 
+describe("业务方确认预览的范围保护", () => {
+  it("只追加获批的 CTA、标题行、padding 与响应式高度声明", async () => {
+    const css = await readFile(path.join(process.cwd(), "app", "globals.css"), "utf8");
+    const marker =
+      "/* Business-confirmed preview: shared intro geometry and four-row home CTAs. */";
+    const scopedCss = css.slice(css.indexOf(marker));
+
+    expect(scopedCss).toContain("grid-template-rows: 18px 48px 32px 64px;");
+    expect(scopedCss).toContain("white-space: nowrap;");
+    expect(scopedCss).toContain("height: 164.16px;");
+    expect(scopedCss).toContain("height: 132.41px;");
+    expect(scopedCss).toContain("height: 135.69px;");
+    expect(scopedCss).toContain("height: auto;");
+    expect(scopedCss).toContain("grid-template-columns: max-content minmax(0, 1fr);");
+    expect(scopedCss).toContain("column-gap: 16px;");
+    expect(scopedCss).toContain("padding-block: 15px;");
+    expect(scopedCss).toContain("padding-block: 5px;");
+    expect(scopedCss).toContain("padding-block: 4px 5px;");
+    expect(scopedCss).not.toMatch(/font-size\s*:/);
+    expect(scopedCss).not.toMatch(/font-family\s*:/);
+    expect(scopedCss).not.toMatch(/font-weight\s*:/);
+    expect(scopedCss).not.toMatch(/(?:^|[;\s{])color\s*:/m);
+    expect(scopedCss).not.toMatch(/background(?:-color|-image)?\s*:/);
+    expect(scopedCss).not.toMatch(/border(?:-color|-radius|-width)?\s*:/);
+    expect(scopedCss).not.toMatch(/box-shadow\s*:/);
+  });
+});
+
 type CdpResponse = {
   error?: { message: string };
   id?: number;
@@ -214,11 +242,25 @@ type PendingUiMetrics = {
   homeCtaHeights: number[];
   homeCtaTextCenterDelta: number;
   homeCtaWidthDelta: number;
+  homeCardOverflowXs: number[];
+  homeGridClientWidth: number;
+  homeGridScrollWidth: number;
   homeHeroGridGap: number;
   homeRowTopDeltas: number[];
   homeTitleFontSizes: number[];
   homeTitleLineCounts: number[];
   introHeights: Record<string, number>;
+  introLayouts: Record<
+    string,
+    {
+      descriptionGap: number;
+      descriptionOverlapsTitleRow: boolean;
+      paddingBottom: number;
+      paddingTop: number;
+      titleGap: number;
+      titleRowVerticalOverlap: boolean;
+    }
+  >;
   introOverflows: Record<string, number>;
 };
 
@@ -334,6 +376,9 @@ describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
           const benefits = rect(".home-benefits");
           const grid = rect(".home-entry-grid");
           const cards = Array.from(document.querySelectorAll(".home-entry-card"));
+          const homeCardOverflowXs = cards.map((card) =>
+            Math.max(0, card.scrollWidth - card.clientWidth)
+          );
           const homeRowTopDeltas = [":scope > span", ":scope > h2", ":scope > p", ":scope > .home-entry-button"].map(
             (selector) => {
               const rowOffsets = cards.map((card) => {
@@ -363,6 +408,30 @@ describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
               node.getAttribute("data-intro"),
               Math.max(0, node.scrollHeight - node.clientHeight)
             ])
+          );
+          const introLayouts = Object.fromEntries(
+            Array.from(document.querySelectorAll("[data-intro]"), (node) => {
+              const copy = node.matches(".workspace-header")
+                ? node.querySelector(":scope > div")
+                : node.querySelector(".publish-copy, .market-copy");
+              const eyebrow = copy.querySelector(".eyebrow").getBoundingClientRect();
+              const title = copy.querySelector(".section-title").getBoundingClientRect();
+              const description = copy.querySelector(":scope > p").getBoundingClientRect();
+              const style = getComputedStyle(node);
+              const titleRowBottom = Math.max(eyebrow.bottom, title.bottom);
+              return [
+                node.getAttribute("data-intro"),
+                {
+                  descriptionGap: description.top - titleRowBottom,
+                  descriptionOverlapsTitleRow: description.top < titleRowBottom,
+                  paddingBottom: Number.parseFloat(style.paddingBottom),
+                  paddingTop: Number.parseFloat(style.paddingTop),
+                  titleGap: title.left - eyebrow.right,
+                  titleRowVerticalOverlap:
+                    eyebrow.top < title.bottom && eyebrow.bottom > title.top
+                }
+              ];
+            })
           );
           const horizontalGap = Math.max(
             chatBadge.left - chatCopy.right,
@@ -402,11 +471,15 @@ describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
               Math.abs(textCenterOffsets[0].y - textCenterOffsets[1].y)
             ),
             homeCtaWidthDelta: Math.abs(buttons[0].width - buttons[1].width),
+            homeCardOverflowXs,
+            homeGridClientWidth: grid.width,
+            homeGridScrollWidth: document.querySelector(".home-entry-grid").scrollWidth,
             homeHeroGridGap: grid.top - benefits.bottom,
             homeRowTopDeltas,
             homeTitleFontSizes,
             homeTitleLineCounts,
             introHeights,
+            introLayouts,
             introOverflows
           };
         })()`,
@@ -552,10 +625,16 @@ describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
     expect
       .soft(Math.max(...metrics.homeRowTopDeltas), JSON.stringify(metrics))
       .toBeLessThanOrEqual(1);
-    expect
-      .soft(Math.max(...metrics.homeTitleFontSizes), JSON.stringify(metrics))
-      .toBeLessThanOrEqual(40);
+    expect.soft(metrics.homeTitleFontSizes, JSON.stringify(metrics)).toEqual(
+      width === 390 ? [32, 32] : [44, 44]
+    );
     expect.soft(metrics.homeTitleLineCounts, JSON.stringify(metrics)).toEqual([1, 1]);
+    expect
+      .soft(Math.max(...metrics.homeCardOverflowXs), JSON.stringify(metrics))
+      .toBe(0);
+    expect
+      .soft(metrics.homeGridScrollWidth, JSON.stringify(metrics))
+      .toBeLessThanOrEqual(metrics.homeGridClientWidth);
 
     for (const ctaHeight of metrics.homeCtaHeights) {
       expect.soft(ctaHeight, JSON.stringify(metrics)).toBeCloseTo(expected.ctaHeight, 0);
@@ -603,6 +682,32 @@ describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
       expect
         .soft(metrics.chatHeaderChildGap, JSON.stringify(metrics))
         .toBeGreaterThanOrEqual(expected.chatHeaderGap ?? 0);
+
+      for (const layout of Object.values(metrics.introLayouts)) {
+        expect.soft(layout.titleGap, JSON.stringify(metrics)).toBeCloseTo(16, 0);
+        expect
+          .soft(layout.titleRowVerticalOverlap, JSON.stringify(metrics))
+          .toBe(true);
+        expect
+          .soft(layout.descriptionOverlapsTitleRow, JSON.stringify(metrics))
+          .toBe(false);
+      }
+
+      for (const key of ["publish-parent", "publish-tutor"]) {
+        expect
+          .soft(metrics.introLayouts[key].descriptionGap, JSON.stringify(metrics))
+          .toBeGreaterThanOrEqual(6);
+        expect.soft(metrics.introLayouts[key].paddingTop).toBeCloseTo(15, 0);
+        expect.soft(metrics.introLayouts[key].paddingBottom).toBeCloseTo(15, 0);
+      }
+
+      for (const key of ["detail-parent", "detail-tutor"]) {
+        expect.soft(metrics.introLayouts[key].paddingTop).toBeCloseTo(5, 0);
+        expect.soft(metrics.introLayouts[key].paddingBottom).toBeCloseTo(5, 0);
+      }
+
+      expect.soft(metrics.introLayouts.chat.paddingTop).toBeCloseTo(4, 0);
+      expect.soft(metrics.introLayouts.chat.paddingBottom).toBeCloseTo(5, 0);
     }
     expect
       .soft(Math.max(...Object.values(metrics.introOverflows)), JSON.stringify(metrics))

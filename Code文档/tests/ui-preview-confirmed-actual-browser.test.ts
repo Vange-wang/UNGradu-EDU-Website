@@ -97,7 +97,17 @@ type PageMetrics = {
   scrollWidth: number;
 };
 
+type IntroMetrics = PageMetrics & {
+  descriptionGap: number;
+  descriptionOverlapsTitleRow: boolean;
+  paddingBottom: number;
+  paddingTop: number;
+  titleGap: number;
+  titleRowVerticalOverlap: boolean;
+};
+
 type HomeMetrics = PageMetrics & {
+  cardOverflowXs: number[];
   rowTopDeltas: number[];
   titleFontSizes: number[];
   titleLineCounts: number[];
@@ -308,7 +318,7 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
   const screenshotDirectory =
     process.env.UI_PREVIEW_ACTUAL_DIR ??
     path.join(tmpdir(), "site-ux-preview-confirmed-actual");
-  const measurements: Record<string, Record<string, PageMetrics | HomeMetrics>> = {};
+  const measurements: Record<string, Record<string, HomeMetrics | IntroMetrics>> = {};
   const mobileCrops: Array<{ buffer: Buffer; label: string }> = [];
 
   async function evaluate<T>(expression: string) {
@@ -359,18 +369,33 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
   }
 
   async function measure(selector: string) {
-    const metrics = await evaluate<PageMetrics>(`(() => {
+    const metrics = await evaluate<IntroMetrics>(`(() => {
       const node = document.querySelector(${JSON.stringify(selector)});
       const rect = node.getBoundingClientRect();
+      const copy = node.matches(".workspace-header")
+        ? node.querySelector(":scope > div")
+        : node.querySelector(".publish-copy, .market-copy");
+      const eyebrow = copy.querySelector(".eyebrow").getBoundingClientRect();
+      const title = copy.querySelector(".section-title").getBoundingClientRect();
+      const description = copy.querySelector(":scope > p").getBoundingClientRect();
+      const style = getComputedStyle(node);
+      const titleRowBottom = Math.max(eyebrow.bottom, title.bottom);
       return {
         clientHeight: node.clientHeight,
         clientWidth: node.clientWidth,
+        descriptionGap: description.top - titleRowBottom,
+        descriptionOverlapsTitleRow: description.top < titleRowBottom,
         documentClientWidth: document.documentElement.clientWidth,
         documentScrollWidth: document.documentElement.scrollWidth,
         height: rect.height,
         overflowY: Math.max(0, node.scrollHeight - node.clientHeight),
+        paddingBottom: Number.parseFloat(style.paddingBottom),
+        paddingTop: Number.parseFloat(style.paddingTop),
         scrollHeight: node.scrollHeight,
-        scrollWidth: node.scrollWidth
+        scrollWidth: node.scrollWidth,
+        titleGap: title.left - eyebrow.right,
+        titleRowVerticalOverlap:
+          eyebrow.top < title.bottom && eyebrow.bottom > title.top
       };
     })()`);
 
@@ -405,6 +430,9 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
         return Math.round(titleRect.height / lineHeight);
       });
       return {
+        cardOverflowXs: cards.map((card) =>
+          Math.max(0, card.scrollWidth - card.clientWidth)
+        ),
         clientHeight: node.clientHeight,
         clientWidth: node.clientWidth,
         documentClientWidth: document.documentElement.clientWidth,
@@ -695,9 +723,15 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
         .soft(Math.max(...home.rowTopDeltas), JSON.stringify(home))
         .toBeLessThanOrEqual(1);
       expect.soft(home.titleLineCounts, JSON.stringify(home)).toEqual([1, 1]);
+      expect.soft(home.titleFontSizes, JSON.stringify(home)).toEqual(
+        viewport.width === 390 ? [32, 32] : [44, 44]
+      );
       expect
-        .soft(Math.max(...home.titleFontSizes), JSON.stringify(home))
-        .toBeLessThanOrEqual(40);
+        .soft(Math.max(...home.cardOverflowXs), JSON.stringify(home))
+        .toBe(0);
+      expect
+        .soft(home.scrollWidth, JSON.stringify(home))
+        .toBeLessThanOrEqual(home.clientWidth);
       expect
         .soft(home.documentScrollWidth, JSON.stringify(home))
         .toBeLessThanOrEqual(home.documentClientWidth);
@@ -732,6 +766,33 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
           expect
             .soft(metrics.height, JSON.stringify(metrics))
             .toBeCloseTo(viewport.targetHeight, 1);
+          expect.soft(metrics.titleGap, JSON.stringify(metrics)).toBeCloseTo(16, 0);
+          expect
+            .soft(metrics.titleRowVerticalOverlap, JSON.stringify(metrics))
+            .toBe(true);
+          expect
+            .soft(metrics.descriptionOverlapsTitleRow, JSON.stringify(metrics))
+            .toBe(false);
+
+          if (contract.filename.endsWith("-new")) {
+            expect
+              .soft(metrics.descriptionGap, JSON.stringify(metrics))
+              .toBeGreaterThanOrEqual(6);
+            expect.soft(metrics.paddingTop, JSON.stringify(metrics)).toBeCloseTo(15, 0);
+            expect
+              .soft(metrics.paddingBottom, JSON.stringify(metrics))
+              .toBeCloseTo(15, 0);
+          } else if (contract.filename === "chat-detail") {
+            expect.soft(metrics.paddingTop, JSON.stringify(metrics)).toBeCloseTo(4, 0);
+            expect
+              .soft(metrics.paddingBottom, JSON.stringify(metrics))
+              .toBeCloseTo(5, 0);
+          } else {
+            expect.soft(metrics.paddingTop, JSON.stringify(metrics)).toBeCloseTo(5, 0);
+            expect
+              .soft(metrics.paddingBottom, JSON.stringify(metrics))
+              .toBeCloseTo(5, 0);
+          }
         }
 
         if (viewport.width === 1440) {

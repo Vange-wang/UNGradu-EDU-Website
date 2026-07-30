@@ -9,13 +9,20 @@ import { useNavigationTrailBackRoute } from "@/features/navigation/use-navigatio
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const backRoute = useNavigationTrailBackRoute(pathname ?? "/");
+  const { backRoute, consumeBackNavigation } = useNavigationTrailBackRoute(
+    pathname ?? "/"
+  );
 
   return (
     <header className="site-header">
       <div className="site-header-leading">
         {pathname !== "/" ? (
-          <Link aria-label="返回上一级" className="site-back-link" href={backRoute}>
+          <Link
+            aria-label="返回上一级"
+            className="site-back-link"
+            href={backRoute}
+            onClick={consumeBackNavigation}
+          >
             <span aria-hidden="true">←</span>
           </Link>
         ) : null}

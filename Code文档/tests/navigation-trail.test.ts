@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   advanceNavigationTrail,
+  consumeNavigationTrailBack,
   getNavigationTrailBackRoute,
   readNavigationTrail
 } from "@/features/navigation/navigation-trail";
@@ -85,5 +86,53 @@ describe("same-tab navigation trail", () => {
       "/",
       "/parent-needs/new"
     ]);
+  });
+
+  it("consumes the current page before a Header back navigation", () => {
+    expect(
+      consumeNavigationTrailBack(["/", "/parent-needs/new"], "/parent-needs/new")
+    ).toEqual(["/"]);
+  });
+
+  it("shrinks monotonically across consecutive Header back navigations", () => {
+    let trail = ["/", "/profile", "/profile/parent-needs", "/parent-needs/new"];
+
+    expect(getNavigationTrailBackRoute(trail, "/parent-needs/new")).toBe(
+      "/profile/parent-needs"
+    );
+    trail = consumeNavigationTrailBack(trail, "/parent-needs/new");
+    trail = advanceNavigationTrail(trail, "/profile/parent-needs", "push");
+    expect(trail).toEqual(["/", "/profile", "/profile/parent-needs"]);
+
+    expect(getNavigationTrailBackRoute(trail, "/profile/parent-needs")).toBe(
+      "/profile"
+    );
+    trail = consumeNavigationTrailBack(trail, "/profile/parent-needs");
+    trail = advanceNavigationTrail(trail, "/profile", "push");
+    expect(trail).toEqual(["/", "/profile"]);
+
+    expect(getNavigationTrailBackRoute(trail, "/profile")).toBe("/");
+    trail = consumeNavigationTrailBack(trail, "/profile");
+    trail = advanceNavigationTrail(trail, "/", "push");
+    expect(trail).toEqual(["/"]);
+  });
+
+  it("does not turn a fallback return into a two-page loop", () => {
+    const directTrail: string[] = [];
+    const fallbackRoute = getNavigationTrailBackRoute(
+      directTrail,
+      "/parent-needs/new"
+    );
+    const afterFallback = advanceNavigationTrail(
+      consumeNavigationTrailBack(directTrail, "/parent-needs/new"),
+      fallbackRoute,
+      "push"
+    );
+
+    expect(fallbackRoute).toBe("/profile/parent-needs");
+    expect(afterFallback).toEqual(["/profile/parent-needs"]);
+    expect(
+      getNavigationTrailBackRoute(afterFallback, "/profile/parent-needs")
+    ).toBe("/profile");
   });
 });

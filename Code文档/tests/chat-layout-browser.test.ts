@@ -541,6 +541,14 @@ describeWithBrowser("真实聊天消息面板布局", () => {
         await captureScreenshot(
           screenshotName.replace(/\.png$/i, "-composer.png")
         );
+        await writeFile(
+          path.join(
+            screenshotDirectory,
+            screenshotName.replace(/\.png$/i, "-metrics.json")
+          ),
+          `${JSON.stringify(metrics, null, 2)}\n`,
+          "utf8"
+        );
       }
 
       return metrics;
@@ -573,7 +581,7 @@ describeWithBrowser("真实聊天消息面板布局", () => {
       width: 1280,
       viewportHeight: 800,
       minComposeHeight: 116,
-      targetMainHeight: 720,
+      targetMainHeight: 728,
       targetComposeHeight: 116,
       minConversationWidth: 620,
       minListHeight: 500,
@@ -585,7 +593,7 @@ describeWithBrowser("真实聊天消息面板布局", () => {
       width: 1440,
       viewportHeight: 900,
       minComposeHeight: 124,
-      targetMainHeight: 760,
+      targetMainHeight: 772,
       targetComposeHeight: 124,
       minConversationWidth: 620,
       minListHeight: 540,
@@ -597,7 +605,7 @@ describeWithBrowser("真实聊天消息面板布局", () => {
       width: 1920,
       viewportHeight: 1080,
       minComposeHeight: 132,
-      targetMainHeight: 840,
+      targetMainHeight: 860,
       targetComposeHeight: 132,
       minConversationWidth: 620,
       minListHeight: 620,

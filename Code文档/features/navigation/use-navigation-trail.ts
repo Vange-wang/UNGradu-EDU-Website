@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   advanceNavigationTrail,
+  consumeNavigationTrailBack,
   getNavigationTrailBackRoute,
   readNavigationTrail,
   serializeNavigationTrail,
@@ -109,5 +110,24 @@ export function useNavigationTrailBackRoute(pathname: string) {
     setBackRoute(getNavigationTrailBackRoute(nextTrail, pathname));
   }, [pathname]);
 
-  return backRoute;
+  const consumeBackNavigation = useCallback(() => {
+    const tabId = tabIdRef.current;
+
+    if (!tabId) {
+      return;
+    }
+
+    const storedTrail = readNavigationTrail(
+      window.sessionStorage.getItem(STORAGE_KEY),
+      tabId
+    );
+    const nextTrail = consumeNavigationTrailBack(storedTrail, pathname);
+
+    window.sessionStorage.setItem(
+      STORAGE_KEY,
+      serializeNavigationTrail(nextTrail, tabId)
+    );
+  }, [pathname]);
+
+  return { backRoute, consumeBackNavigation };
 }

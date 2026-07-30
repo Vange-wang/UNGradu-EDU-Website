@@ -103,7 +103,7 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page feedback-page">
       <section className="notice-layout">
         <aside className="notice-aside">
           <span className="eyebrow">风险与功能反馈</span>

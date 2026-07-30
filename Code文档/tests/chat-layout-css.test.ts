@@ -37,18 +37,22 @@ describe("chat layout CSS", () => {
       /@media \(min-width: 981px\) and \(max-width: 1199px\)[\s\S]*?\.conversation-workspace\s*\{\s*grid-template-columns: 1fr;/
     );
     expect(globalsCss).toMatch(
-      /@media \(max-width: 720px\)[\s\S]*?\.conversation-main\s*\{[\s\S]*?grid-template-rows: 58px minmax\(0, 1fr\) auto;/
+      /@media \(max-width: 720px\)[\s\S]*?\.conversation-main\s*\{[\s\S]*?grid-template-rows: 92px minmax\(0, 1fr\) auto;/
     );
     expect(globalsCss).toMatch(
       /@media \(max-width: 720px\)[\s\S]*?\.chat-compose\s*\{[\s\S]*?min-height: 154px;/
     );
     expect(globalsCss).toMatch(
-      /\.dplus-chat-page \.conversation-main\s*\{[\s\S]*?height: 726px;/
+      /@media \(min-width: 1200px\)[\s\S]*?\.conversation-main\s*\{[^}]*height: 734px;/
     );
-    expect(globalsCss).toMatch(/@media \(min-height: 850px\)[\s\S]*?height: 766px;/);
-    expect(globalsCss).toMatch(/@media \(min-height: 1000px\)[\s\S]*?height: 846px;/);
     expect(globalsCss).toMatch(
-      /\.dplus-chat-page \.conversation-main\s*\{[^}]*grid-template-rows: 48px minmax\(0, 1fr\) auto;/
+      /@media \(min-width: 1200px\) and \(min-height: 850px\)[\s\S]*?height: 778px;/
+    );
+    expect(globalsCss).toMatch(
+      /@media \(min-width: 1200px\) and \(min-height: 1000px\)[\s\S]*?height: 866px;/
+    );
+    expect(globalsCss).toMatch(
+      /\.dplus-chat-page \.conversation-main\s*\{[^}]*grid-template-rows: 56px minmax\(0, 1fr\) auto;/
     );
     expect(globalsCss).toMatch(
       /\.dplus-chat-page \.message-list\s*\{[^}]*height: auto;[^}]*min-height: 0;/

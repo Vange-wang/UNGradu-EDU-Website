@@ -16,6 +16,7 @@ describe("shared Header real navigation trail integration", () => {
     expect(siteHeaderSource).toContain("useNavigationTrailBackRoute");
     expect(siteHeaderSource).toContain('aria-label="返回上一级"');
     expect(siteHeaderSource).toMatch(/href=\{backRoute\}/);
+    expect(siteHeaderSource).toMatch(/onClick=\{consumeBackNavigation\}/);
     expect(siteHeaderSource).not.toContain("history.back");
   });
 
@@ -25,5 +26,6 @@ describe("shared Header real navigation trail integration", () => {
     expect(trailHookSource).toContain("history.replaceState");
     expect(trailHookSource).toContain("pendingModeRef");
     expect(trailHookSource).toContain("tabId");
+    expect(trailHookSource).toContain("consumeNavigationTrailBack");
   });
 });

@@ -56,6 +56,21 @@ export function getNavigationTrailBackRoute(paths: string[], pathname: string) {
   return getParentRoute(currentPath);
 }
 
+export function consumeNavigationTrailBack(
+  paths: string[],
+  pathname: string
+) {
+  const trail = normalizeTrail(paths);
+  const currentPath = normalizePathname(pathname);
+  const currentIndex = trail.lastIndexOf(currentPath);
+
+  if (currentIndex < 0) {
+    return trail;
+  }
+
+  return trail.slice(0, currentIndex);
+}
+
 export function readNavigationTrail(serialized: string | null, tabId: string) {
   if (!serialized) {
     return [];

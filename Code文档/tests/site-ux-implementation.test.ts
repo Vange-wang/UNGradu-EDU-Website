@@ -36,7 +36,9 @@ describe("SITE-UX-IMPLEMENT-20260729-001", () => {
     expect(headerSource).toContain('aria-label="返回上一级"');
     expect(headerSource).toContain('className="site-back-link"');
     expect(headerSource).not.toMatch(/className="site-back-link"[^>]*href="\//);
-    expect(headerSource).toContain("getParentRoute(pathname ?? \"/\")");
+    expect(headerSource).toContain(
+      'useNavigationTrailBackRoute(pathname ?? "/")'
+    );
     expect(headerSource).toContain('pathname !== "/"');
     expect(globalsCss).toMatch(
       /\.site-header\.site-header\s*\{[^}]*height:\s*72px[^}]*background:\s*#fff/s

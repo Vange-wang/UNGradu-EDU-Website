@@ -3236,56 +3236,188 @@ body {
   width: 100%;
 }
 
+.dplus-chat-page .wide-panel::before {
+  content: none;
+}
+
+.dplus-chat-page .workspace-header {
+  align-items: center;
+  column-gap: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px auto;
+}
+
+.dplus-chat-page .workspace-header > div {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.dplus-chat-page .chat-header-decoration {
+  background: var(--dplus-yellow);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 999px;
+  box-shadow: 5px 5px 0 var(--dplus-ink);
+  display: block;
+  grid-column: 2;
+  height: 80px;
+  justify-self: center;
+  width: 80px;
+}
+
+.dplus-chat-page .workspace-header > .button {
+  grid-column: 3;
+  justify-self: end;
+  min-height: 52px;
+}
+
 .dplus-chat-page .conversation-workspace {
-  gap: 18px;
-  grid-template-columns: minmax(220px, 21%) minmax(620px, 1fr) minmax(240px, 23%);
+  gap: 16px;
+  grid-template-columns: minmax(220px, 21%) minmax(620px, 1fr) minmax(286px, 23%);
+}
+
+.dplus-chat-page .conversation-context {
+  background: #fff9e8;
+  border: 4px solid var(--dplus-ink);
+  box-shadow: 7px 7px 0 var(--dplus-ink);
+  color: var(--dplus-ink);
+  gap: 14px;
+  padding: 22px;
+}
+
+.dplus-chat-page .conversation-context .eyebrow,
+.dplus-chat-page .conversation-context h2 {
+  color: var(--dplus-ink);
+}
+
+.dplus-chat-page .conversation-context p {
+  color: #50554d;
+}
+
+.dplus-chat-page .conversation-context .context-stat {
+  background: #dfe7da;
+  border: 3px solid var(--dplus-ink);
+  min-height: 96px;
+  padding: 14px;
+}
+
+.dplus-chat-page .conversation-context .context-stat:last-child {
+  background: #f3e7c5;
+}
+
+.dplus-chat-page .conversation-context .context-stat strong {
+  color: var(--dplus-ink);
+  font-size: 32px;
+}
+
+.dplus-chat-page .conversation-context .context-stat span {
+  color: #50554d;
+  font-size: 14px;
+}
+
+.dplus-chat-page .contact-status-panel {
+  background: #dfe7da;
 }
 
 .dplus-chat-page .conversation-main {
+  box-sizing: border-box;
+  gap: 10px;
   height: 726px;
-  grid-template-rows: auto minmax(506px, 1fr) auto;
+  grid-template-rows: 48px minmax(0, 1fr) auto;
   min-height: 0;
+  padding: 8px 12px;
 }
 
 .dplus-chat-page .message-list {
+  border-radius: 22px;
+  height: auto;
   margin-top: 0;
-  height: clamp(506px, calc(25vw + 186px), 626px);
   min-height: 0;
+  padding: 16px;
 }
 
 .dplus-chat-page .chat-compose {
+  background: #fffdf7;
+  border-radius: 20px;
+  box-sizing: border-box;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 96px;
   height: 122px;
   min-height: 0;
   margin-top: 0;
-  padding: 8px;
+  overflow: visible;
+  padding: 10px 12px 12px;
 }
 
 .dplus-chat-page .conversation-main-header {
-  padding: 2px 12px;
+  align-items: center;
+  height: 48px;
+  margin-bottom: 0;
+  min-height: 48px;
+  padding: 0 4px;
 }
 
-@media (min-width: 721px) {
-  .dplus-chat-page .conversation-main {
-    padding: 2px;
-  }
+.dplus-chat-page .conversation-main-header h2 {
+  font-size: 22px;
+  margin-bottom: 2px;
+}
+
+.dplus-chat-page .conversation-main-header p {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.dplus-chat-page .chat-compose .field {
+  gap: 6px;
+  min-width: 0;
+}
+
+.dplus-chat-page .chat-compose textarea {
+  height: 64px;
+  min-height: 64px;
+  min-width: 0;
+  resize: none;
+  width: 100%;
+}
+
+.dplus-chat-page .chat-compose .button {
+  align-self: end;
+  height: 52px;
+  margin: 0 4px 4px 0;
+  min-height: 52px;
+  width: 92px;
 }
 
 @media (min-height: 850px) {
   .dplus-chat-page .conversation-main { height: 766px; }
-  .dplus-chat-page .conversation-main { grid-template-rows: auto minmax(546px, 1fr) auto; }
   .dplus-chat-page .chat-compose { height: 130px; }
-  .dplus-chat-page .message-list { height: 546px; }
-  .dplus-chat-page .conversation-main-header { padding: 1px 12px; }
 }
 
 @media (min-height: 1000px) {
-  .dplus-chat-page .conversation-main { height: 846px; }
-  .dplus-chat-page .conversation-main { grid-template-rows: auto minmax(626px, 1fr) auto; }
+  .dplus-chat-page .conversation-main {
+    grid-template-rows: 40px minmax(0, 1fr) auto;
+    height: 846px;
+  }
+  .dplus-chat-page .conversation-main-header {
+    height: 40px;
+    min-height: 40px;
+  }
   .dplus-chat-page .chat-compose { height: 138px; }
-  .dplus-chat-page .conversation-main-header { padding: 0; }
-  .dplus-chat-page .conversation-main-header h2 { font-size: 20px; }
-  .dplus-chat-page .conversation-main-header p { line-height: 1.2; }
-  .dplus-chat-page .message-list { height: 626px; }
+}
+
+@media (min-width: 1340px) {
+  .dplus-chat-page .conversation-workspace {
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1700px) {
+  .dplus-chat-page {
+    padding-inline: 16px;
+  }
+
+  .dplus-chat-page .conversation-workspace {
+    gap: 24px;
+  }
 }
 
 @media (min-width: 981px) and (max-width: 1199px) {
@@ -3301,32 +3433,76 @@ body {
 }
 
 @media (max-width: 720px) {
+  .dplus-chat-page .workspace-header {
+    column-gap: 12px;
+    grid-template-columns: minmax(0, 1fr) 56px;
+    row-gap: 12px;
+  }
+
+  .dplus-chat-page .chat-header-decoration {
+    grid-column: 2;
+    grid-row: 1;
+    height: 56px;
+    width: 56px;
+  }
+
+  .dplus-chat-page .workspace-header > .button {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
   .dplus-chat-page .conversation-workspace {
+    gap: 14px;
     grid-template-columns: 1fr;
   }
 
+  .dplus-chat-page .conversation-context {
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 14px;
+  }
+
+  .dplus-chat-page .conversation-context .eyebrow,
+  .dplus-chat-page .conversation-context h2,
+  .dplus-chat-page .conversation-context > p {
+    grid-column: 1 / -1;
+  }
+
+  .dplus-chat-page .conversation-context .context-stat {
+    min-height: 74px;
+    padding: 10px;
+  }
+
   .dplus-chat-page .conversation-main {
-    min-height: 0;
+    gap: 10px;
     height: clamp(560px, calc(100dvh - 120px), 680px);
-    grid-template-rows: auto minmax(326px, 1fr) auto;
+    grid-template-rows: 58px minmax(0, 1fr) auto;
+    min-height: 0;
+    padding: 10px;
   }
 
   .dplus-chat-page .conversation-main-header {
-    align-items: center;
+    align-items: flex-start;
     flex-direction: row;
+    height: 58px;
+    min-height: 58px;
     min-width: 0;
-    padding: 8px 10px;
+    padding: 0 4px;
   }
 
   .dplus-chat-page .message-list {
-    height: clamp(326px, calc(100dvh - 336px), 506px);
+    height: auto;
     min-height: 0;
+    padding: 12px;
   }
 
   .dplus-chat-page .chat-compose {
-    grid-template-columns: minmax(0, 1fr) auto;
-    min-height: 118px;
-    padding: 8px;
+    gap: 6px;
+    grid-template-columns: 1fr;
+    height: 176px;
+    max-height: 176px;
+    min-height: 154px;
+    padding: 8px 12px 10px;
   }
 
   .dplus-chat-page .chat-compose textarea {
@@ -3334,22 +3510,31 @@ body {
     min-height: 72px;
   }
 
-  .dplus-chat-page .chat-compose .button {
-    width: auto;
+  .dplus-chat-page .chat-compose .field {
+    gap: 4px;
   }
 
-  .dplus-chat-page .conversation-main:focus-within {
-    height: calc(100dvh - 8px);
+  .dplus-chat-page .chat-compose .field > span {
+    font-size: 13px;
+    line-height: 1;
+  }
+
+  .dplus-chat-page .chat-compose .button {
+    height: 48px;
+    min-height: 48px;
+    width: calc(100% - 4px);
   }
 }
 
 @media (max-width: 720px) and (max-height: 700px) {
-  .dplus-chat-page .conversation-main-header {
-    padding: 2px 6px;
+  .dplus-chat-page .conversation-main:focus-within {
+    grid-template-rows: 40px minmax(0, 1fr) auto;
+    height: calc(100dvh - 8px);
   }
 
-  .dplus-chat-page .chat-compose {
-    padding: 2px 6px;
+  .dplus-chat-page .conversation-main-header {
+    height: 40px;
+    min-height: 40px;
   }
 }
 

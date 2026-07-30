@@ -13,7 +13,7 @@ const staticParentRoutes: Record<string, string> = {
   "/customer-service": "/"
 };
 
-function normalizePathname(pathname: string) {
+export function normalizePathname(pathname: string) {
   const withoutQuery = pathname.split(/[?#]/, 1)[0] || "/";
   const normalized = withoutQuery.replace(/\/{2,}/g, "/").replace(/\/$/, "");
 

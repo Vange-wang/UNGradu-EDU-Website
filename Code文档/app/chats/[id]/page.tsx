@@ -213,6 +213,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
           <h1 className="section-title">站内聊天</h1>
           <p>先站内沟通；双方确认前不展示联系方式。</p>
         </div>
+        <span aria-hidden="true" className="chat-header-decoration" />
         <Link className="button secondary" href="/profile/chats">
           返回我的聊天
         </Link>

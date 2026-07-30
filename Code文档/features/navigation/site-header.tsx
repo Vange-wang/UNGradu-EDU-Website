@@ -5,17 +5,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { SessionNav } from "@/features/auth/session-nav";
-import { getParentRoute } from "@/features/navigation/parent-route";
+import { useNavigationTrailBackRoute } from "@/features/navigation/use-navigation-trail";
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const parentRoute = getParentRoute(pathname ?? "/");
+  const backRoute = useNavigationTrailBackRoute(pathname ?? "/");
 
   return (
     <header className="site-header">
       <div className="site-header-leading">
         {pathname !== "/" ? (
-          <Link aria-label="返回上一级" className="site-back-link" href={parentRoute}>
+          <Link aria-label="返回上一级" className="site-back-link" href={backRoute}>
             <span aria-hidden="true">←</span>
           </Link>
         ) : null}

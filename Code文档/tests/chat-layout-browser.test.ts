@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
@@ -40,15 +40,29 @@ type WebSocketConstructor = new (url: string) => WebSocketClient;
 const WebSocketClient = require("ws") as WebSocketConstructor;
 
 type LayoutMetrics = {
+  composeButtonContained: boolean;
+  composeButtonBottom: number;
+  composeButtonLeft: number;
+  composeButtonRight: number;
+  composeButtonTop: number;
   composeContained: boolean;
   composeBottom: number;
   composeClientHeight: number;
+  composeLeft: number;
+  composeRight: number;
   composeTop: number;
+  contactBackgroundColor: string;
   conversationColumnCount: number;
   conversationWidth: number;
   mainWidth: number;
   documentScrollWidth: number;
   inputFocused: boolean;
+  contextBackgroundColor: string;
+  contextStatBackgroundColors: string[];
+  decorationActionGap: number;
+  decorationContained: boolean;
+  decorationOverlapsHeaderAction: boolean;
+  headerActionContained: boolean;
   listCanScroll: boolean;
   listBottom: number;
   listComesBeforeCompose: boolean;
@@ -58,7 +72,9 @@ type LayoutMetrics = {
   listTop: number;
   mainBottom: number;
   mainClientHeight: number;
+  mainContentInset: number;
   mainGridRows: string;
+  mainRowGap: string;
   listMarginTop: string;
   mainTop: number;
   pageClientWidth: number;
@@ -119,9 +135,17 @@ function renderFixture(css: string, messageCount: number, contentWidth?: number)
         <section class="wide-panel">
           <div class="workspace-header">
             <div><span class="eyebrow">站内沟通</span><h1 class="section-title">站内聊天</h1></div>
+            <span aria-hidden="true" class="chat-header-decoration"></span>
+            <a class="button secondary chat-header-back" href="/profile/chats">返回我的聊天</a>
           </div>
           <div class="conversation-workspace">
-            <aside class="conversation-context"><h2>需求沟通</h2><p>会话状态</p></aside>
+            <aside class="conversation-context">
+              <span class="eyebrow">会话状态</span>
+              <h2>需求沟通</h2>
+              <p>确认意向后，可请求交换联系方式。</p>
+              <div class="context-stat"><strong>80</strong><span>条消息</span></div>
+              <div class="context-stat"><strong>2</strong><span>次交换请求</span></div>
+            </aside>
             ${panel}
             <aside class="chat-side contact-status-panel"><h2>联系方式交换</h2></aside>
           </div>
@@ -253,7 +277,12 @@ describeWithBrowser("真实聊天消息面板布局", () => {
     });
   });
 
-  async function measure(messageCount: number, width: number, height: number) {
+  async function measure(
+    messageCount: number,
+    width: number,
+    height: number,
+    screenshotName?: string
+  ) {
     if (!browserPath) {
       throw new Error("未找到 Chrome/Edge，无法执行真实聊天布局回归。");
     }
@@ -339,16 +368,50 @@ describeWithBrowser("真实聊天消息面板布局", () => {
           const main = document.querySelector(".conversation-main");
           const list = document.querySelector(".message-list");
           const compose = document.querySelector(".chat-compose");
+          const composeButton = compose.querySelector("button");
           const conversation = document.querySelector(".conversation-workspace");
+          const context = document.querySelector(".conversation-context");
+          const contact = document.querySelector(".contact-status-panel");
           const page = document.querySelector(".dplus-chat-page");
           const siteHeader = document.querySelector(".site-header");
+          const workspaceHeader = document.querySelector(".workspace-header");
+          const decoration = document.querySelector(".chat-header-decoration");
+          const headerAction = document.querySelector(".chat-header-back");
           const textarea = document.querySelector("#message-text");
           textarea.focus();
           requestAnimationFrame(() => requestAnimationFrame(() => {
             const mainRect = main.getBoundingClientRect();
             const listRect = list.getBoundingClientRect();
             const composeRect = compose.getBoundingClientRect();
+            const composeButtonRect = composeButton.getBoundingClientRect();
+            const composeStyle = getComputedStyle(compose);
+            const mainStyle = getComputedStyle(main);
             const conversationRect = conversation.getBoundingClientRect();
+            const contextStyle = getComputedStyle(context);
+            const contactStyle = getComputedStyle(contact);
+            const contextStatBackgroundColors = Array.from(
+              context.querySelectorAll(".context-stat"),
+              (stat) => getComputedStyle(stat).backgroundColor
+            );
+            const workspaceHeaderRect = workspaceHeader.getBoundingClientRect();
+            const decorationRect = decoration.getBoundingClientRect();
+            const headerActionRect = headerAction.getBoundingClientRect();
+            const composeContentRight =
+              composeRect.right -
+              Number.parseFloat(composeStyle.borderRightWidth) -
+              Number.parseFloat(composeStyle.paddingRight);
+            const composeContentBottom =
+              composeRect.bottom -
+              Number.parseFloat(composeStyle.borderBottomWidth) -
+              Number.parseFloat(composeStyle.paddingBottom);
+            const mainContentRight =
+              mainRect.right -
+              Number.parseFloat(mainStyle.borderRightWidth) -
+              Number.parseFloat(mainStyle.paddingRight);
+            const mainContentBottom =
+              mainRect.bottom -
+              Number.parseFloat(mainStyle.borderBottomWidth) -
+              Number.parseFloat(mainStyle.paddingBottom);
             const visualViewportHeight = window.visualViewport
               ? window.visualViewport.height
               : window.innerHeight;
@@ -357,14 +420,50 @@ describeWithBrowser("真实聊天消息面板布局", () => {
               : window.innerWidth;
             list.scrollTop = 50;
             resolve({
-              composeContained: composeRect.bottom <= mainRect.bottom + 1,
+              composeButtonContained:
+                composeButtonRect.left >= composeRect.left &&
+                composeButtonRect.right + 4 <= composeContentRight &&
+                composeButtonRect.top >= composeRect.top &&
+                composeButtonRect.bottom + 4 <= composeContentBottom &&
+                composeButtonRect.bottom + 4 <= mainContentBottom,
+              composeButtonBottom: composeButtonRect.bottom,
+              composeButtonLeft: composeButtonRect.left,
+              composeButtonRight: composeButtonRect.right,
+              composeButtonTop: composeButtonRect.top,
+              composeContained:
+                composeRect.right <= mainContentRight + 1 &&
+                composeRect.bottom <= mainContentBottom + 1,
               composeBottom: composeRect.bottom,
               composeClientHeight: compose.clientHeight,
+              composeLeft: composeRect.left,
+              composeRight: composeRect.right,
               composeTop: composeRect.top,
+              contactBackgroundColor: contactStyle.backgroundColor,
               conversationColumnCount: getComputedStyle(conversation).gridTemplateColumns.split(" ").length,
               conversationWidth: conversationRect.width,
               mainWidth: mainRect.width,
               documentScrollWidth: document.documentElement.scrollWidth,
+              contextBackgroundColor: contextStyle.backgroundColor,
+              contextStatBackgroundColors,
+              decorationActionGap:
+                window.innerWidth <= 720
+                  ? headerActionRect.top - decorationRect.bottom
+                  : headerActionRect.left - decorationRect.right,
+              decorationContained:
+                decorationRect.left >= workspaceHeaderRect.left &&
+                decorationRect.right <= workspaceHeaderRect.right &&
+                decorationRect.top >= workspaceHeaderRect.top &&
+                decorationRect.bottom <= workspaceHeaderRect.bottom,
+              decorationOverlapsHeaderAction:
+                decorationRect.left < headerActionRect.right &&
+                decorationRect.right > headerActionRect.left &&
+                decorationRect.top < headerActionRect.bottom &&
+                decorationRect.bottom > headerActionRect.top,
+              headerActionContained:
+                headerActionRect.left >= workspaceHeaderRect.left &&
+                headerActionRect.right <= workspaceHeaderRect.right &&
+                headerActionRect.top >= workspaceHeaderRect.top &&
+                headerActionRect.bottom <= workspaceHeaderRect.bottom,
               inputFocused: document.activeElement === textarea,
               listCanScroll: list.scrollTop > 0,
               listBottom: listRect.bottom,
@@ -375,7 +474,12 @@ describeWithBrowser("真实聊天消息面板布局", () => {
               listTop: listRect.top,
               mainBottom: mainRect.bottom,
               mainClientHeight: main.clientHeight,
+              mainContentInset: Math.min(
+                listRect.left - mainRect.left,
+                composeRect.left - mainRect.left
+              ),
               mainGridRows: getComputedStyle(main).gridTemplateRows,
+              mainRowGap: getComputedStyle(main).rowGap,
               listMarginTop: getComputedStyle(list).marginTop,
               mainTop: mainRect.top,
               pageClientWidth: page.clientWidth,
@@ -394,6 +498,49 @@ describeWithBrowser("真实聊天消息面板布局", () => {
 
       if (!metrics) {
         throw new Error("Chrome 未返回聊天布局测量结果。");
+      }
+
+      const screenshotDirectory = process.env.CHAT_LAYOUT_SCREENSHOT_DIR;
+
+      if (screenshotDirectory && screenshotName) {
+        const screenshotCdp = cdp;
+
+        if (!screenshotCdp) {
+          throw new Error("Chrome 调试连接已关闭，无法截图。");
+        }
+
+        await mkdir(screenshotDirectory, { recursive: true });
+
+        const captureScreenshot = async (fileName: string) => {
+          const screenshot = (await screenshotCdp.send("Page.captureScreenshot", {
+            captureBeyondViewport: false,
+            format: "png"
+          })) as { data?: string };
+
+          if (!screenshot.data) {
+            throw new Error("Chrome 未返回聊天布局截图。");
+          }
+
+          await writeFile(
+            path.join(screenshotDirectory, fileName),
+            Buffer.from(screenshot.data, "base64")
+          );
+        };
+
+        await screenshotCdp.send("Runtime.evaluate", {
+          expression: "window.scrollTo(0, 0)"
+        });
+        await delay(50);
+        await captureScreenshot(screenshotName);
+
+        await screenshotCdp.send("Runtime.evaluate", {
+          expression:
+            'document.querySelector(".conversation-main").scrollIntoView({ block: "center" })'
+        });
+        await delay(50);
+        await captureScreenshot(
+          screenshotName.replace(/\.png$/i, "-composer.png")
+        );
       }
 
       return metrics;
@@ -480,6 +627,7 @@ describeWithBrowser("真实聊天消息面板布局", () => {
   ])(
     "$name 消息增多时只增加内部 scrollHeight",
     async ({
+      name,
       width,
       viewportHeight,
       minComposeHeight,
@@ -492,7 +640,12 @@ describeWithBrowser("真实聊天消息面板布局", () => {
       maxListHeight
     }) => {
       const shortConversation = await measure(3, width, viewportHeight);
-      const longConversation = await measure(80, width, viewportHeight);
+      const longConversation = await measure(
+        80,
+        width,
+        viewportHeight,
+        `${width}x${viewportHeight}-${name.replace(/[^\p{L}\p{N}-]+/gu, "-")}.png`
+      );
 
       console.info({ shortConversation, longConversation });
 
@@ -549,5 +702,41 @@ describeWithBrowser("真实聊天消息面板布局", () => {
       }
     },
     30_000
+  );
+
+  it(
+    "keeps composer, inner inset, status color, and decoration action geometry valid",
+    async () => {
+      const pendingUiMetrics: LayoutMetrics[] = [];
+
+      for (const viewport of [
+        { height: 800, width: 1280 },
+        { height: 900, width: 1440 },
+        { height: 1080, width: 1920 },
+        { height: 844, width: 390 }
+      ]) {
+        pendingUiMetrics.push(await measure(3, viewport.width, viewport.height));
+      }
+
+      console.info({ pendingUiMetrics });
+
+      expect(
+        pendingUiMetrics.every(
+          (metrics) =>
+            metrics.composeButtonContained &&
+            metrics.composeContained &&
+            metrics.mainContentInset >= 12 &&
+            metrics.contextBackgroundColor === "rgb(255, 249, 232)" &&
+            metrics.contextStatBackgroundColors.join("|") ===
+              "rgb(223, 231, 218)|rgb(243, 231, 197)" &&
+            metrics.contactBackgroundColor === "rgb(223, 231, 218)" &&
+            metrics.mainRowGap === "10px" &&
+            metrics.decorationContained &&
+            metrics.headerActionContained &&
+            !metrics.decorationOverlapsHeaderAction &&
+            metrics.decorationActionGap >= (metrics.viewportWidth <= 720 ? 12 : 20)
+        )
+      ).toBe(true);
+    }
   );
 });

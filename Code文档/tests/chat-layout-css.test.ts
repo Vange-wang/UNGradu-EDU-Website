@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const globalsCss = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+const chatPageSource = readFileSync(
+  new URL("../app/chats/[id]/page.tsx", import.meta.url),
+  "utf8"
+);
 
 function readRule(selector: string) {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -12,6 +16,16 @@ function readRule(selector: string) {
 }
 
 describe("chat layout CSS", () => {
+  it("uses a real grid decoration instead of an absolutely positioned chat pseudo-element", () => {
+    expect(chatPageSource).toContain('className="chat-header-decoration"');
+    expect(globalsCss).toMatch(
+      /\.dplus-chat-page \.wide-panel::before\s*\{[^}]*content:\s*none;/
+    );
+    expect(globalsCss).toMatch(
+      /\.dplus-chat-page \.workspace-header\s*\{[^}]*display:\s*grid;/
+    );
+  });
+
   it("uses the enlarged three-column desktop and single-column mobile contract", () => {
     expect(globalsCss).toMatch(
       /\.dplus-chat-page\s*\{[^}]*max-width:\s*1600px;/
@@ -23,16 +37,22 @@ describe("chat layout CSS", () => {
       /@media \(min-width: 981px\) and \(max-width: 1199px\)[\s\S]*?\.conversation-workspace\s*\{\s*grid-template-columns: 1fr;/
     );
     expect(globalsCss).toMatch(
-      /@media \(max-width: 720px\)[\s\S]*?\.conversation-main\s*\{[\s\S]*?grid-template-rows: auto minmax\(326px, 1fr\) auto;/
+      /@media \(max-width: 720px\)[\s\S]*?\.conversation-main\s*\{[\s\S]*?grid-template-rows: 58px minmax\(0, 1fr\) auto;/
     );
     expect(globalsCss).toMatch(
-      /\.dplus-chat-page \.chat-compose\s*\{[\s\S]*?min-height: 118px;/
+      /@media \(max-width: 720px\)[\s\S]*?\.chat-compose\s*\{[\s\S]*?min-height: 154px;/
     );
     expect(globalsCss).toMatch(
       /\.dplus-chat-page \.conversation-main\s*\{[\s\S]*?height: 726px;/
     );
     expect(globalsCss).toMatch(/@media \(min-height: 850px\)[\s\S]*?height: 766px;/);
     expect(globalsCss).toMatch(/@media \(min-height: 1000px\)[\s\S]*?height: 846px;/);
+    expect(globalsCss).toMatch(
+      /\.dplus-chat-page \.conversation-main\s*\{[^}]*grid-template-rows: 48px minmax\(0, 1fr\) auto;/
+    );
+    expect(globalsCss).toMatch(
+      /\.dplus-chat-page \.message-list\s*\{[^}]*height: auto;[^}]*min-height: 0;/
+    );
   });
 
   it("constrains the D+ chat message list to scroll inside the chat panel", () => {

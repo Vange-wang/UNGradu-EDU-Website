@@ -8267,3 +8267,66 @@ body:has(.customer-service-shell) {
     padding-block: 4px 5px;
   }
 }
+
+/* Production 042: preserve the four-row CTA geometry without allowing the
+   long left title to expand the button track. */
+.home-entry-card {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.home-entry-button {
+  box-sizing: border-box;
+  justify-self: stretch;
+  min-width: 0;
+  width: auto;
+}
+
+@media (min-width: 721px) {
+  .home-entry-button {
+    margin-inline: 6px 8px;
+  }
+}
+
+/* The framed Hero belongs only to the /profile root; profile sub-pages retain
+   their existing header treatment. */
+.dplus-profile-root-page .wide-panel::before {
+  content: none;
+}
+
+.dplus-profile-root-page .workspace-header {
+  background: #FFF9E8;
+  border: 3px solid var(--dplus-ink);
+  border-radius: 22px;
+  box-shadow: 6px 6px 0 var(--dplus-ink);
+  overflow: hidden;
+}
+
+.dplus-profile-root-page .workspace-header::before {
+  background: var(--dplus-yellow);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 999px;
+  box-shadow: 4px 4px 0 var(--dplus-ink);
+  content: "";
+  height: 68px;
+  position: absolute;
+  right: 32px;
+  top: 24px;
+  transform: rotate(-5deg);
+  width: 68px;
+  z-index: 0;
+}
+
+.dplus-profile-root-page .workspace-header > div {
+  gap: 0;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 720px) {
+  .dplus-profile-root-page .workspace-header::before {
+    height: 56px;
+    right: 16px;
+    top: 18px;
+    width: 56px;
+  }
+}

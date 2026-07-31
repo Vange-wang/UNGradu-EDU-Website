@@ -41,7 +41,7 @@ const profileLinks = [
 
 export default function ProfilePage() {
   return (
-    <div className="page dplus-profile-page">
+    <div className="page dplus-profile-page dplus-profile-root-page">
       <RequireTestSession>
         {(session) => (
           <section className="wide-panel">

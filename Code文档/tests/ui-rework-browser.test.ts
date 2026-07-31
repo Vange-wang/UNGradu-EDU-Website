@@ -35,11 +35,14 @@ type WebSocketConstructor = new (url: string) => WebSocketClient;
 const WebSocketClient = require("ws") as WebSocketConstructor;
 
 describe("业务方确认预览的范围保护", () => {
-  it("只追加获批的 CTA、标题行、padding 与响应式高度声明", async () => {
+  it("只追加获批的 CTA、标题行、padding、响应式高度与根页 Hero 框体", async () => {
     const css = await readFile(path.join(process.cwd(), "app", "globals.css"), "utf8");
     const marker =
       "/* Business-confirmed preview: shared intro geometry and four-row home CTAs. */";
-    const scopedCss = css.slice(css.indexOf(marker));
+    const production042Marker =
+      "/* Production 042: preserve the four-row CTA geometry without allowing the";
+    const scopedCss = css.slice(css.indexOf(marker), css.indexOf(production042Marker));
+    const production042Css = css.slice(css.indexOf(production042Marker));
 
     expect(scopedCss).toContain("grid-template-rows: 18px 48px 32px 64px;");
     expect(scopedCss).toContain("white-space: nowrap;");
@@ -59,6 +62,18 @@ describe("业务方确认预览的范围保护", () => {
     expect(scopedCss).not.toMatch(/background(?:-color|-image)?\s*:/);
     expect(scopedCss).not.toMatch(/border(?:-color|-radius|-width)?\s*:/);
     expect(scopedCss).not.toMatch(/box-shadow\s*:/);
+
+    expect(production042Css).toContain("grid-template-columns: minmax(0, 1fr);");
+    expect(production042Css).toContain("margin-inline: 6px 8px;");
+    expect(production042Css).toContain(".dplus-profile-root-page .workspace-header");
+    expect(production042Css).toContain("background: #FFF9E8;");
+    expect(production042Css).toContain("border: 3px solid var(--dplus-ink);");
+    expect(production042Css).toContain("border-radius: 22px;");
+    expect(production042Css).toContain("box-shadow: 6px 6px 0 var(--dplus-ink);");
+    expect(production042Css).toContain(".dplus-profile-root-page .wide-panel::before");
+    expect(production042Css).not.toContain(".dplus-profile-page .workspace-header {");
+    expect(production042Css).not.toMatch(/font-(?:size|family|weight)\s*:/);
+    expect(production042Css).not.toMatch(/(?:^|[;\s{])color\s*:/m);
   });
 });
 

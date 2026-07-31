@@ -111,6 +111,8 @@ type HomeMetrics = PageMetrics & {
   ctaCards: Array<{
     buttonBottomToBorder: number;
     buttonHeight: number;
+    buttonLeftToCardInner: number;
+    buttonRightToCardInner: number;
     buttonTop: number;
     cardHeight: number;
   }>;
@@ -120,6 +122,10 @@ type HomeMetrics = PageMetrics & {
 };
 
 type ProfileMetrics = {
+  backgroundColor: string;
+  borderTopWidth: number;
+  borderRadius: string;
+  boxShadow: string;
   contentBottom: number;
   contentHeight: number;
   contentTop: number;
@@ -132,6 +138,7 @@ type ProfileMetrics = {
   overflowY: number;
   paddingBottom: number;
   paddingTop: number;
+  nextBlockGap: number;
 };
 
 type RouteContract = {
@@ -465,10 +472,17 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
         const buttonRect = card
           .querySelector(".home-entry-button")
           .getBoundingClientRect();
+        const cardStyle = getComputedStyle(card);
+        const cardBorderLeft = Number.parseFloat(cardStyle.borderLeftWidth);
+        const cardBorderRight = Number.parseFloat(cardStyle.borderRightWidth);
 
         return {
           buttonBottomToBorder: cardRect.bottom - buttonRect.bottom,
           buttonHeight: buttonRect.height,
+          buttonLeftToCardInner:
+            buttonRect.left - cardRect.left - cardBorderLeft,
+          buttonRightToCardInner:
+            cardRect.right - cardBorderRight - buttonRect.right,
           buttonTop: buttonRect.top - cardRect.top,
           cardHeight: cardRect.height
         };
@@ -504,29 +518,35 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
       const hero = document.querySelector(".dplus-profile-page .workspace-header");
       const panel = document.querySelector(".dplus-profile-page .wide-panel");
       const copy = hero.querySelector(":scope > div");
+      const nextBlock = panel.querySelector(".account-dashboard");
       const heroRect = hero.getBoundingClientRect();
       const copyRect = copy.getBoundingClientRect();
       const heroStyle = getComputedStyle(hero);
-      const decorationStyle = getComputedStyle(panel, "::before");
+      const decorationStyle = getComputedStyle(hero, "::before");
       const decorationHeight = Number.parseFloat(decorationStyle.height);
       const decorationRight = Number.parseFloat(decorationStyle.right);
       const decorationTop = Number.parseFloat(decorationStyle.top);
       const decorationWidth = Number.parseFloat(decorationStyle.width);
 
       return {
+        backgroundColor: heroStyle.backgroundColor,
+        borderRadius: heroStyle.borderRadius,
+        borderTopWidth: Number.parseFloat(heroStyle.borderTopWidth),
+        boxShadow: heroStyle.boxShadow,
         contentBottom: heroRect.bottom - copyRect.bottom,
         contentHeight: copyRect.height,
         contentTop: copyRect.top - heroRect.top,
         decorationBottom:
-          panel.clientHeight - decorationTop - decorationHeight,
-        decorationLeft: panel.clientWidth - decorationRight - decorationWidth,
+          hero.clientHeight - decorationTop - decorationHeight,
+        decorationLeft: hero.clientWidth - decorationRight - decorationWidth,
         decorationTop,
         documentClientWidth: document.documentElement.clientWidth,
         documentScrollWidth: document.documentElement.scrollWidth,
         height: heroRect.height,
         overflowY: Math.max(0, hero.scrollHeight - hero.clientHeight),
         paddingBottom: Number.parseFloat(heroStyle.paddingBottom),
-        paddingTop: Number.parseFloat(heroStyle.paddingTop)
+        paddingTop: Number.parseFloat(heroStyle.paddingTop),
+        nextBlockGap: nextBlock.getBoundingClientRect().top - heroRect.bottom
       };
     })()`);
 
@@ -822,6 +842,16 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
       const ctaBottomMinimum = viewport.width === 390 ? 16 : 20;
       const ctaBottomMaximum = viewport.width === 390 ? 20 : 24;
       const [leftCta, rightCta] = home.ctaCards;
+      const ctaSideInset = viewport.width === 390 ? 20 : 32;
+
+      for (const cta of home.ctaCards) {
+        expect
+          .soft(cta.buttonLeftToCardInner, JSON.stringify(home))
+          .toBeCloseTo(ctaSideInset, 1);
+        expect
+          .soft(cta.buttonRightToCardInner, JSON.stringify(home))
+          .toBeCloseTo(ctaSideInset, 1);
+      }
 
       for (const cta of home.ctaCards) {
         expect
@@ -848,6 +878,18 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
         )
         .toBeLessThanOrEqual(1);
       expect
+        .soft(
+          Math.abs(leftCta.buttonLeftToCardInner - rightCta.buttonLeftToCardInner),
+          JSON.stringify(home)
+        )
+        .toBeLessThanOrEqual(0.1);
+      expect
+        .soft(
+          Math.abs(leftCta.buttonRightToCardInner - rightCta.buttonRightToCardInner),
+          JSON.stringify(home)
+        )
+        .toBeLessThanOrEqual(0.1);
+      expect
         .soft(Math.abs(leftCta.cardHeight - rightCta.cardHeight), JSON.stringify(home))
         .toBeLessThanOrEqual(1);
 
@@ -869,6 +911,14 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
         .toBeLessThanOrEqual(profile.documentClientWidth);
       expect.soft(profile.overflowY, JSON.stringify(profile)).toBe(0);
       expect
+        .soft(profile.backgroundColor, JSON.stringify(profile))
+        .toBe("rgb(255, 249, 232)");
+      expect.soft(profile.borderTopWidth, JSON.stringify(profile)).toBe(3);
+      expect.soft(profile.borderRadius, JSON.stringify(profile)).toBe("22px");
+      expect
+        .soft(profile.boxShadow, JSON.stringify(profile))
+        .toContain("6px 6px 0px");
+      expect
         .soft(profile.height, JSON.stringify(profile))
         .toBeLessThanOrEqual(profileHeroMaximumHeights[viewport.key]);
       expect.soft(profile.contentTop, JSON.stringify(profile)).toBeGreaterThanOrEqual(0);
@@ -884,6 +934,9 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
       expect
         .soft(profile.decorationBottom, JSON.stringify(profile))
         .toBeGreaterThanOrEqual(0);
+      expect
+        .soft(profile.nextBlockGap, JSON.stringify(profile))
+        .toBeCloseTo(viewport.width === 390 ? 12 : 16, 0);
 
       await captureViewport(`${viewport.key}-profile-hero.png`);
 
@@ -893,6 +946,25 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
           label: "/profile"
         });
       }
+
+      await navigate("/profile/chats", ".dplus-profile-page .workspace-header");
+      const childHeroFrame = await evaluate<{
+        backgroundColor: string;
+        borderTopWidth: number;
+      }>(`(() => {
+        const style = getComputedStyle(document.querySelector(".workspace-header"));
+        return {
+          backgroundColor: style.backgroundColor,
+          borderTopWidth: Number.parseFloat(style.borderTopWidth)
+        };
+      })()`);
+      if (!childHeroFrame) {
+        throw new Error("个人中心子页未返回 Header 样式");
+      }
+      expect
+        .soft(childHeroFrame.backgroundColor, JSON.stringify(childHeroFrame))
+        .not.toBe("rgb(255, 249, 232)");
+      expect.soft(childHeroFrame.borderTopWidth, JSON.stringify(childHeroFrame)).toBe(0);
 
       for (const contract of routeContracts) {
         await navigate(contract.pathname, contract.selector);

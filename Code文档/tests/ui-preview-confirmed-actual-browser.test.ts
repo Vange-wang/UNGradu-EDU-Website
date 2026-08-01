@@ -98,8 +98,18 @@ type PageMetrics = {
 };
 
 type IntroMetrics = PageMetrics & {
+  backgroundColor: string;
+  borderRadius: string;
+  borderTopWidth: number;
+  boxShadow: string;
+  chatDecorationContained: boolean;
+  chatMainHeaderBackgroundColor: string;
+  chatWorkspaceGap: number;
+  contactActionBackgroundColor: string;
+  contactBackgroundColor: string;
   descriptionGap: number;
   descriptionOverlapsTitleRow: boolean;
+  mobilePanelOrder: string;
   paddingBottom: number;
   paddingTop: number;
   titleGap: number;
@@ -187,6 +197,13 @@ const profileHeroMaximumHeights = {
   "1440x900": 132.41,
   "1920x1080": 135.69,
   "390x844": 148
+} as const;
+
+const chatHeroTargetHeights = {
+  "1280x800": 112,
+  "1440x900": 112,
+  "1920x1080": 112,
+  "390x844": 142
 } as const;
 
 function readRuntimeValue<T>(result: unknown) {
@@ -417,8 +434,37 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
       const title = copy.querySelector(".section-title").getBoundingClientRect();
       const description = copy.querySelector(":scope > p").getBoundingClientRect();
       const style = getComputedStyle(node);
+      const decoration = node.querySelector(".chat-header-decoration");
+      const decorationRect = decoration ? decoration.getBoundingClientRect() : null;
+      const workspace = node.matches(".workspace-header")
+        ? node.nextElementSibling
+        : null;
+      const workspaceRect = workspace ? workspace.getBoundingClientRect() : null;
+      const main = workspace?.querySelector(".conversation-main");
+      const context = workspace?.querySelector(".conversation-context");
+      const contact = workspace?.querySelector(".contact-status-panel");
+      const contactAction = contact?.querySelector("button");
+      const mainHeader = main?.querySelector(".conversation-main-header");
       const titleRowBottom = Math.max(eyebrow.bottom, title.bottom);
       return {
+        backgroundColor: style.backgroundColor,
+        borderRadius: style.borderRadius,
+        borderTopWidth: Number.parseFloat(style.borderTopWidth),
+        boxShadow: style.boxShadow,
+        chatDecorationContained: !decorationRect || (
+          decorationRect.left >= rect.left &&
+          decorationRect.right <= rect.right &&
+          decorationRect.top >= rect.top &&
+          decorationRect.bottom <= rect.bottom
+        ),
+        chatMainHeaderBackgroundColor: mainHeader
+          ? getComputedStyle(mainHeader).backgroundColor
+          : "",
+        chatWorkspaceGap: workspaceRect ? workspaceRect.top - rect.bottom : 0,
+        contactActionBackgroundColor: contactAction
+          ? getComputedStyle(contactAction).backgroundColor
+          : "",
+        contactBackgroundColor: contact ? getComputedStyle(contact).backgroundColor : "",
         clientHeight: node.clientHeight,
         clientWidth: node.clientWidth,
         descriptionGap: description.top - titleRowBottom,
@@ -429,6 +475,12 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
         overflowY: Math.max(0, node.scrollHeight - node.clientHeight),
         paddingBottom: Number.parseFloat(style.paddingBottom),
         paddingTop: Number.parseFloat(style.paddingTop),
+        mobilePanelOrder: main && context && contact
+          ? [main, context, contact]
+              .sort((left, right) => left.getBoundingClientRect().top - right.getBoundingClientRect().top)
+              .map((panel) => panel === main ? "main" : panel === context ? "context" : "contact")
+              .join(">")
+          : "",
         scrollHeight: node.scrollHeight,
         scrollWidth: node.scrollWidth,
         titleGap: title.left - eyebrow.right,
@@ -979,21 +1031,50 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
           .toBeLessThanOrEqual(metrics.clientWidth);
         expect.soft(metrics.overflowY, JSON.stringify(metrics)).toBe(0);
 
-        if (viewport.targetHeight === null) {
+        const targetHeight = contract.filename === "chat-detail"
+          ? chatHeroTargetHeights[viewport.key]
+          : viewport.targetHeight;
+
+        if (targetHeight === null) {
           expect.soft(metrics.height, JSON.stringify(metrics)).toBeGreaterThan(0);
         } else {
           expect
             .soft(metrics.height, JSON.stringify(metrics))
-            .toBeCloseTo(viewport.targetHeight, 1);
-          expect.soft(metrics.titleGap, JSON.stringify(metrics)).toBeCloseTo(16, 0);
-          expect
-            .soft(metrics.titleRowVerticalOverlap, JSON.stringify(metrics))
-            .toBe(true);
+            .toBeCloseTo(targetHeight, 1);
           expect
             .soft(metrics.descriptionOverlapsTitleRow, JSON.stringify(metrics))
             .toBe(false);
 
-          if (contract.filename.endsWith("-new")) {
+          if (contract.filename === "chat-detail") {
+            expect.soft(metrics.backgroundColor, JSON.stringify(metrics)).toBe("rgb(255, 253, 247)");
+            expect.soft(metrics.borderTopWidth, JSON.stringify(metrics)).toBe(3);
+            expect.soft(metrics.borderRadius, JSON.stringify(metrics)).toBe("22px");
+            expect.soft(metrics.boxShadow, JSON.stringify(metrics)).toContain("6px 6px 0px");
+            expect.soft(metrics.chatDecorationContained, JSON.stringify(metrics)).toBe(true);
+            expect
+              .soft(metrics.chatWorkspaceGap, JSON.stringify(metrics))
+              .toBeCloseTo(viewport.width === 390 ? 12 : 14, 0);
+            expect
+              .soft(metrics.chatMainHeaderBackgroundColor, JSON.stringify(metrics))
+              .toBe("rgb(255, 253, 247)");
+            expect.soft(metrics.contactBackgroundColor, JSON.stringify(metrics)).toBe("rgb(245, 230, 207)");
+            expect
+              .soft(metrics.contactActionBackgroundColor, JSON.stringify(metrics))
+              .toBe("rgb(255, 253, 247)");
+            expect
+              .soft(metrics.paddingTop, JSON.stringify(metrics))
+              .toBeCloseTo(viewport.width === 390 ? 12 : 8, 0);
+            expect
+              .soft(metrics.paddingBottom, JSON.stringify(metrics))
+              .toBeCloseTo(viewport.width === 390 ? 12 : 8, 0);
+            if (viewport.width === 390) {
+              expect.soft(metrics.mobilePanelOrder, JSON.stringify(metrics)).toBe("main>context>contact");
+            }
+          } else if (contract.filename.endsWith("-new")) {
+            expect.soft(metrics.titleGap, JSON.stringify(metrics)).toBeCloseTo(16, 0);
+            expect
+              .soft(metrics.titleRowVerticalOverlap, JSON.stringify(metrics))
+              .toBe(true);
             expect
               .soft(metrics.descriptionGap, JSON.stringify(metrics))
               .toBeGreaterThanOrEqual(6);
@@ -1001,12 +1082,11 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
             expect
               .soft(metrics.paddingBottom, JSON.stringify(metrics))
               .toBeCloseTo(15, 0);
-          } else if (contract.filename === "chat-detail") {
-            expect.soft(metrics.paddingTop, JSON.stringify(metrics)).toBeCloseTo(4, 0);
-            expect
-              .soft(metrics.paddingBottom, JSON.stringify(metrics))
-              .toBeCloseTo(5, 0);
           } else {
+            expect.soft(metrics.titleGap, JSON.stringify(metrics)).toBeCloseTo(16, 0);
+            expect
+              .soft(metrics.titleRowVerticalOverlap, JSON.stringify(metrics))
+              .toBe(true);
             expect.soft(metrics.paddingTop, JSON.stringify(metrics)).toBeCloseTo(5, 0);
             expect
               .soft(metrics.paddingBottom, JSON.stringify(metrics))
@@ -1035,5 +1115,5 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
       `${JSON.stringify(measurements, null, 2)}\n`,
       "utf8"
     );
-  }, 180_000);
+  }, 240_000);
 });

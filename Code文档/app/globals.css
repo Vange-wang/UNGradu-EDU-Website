@@ -8342,3 +8342,165 @@ body:has(.customer-service-shell) {
     margin-bottom: 12px;
   }
 }
+
+/* ISSUE-0030 UI rework: restore the frozen chat workbench hierarchy without
+   changing the shared Header or any chat behaviour. */
+.dplus-chat-page .workspace-header {
+  align-items: center;
+  background: var(--dplus-paper-strong);
+  border: 3px solid var(--dplus-ink);
+  border-radius: 22px;
+  box-shadow: 6px 6px 0 var(--dplus-ink);
+  column-gap: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 60px;
+  height: 112px;
+  margin-bottom: 14px;
+  padding: 8px 24px;
+}
+
+.dplus-chat-page .workspace-header > div {
+  display: block;
+}
+
+.dplus-chat-page .workspace-header > div .eyebrow {
+  font-size: 13px;
+  padding: 4px 10px;
+}
+
+.dplus-chat-page .workspace-header > div .section-title {
+  font-size: 31px;
+  line-height: 1.05;
+  margin: 3px 0 0;
+}
+
+.dplus-chat-page .workspace-header > div > p {
+  color: var(--dplus-weak);
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 3px 0 0;
+}
+
+.dplus-chat-page .chat-header-decoration {
+  grid-column: 2;
+  height: 60px;
+  margin: 0 12px 0 0;
+  width: 60px;
+}
+
+.dplus-chat-page .conversation-context,
+.dplus-chat-page .contact-status-panel {
+  border-radius: 20px;
+  box-shadow: 6px 6px 0 var(--dplus-ink);
+  padding: 20px;
+}
+
+.dplus-chat-page .conversation-context h2,
+.dplus-chat-page .contact-status-panel h2 {
+  font-size: 23px;
+  line-height: 1.1;
+  margin: 10px 0;
+}
+
+.dplus-chat-page .conversation-context p,
+.dplus-chat-page .contact-status-panel .privacy-note {
+  color: #5b574f;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.dplus-chat-page .contact-status-panel {
+  background: #f5e6cf;
+}
+
+.dplus-chat-page .contact-status-panel .button.primary,
+.dplus-chat-page .contact-status-panel .button.primary:hover:not(:disabled) {
+  background: var(--dplus-paper-strong);
+}
+
+.dplus-chat-page .conversation-main-header {
+  background: var(--dplus-paper-strong);
+  border: 0;
+  border-bottom: 2px solid #d7d0c2;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 4px 4px 14px;
+}
+
+.dplus-chat-page .message-list {
+  background: #f2f4ef;
+  border: 2px solid #c2ccc0;
+  border-radius: 15px;
+  box-shadow: none;
+}
+
+.dplus-chat-page .chat-compose {
+  background: var(--dplus-paper-strong);
+  border: 0;
+  border-radius: 0;
+  border-top: 2px solid #d7d0c2;
+  box-shadow: none;
+}
+
+@media (max-width: 720px) {
+  .dplus-chat-page .workspace-header {
+    align-items: start;
+    column-gap: 12px;
+    grid-template-columns: minmax(0, 1fr) 54px;
+    height: 142px;
+    margin-bottom: 12px;
+    padding: 12px 15px;
+  }
+
+  .dplus-chat-page .workspace-header > div > p {
+    font-size: 13px;
+    max-width: calc(100% - 58px);
+  }
+
+  .dplus-chat-page .workspace-header > div .section-title {
+    font-size: 27px;
+  }
+
+  .dplus-chat-page .chat-header-decoration {
+    height: 54px;
+    margin: 4px 0 0;
+    width: 54px;
+  }
+
+  .dplus-chat-page .conversation-workspace {
+    gap: 14px;
+  }
+
+  .dplus-chat-page .conversation-main {
+    order: 1;
+  }
+
+  .dplus-chat-page .conversation-context {
+    order: 2;
+  }
+
+  .dplus-chat-page .contact-status-panel {
+    order: 3;
+  }
+
+  .dplus-chat-page .conversation-context,
+  .dplus-chat-page .contact-status-panel {
+    padding: 14px;
+  }
+
+  .dplus-chat-page .conversation-main-header {
+    align-items: flex-start;
+    display: flex;
+    gap: 8px;
+    height: 64px;
+    min-height: 64px;
+    padding: 4px 4px 10px;
+  }
+
+  .dplus-chat-page .conversation-main-header .status-pill {
+    justify-self: auto;
+    min-width: max-content;
+    padding: 5px 7px;
+    white-space: nowrap;
+  }
+}

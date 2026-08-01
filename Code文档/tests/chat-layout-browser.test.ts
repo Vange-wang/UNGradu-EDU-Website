@@ -56,6 +56,7 @@ type LayoutMetrics = {
   composeRight: number;
   composeTop: number;
   contactBackgroundColor: string;
+  contactActionBackgroundColor: string;
   conversationColumnCount: number;
   conversationWidth: number;
   mainWidth: number;
@@ -66,6 +67,12 @@ type LayoutMetrics = {
   decorationContained: boolean;
   eyebrowContained: boolean;
   heroWorkspaceGap: number;
+  heroBackgroundColor: string;
+  heroBorderRadius: string;
+  heroBorderTopWidth: number;
+  heroBoxShadow: string;
+  mainHeaderBackgroundColor: string;
+  mobilePanelOrder: string;
   duplicateContentBackCount: number;
   listCanScroll: boolean;
   listBottom: number;
@@ -150,7 +157,12 @@ function renderFixture(css: string, messageCount: number, contentWidth?: number)
               <div class="context-stat"><strong>2</strong><span>次交换请求</span></div>
             </aside>
             ${panel}
-            <aside class="chat-side contact-status-panel"><h2>联系方式交换</h2></aside>
+            <aside class="chat-side contact-status-panel" aria-label="联系方式交换状态">
+              <div><span class="eyebrow">联系方式交换</span><h2>联系方式交换</h2></div>
+              <p class="privacy-note">双方确认前，联系方式不会展示。</p>
+              <button class="button primary full-width" type="button">请求交换联系方式</button>
+              <div class="exchange-list"><p class="empty-state">暂无交换请求。</p></div>
+            </aside>
           </div>
         </section>
       </div>
@@ -375,6 +387,8 @@ describeWithBrowser("真实聊天消息面板布局", () => {
           const conversation = document.querySelector(".conversation-workspace");
           const context = document.querySelector(".conversation-context");
           const contact = document.querySelector(".contact-status-panel");
+          const contactAction = contact.querySelector("button");
+          const mainHeader = document.querySelector(".conversation-main-header");
           const page = document.querySelector(".dplus-chat-page");
           const siteHeader = document.querySelector(".site-header");
           const workspaceHeader = document.querySelector(".workspace-header");
@@ -392,6 +406,9 @@ describeWithBrowser("真实聊天消息面板布局", () => {
             const conversationRect = conversation.getBoundingClientRect();
             const contextStyle = getComputedStyle(context);
             const contactStyle = getComputedStyle(contact);
+            const contactActionStyle = getComputedStyle(contactAction);
+            const mainHeaderStyle = getComputedStyle(mainHeader);
+            const heroStyle = getComputedStyle(workspaceHeader);
             const contextStatBackgroundColors = Array.from(
               context.querySelectorAll(".context-stat"),
               (stat) => getComputedStyle(stat).backgroundColor
@@ -442,6 +459,7 @@ describeWithBrowser("真实聊天消息面板布局", () => {
               composeRight: composeRect.right,
               composeTop: composeRect.top,
               contactBackgroundColor: contactStyle.backgroundColor,
+              contactActionBackgroundColor: contactActionStyle.backgroundColor,
               conversationColumnCount: getComputedStyle(conversation).gridTemplateColumns.split(" ").length,
               conversationWidth: conversationRect.width,
               mainWidth: mainRect.width,
@@ -460,6 +478,10 @@ describeWithBrowser("真实聊天消息面板布局", () => {
                 eyebrowRect.top >= workspaceHeaderRect.top &&
                 eyebrowRect.bottom <= workspaceHeaderRect.bottom,
               heroWorkspaceGap: conversationRect.top - workspaceHeaderRect.bottom,
+              heroBackgroundColor: heroStyle.backgroundColor,
+              heroBorderRadius: heroStyle.borderRadius,
+              heroBorderTopWidth: Number.parseFloat(heroStyle.borderTopWidth),
+              heroBoxShadow: heroStyle.boxShadow,
               inputFocused: document.activeElement === textarea,
               listCanScroll: list.scrollTop > 0,
               listBottom: listRect.bottom,
@@ -475,9 +497,14 @@ describeWithBrowser("真实聊天消息面板布局", () => {
                 composeRect.left - mainRect.left
               ),
               mainGridRows: getComputedStyle(main).gridTemplateRows,
+              mainHeaderBackgroundColor: mainHeaderStyle.backgroundColor,
               mainRowGap: getComputedStyle(main).rowGap,
               listMarginTop: getComputedStyle(list).marginTop,
               mainTop: mainRect.top,
+              mobilePanelOrder: [main, context, contact]
+                .sort((left, right) => left.getBoundingClientRect().top - right.getBoundingClientRect().top)
+                .map((node) => node === main ? "main" : node === context ? "context" : "contact")
+                .join(">"),
               pageClientWidth: page.clientWidth,
               pageScrollWidth: page.scrollWidth,
               siteHeaderHeight: siteHeader.getBoundingClientRect().height,
@@ -733,11 +760,18 @@ describeWithBrowser("真实聊天消息面板布局", () => {
             metrics.contextBackgroundColor === "rgb(255, 249, 232)" &&
             metrics.contextStatBackgroundColors.join("|") ===
               "rgb(223, 231, 218)|rgb(243, 231, 197)" &&
-            metrics.contactBackgroundColor === "rgb(223, 231, 218)" &&
+            metrics.contactBackgroundColor === "rgb(245, 230, 207)" &&
+            metrics.contactActionBackgroundColor === "rgb(255, 253, 247)" &&
+            metrics.mainHeaderBackgroundColor === "rgb(255, 253, 247)" &&
+            metrics.heroBackgroundColor === "rgb(255, 253, 247)" &&
+            metrics.heroBorderTopWidth === 3 &&
+            metrics.heroBorderRadius === "22px" &&
+            metrics.heroBoxShadow.includes("6px") &&
             metrics.mainRowGap === "10px" &&
             metrics.decorationContained &&
             metrics.eyebrowContained &&
             metrics.duplicateContentBackCount === 0 &&
+            (metrics.viewportWidth > 720 || metrics.mobilePanelOrder === "main>context>contact") &&
             Math.abs(metrics.heroWorkspaceGap - (metrics.viewportWidth <= 720 ? 12 : 14)) <= 1
         )
       ).toBe(true);
@@ -747,5 +781,6 @@ describeWithBrowser("真实聊天消息面板布局", () => {
   it("relies on the shared Header instead of rendering a duplicate chat back control", () => {
     expect(chatPageSource).not.toContain("返回我的聊天");
     expect(chatPageSource).not.toContain("chat-header-back");
+    expect(chatPageSource).toContain('className="eyebrow">站内聊天</span>');
   });
 });

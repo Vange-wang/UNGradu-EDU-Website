@@ -203,7 +203,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
     <section className="wide-panel">
       <div className="workspace-header">
         <div>
-          <span className="eyebrow">站内沟通</span>
+          <span className="eyebrow">站内聊天</span>
           <h1 className="section-title">站内聊天</h1>
           <p>先站内沟通；双方确认前不展示联系方式。</p>
         </div>

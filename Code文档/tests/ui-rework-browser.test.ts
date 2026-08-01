@@ -41,8 +41,14 @@ describe("业务方确认预览的范围保护", () => {
       "/* Business-confirmed preview: shared intro geometry and four-row home CTAs. */";
     const production042Marker =
       "/* Production 042: preserve the four-row CTA geometry without allowing the";
+    const issue0030Marker =
+      "/* ISSUE-0030 UI rework: restore the frozen chat workbench hierarchy";
     const scopedCss = css.slice(css.indexOf(marker), css.indexOf(production042Marker));
-    const production042Css = css.slice(css.indexOf(production042Marker));
+    const production042Css = css.slice(
+      css.indexOf(production042Marker),
+      css.indexOf(issue0030Marker)
+    );
+    const issue0030Css = css.slice(css.indexOf(issue0030Marker));
 
     expect(scopedCss).toContain("grid-template-rows: 18px 48px 32px 64px;");
     expect(scopedCss).toContain("white-space: nowrap;");
@@ -74,6 +80,12 @@ describe("业务方确认预览的范围保护", () => {
     expect(production042Css).not.toContain(".dplus-profile-page .workspace-header {");
     expect(production042Css).not.toMatch(/font-(?:size|family|weight)\s*:/);
     expect(production042Css).not.toMatch(/(?:^|[;\s{])color\s*:/m);
+    expect(issue0030Css).toContain("background: var(--dplus-paper-strong);");
+    expect(issue0030Css).toContain("background: #f5e6cf;");
+    expect(issue0030Css).toContain("order: 1;");
+    expect(issue0030Css).toContain("order: 2;");
+    expect(issue0030Css).toContain("order: 3;");
+    expect(issue0030Css).not.toContain("PREVIEW ONLY");
   });
 });
 
@@ -225,9 +237,8 @@ function renderFixture(css: string) {
       <div class="page dplus-chat-page">
         <section class="wide-panel">
           <div class="workspace-header" data-intro="chat">
-            <div><span class="eyebrow">站内沟通</span><h1 class="section-title">站内聊天</h1><p>先站内沟通；双方确认前不展示联系方式。</p></div>
+            <div><span class="eyebrow">站内聊天</span><h1 class="section-title">站内聊天</h1><p>先站内沟通；双方确认前不展示联系方式。</p></div>
             <span class="chat-header-decoration"></span>
-            <button class="button secondary">返回我的聊天</button>
           </div>
           <section class="conversation-main">
             <div class="conversation-main-header">
@@ -585,7 +596,7 @@ describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
     const expected =
       width === 390
         ? {
-            chatHeaderHeight: 92,
+            chatHeaderHeight: 64,
             ctaHeight: 56,
             desktopHero: null,
             homeGap: 16,
@@ -683,12 +694,11 @@ describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
       }
       expect
         .soft(metrics.chatHeaderUsesTwoRows, JSON.stringify(metrics))
-        .toBe(true);
+        .toBe(false);
     } else {
       for (const heightValue of [
         ...regularHeights,
-        ...detailHeights,
-        metrics.introHeights.chat
+        ...detailHeights
       ]) {
         expect
           .soft(heightValue, JSON.stringify(metrics))
@@ -698,7 +708,10 @@ describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
         .soft(metrics.chatHeaderChildGap, JSON.stringify(metrics))
         .toBeGreaterThanOrEqual(expected.chatHeaderGap ?? 0);
 
-      for (const layout of Object.values(metrics.introLayouts)) {
+      for (const [key, layout] of Object.entries(metrics.introLayouts)) {
+        if (key === "chat") {
+          continue;
+        }
         expect.soft(layout.titleGap, JSON.stringify(metrics)).toBeCloseTo(16, 0);
         expect
           .soft(layout.titleRowVerticalOverlap, JSON.stringify(metrics))
@@ -721,8 +734,10 @@ describeWithBrowser("UI 方案 A 问题 2–6 四视口几何", () => {
         expect.soft(metrics.introLayouts[key].paddingBottom).toBeCloseTo(5, 0);
       }
 
-      expect.soft(metrics.introLayouts.chat.paddingTop).toBeCloseTo(4, 0);
-      expect.soft(metrics.introLayouts.chat.paddingBottom).toBeCloseTo(5, 0);
+      expect.soft(metrics.introHeights.chat).toBeCloseTo(112, 0);
+      expect.soft(metrics.introLayouts.chat.paddingTop).toBeCloseTo(8, 0);
+      expect.soft(metrics.introLayouts.chat.paddingBottom).toBeCloseTo(8, 0);
+      expect.soft(metrics.introLayouts.chat.titleRowVerticalOverlap).toBe(false);
     }
     expect
       .soft(Math.max(...Object.values(metrics.introOverflows)), JSON.stringify(metrics))

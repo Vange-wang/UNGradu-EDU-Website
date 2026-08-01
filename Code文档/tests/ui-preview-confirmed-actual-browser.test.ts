@@ -1014,7 +1014,9 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
           }
         }
 
-        if (viewport.width === 1440) {
+        if (contract.filename === "chat-detail") {
+          await captureViewport(`${viewport.key}-${contract.filename}.png`);
+        } else if (viewport.width === 1440) {
           await captureViewport(`1440-${contract.filename}.png`);
         }
 

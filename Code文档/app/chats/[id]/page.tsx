@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useState } from "react";
@@ -196,11 +195,6 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
       <section className="content-panel">
         <h1 className="section-title">聊天不可访问</h1>
         <p>未找到该会话，或当前账号不是会话参与者。</p>
-        <div className="action-row">
-          <Link className="button secondary" href="/profile/chats">
-            返回我的聊天
-          </Link>
-        </div>
       </section>
     );
   }
@@ -214,9 +208,6 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
           <p>先站内沟通；双方确认前不展示联系方式。</p>
         </div>
         <span aria-hidden="true" className="chat-header-decoration" />
-        <Link className="button secondary" href="/profile/chats">
-          返回我的聊天
-        </Link>
       </div>
 
       <div className="conversation-workspace">

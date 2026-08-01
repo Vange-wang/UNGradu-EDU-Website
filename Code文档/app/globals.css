@@ -8322,11 +8322,23 @@ body:has(.customer-service-shell) {
   z-index: 1;
 }
 
+/* ISSUE-0030 frozen chat workspace: the shared site Header is the only
+   return control, so the chat Hero uses its remaining grid track for the
+   contained decoration and keeps the approved workspace breathing room. */
+.dplus-chat-page .workspace-header {
+  grid-template-columns: minmax(0, 1fr) 80px;
+  margin-bottom: 14px;
+}
+
 @media (max-width: 720px) {
   .dplus-profile-root-page .workspace-header::before {
     height: 56px;
     right: 16px;
     top: 18px;
     width: 56px;
+  }
+
+  .dplus-chat-page .workspace-header {
+    margin-bottom: 12px;
   }
 }

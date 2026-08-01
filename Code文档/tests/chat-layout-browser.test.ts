@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
@@ -38,6 +38,10 @@ type WebSocketClient = {
 type WebSocketConstructor = new (url: string) => WebSocketClient;
 
 const WebSocketClient = require("ws") as WebSocketConstructor;
+const chatPageSource = readFileSync(
+  new URL("../app/chats/[id]/page.tsx", import.meta.url),
+  "utf8"
+);
 
 type LayoutMetrics = {
   composeButtonContained: boolean;
@@ -59,10 +63,10 @@ type LayoutMetrics = {
   inputFocused: boolean;
   contextBackgroundColor: string;
   contextStatBackgroundColors: string[];
-  decorationActionGap: number;
   decorationContained: boolean;
-  decorationOverlapsHeaderAction: boolean;
-  headerActionContained: boolean;
+  eyebrowContained: boolean;
+  heroWorkspaceGap: number;
+  duplicateContentBackCount: number;
   listCanScroll: boolean;
   listBottom: number;
   listComesBeforeCompose: boolean;
@@ -134,9 +138,8 @@ function renderFixture(css: string, messageCount: number, contentWidth?: number)
       }>
         <section class="wide-panel">
           <div class="workspace-header">
-            <div><span class="eyebrow">站内沟通</span><h1 class="section-title">站内聊天</h1></div>
+            <div><span class="eyebrow">站内沟通</span><h1 class="section-title">站内聊天</h1><p>先站内沟通；双方确认前不展示联系方式。</p></div>
             <span aria-hidden="true" class="chat-header-decoration"></span>
-            <a class="button secondary chat-header-back" href="/profile/chats">返回我的聊天</a>
           </div>
           <div class="conversation-workspace">
             <aside class="conversation-context">
@@ -376,7 +379,7 @@ describeWithBrowser("真实聊天消息面板布局", () => {
           const siteHeader = document.querySelector(".site-header");
           const workspaceHeader = document.querySelector(".workspace-header");
           const decoration = document.querySelector(".chat-header-decoration");
-          const headerAction = document.querySelector(".chat-header-back");
+          const eyebrow = workspaceHeader.querySelector(".eyebrow");
           const textarea = document.querySelector("#message-text");
           textarea.focus();
           requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -395,7 +398,7 @@ describeWithBrowser("真实聊天消息面板布局", () => {
             );
             const workspaceHeaderRect = workspaceHeader.getBoundingClientRect();
             const decorationRect = decoration.getBoundingClientRect();
-            const headerActionRect = headerAction.getBoundingClientRect();
+            const eyebrowRect = eyebrow.getBoundingClientRect();
             const composeContentRight =
               composeRect.right -
               Number.parseFloat(composeStyle.borderRightWidth) -
@@ -445,25 +448,18 @@ describeWithBrowser("真实聊天消息面板布局", () => {
               documentScrollWidth: document.documentElement.scrollWidth,
               contextBackgroundColor: contextStyle.backgroundColor,
               contextStatBackgroundColors,
-              decorationActionGap:
-                window.innerWidth <= 720
-                  ? headerActionRect.top - decorationRect.bottom
-                  : headerActionRect.left - decorationRect.right,
               decorationContained:
                 decorationRect.left >= workspaceHeaderRect.left &&
                 decorationRect.right <= workspaceHeaderRect.right &&
                 decorationRect.top >= workspaceHeaderRect.top &&
                 decorationRect.bottom <= workspaceHeaderRect.bottom,
-              decorationOverlapsHeaderAction:
-                decorationRect.left < headerActionRect.right &&
-                decorationRect.right > headerActionRect.left &&
-                decorationRect.top < headerActionRect.bottom &&
-                decorationRect.bottom > headerActionRect.top,
-              headerActionContained:
-                headerActionRect.left >= workspaceHeaderRect.left &&
-                headerActionRect.right <= workspaceHeaderRect.right &&
-                headerActionRect.top >= workspaceHeaderRect.top &&
-                headerActionRect.bottom <= workspaceHeaderRect.bottom,
+              duplicateContentBackCount: document.querySelectorAll(".chat-header-back").length,
+              eyebrowContained:
+                eyebrowRect.left >= workspaceHeaderRect.left &&
+                eyebrowRect.right <= workspaceHeaderRect.right &&
+                eyebrowRect.top >= workspaceHeaderRect.top &&
+                eyebrowRect.bottom <= workspaceHeaderRect.bottom,
+              heroWorkspaceGap: conversationRect.top - workspaceHeaderRect.bottom,
               inputFocused: document.activeElement === textarea,
               listCanScroll: list.scrollTop > 0,
               listBottom: listRect.bottom,
@@ -713,7 +709,7 @@ describeWithBrowser("真实聊天消息面板布局", () => {
   );
 
   it(
-    "keeps composer, inner inset, status color, and decoration action geometry valid",
+    "keeps the frozen workspace spacing, contained Hero elements, and light conversation panels",
     async () => {
       const pendingUiMetrics: LayoutMetrics[] = [];
 
@@ -740,11 +736,16 @@ describeWithBrowser("真实聊天消息面板布局", () => {
             metrics.contactBackgroundColor === "rgb(223, 231, 218)" &&
             metrics.mainRowGap === "10px" &&
             metrics.decorationContained &&
-            metrics.headerActionContained &&
-            !metrics.decorationOverlapsHeaderAction &&
-            metrics.decorationActionGap >= (metrics.viewportWidth <= 720 ? 12 : 20)
+            metrics.eyebrowContained &&
+            metrics.duplicateContentBackCount === 0 &&
+            Math.abs(metrics.heroWorkspaceGap - (metrics.viewportWidth <= 720 ? 12 : 14)) <= 1
         )
       ).toBe(true);
     }
   );
+
+  it("relies on the shared Header instead of rendering a duplicate chat back control", () => {
+    expect(chatPageSource).not.toContain("返回我的聊天");
+    expect(chatPageSource).not.toContain("chat-header-back");
+  });
 });

@@ -94,19 +94,36 @@ function createPhone(prefix: "138" | "139", index: number) {
 }
 
 function createDependencies() {
+  const auditEvents = createFakeCollection();
   const contactProfiles = createFakeCollection();
   const conversations = createFakeCollection();
   const messages = createFakeCollection();
   const parentNeeds = createFakeCollection();
   const tutorProfiles = createFakeCollection();
   const exchangeRequests = createFakeCollection();
+  const transactionCollections = {
+    auditCollection: auditEvents.collection,
+    contactExchangeRequestsCollection: exchangeRequests.collection,
+    conversationsCollection: conversations.collection,
+    sourceCollection: parentNeeds.collection
+  };
 
   return {
+    auditEvents,
     contactProfilesCollection: contactProfiles.collection,
     conversationsCollection: conversations.collection,
     exchangeRequestsCollection: exchangeRequests.collection,
     messagesCollection: messages.collection,
     parentNeedsCollection: parentNeeds.collection,
+    parentNeedRunTransaction: async <T,>(callback: (
+      transaction: typeof transactionCollections
+    ) => Promise<T>) => callback(transactionCollections),
+    tutorProfileRunTransaction: async <T,>(callback: (
+      transaction: typeof transactionCollections
+    ) => Promise<T>) => callback({
+      ...transactionCollections,
+      sourceCollection: tutorProfiles.collection
+    }),
     tutorProfilesCollection: tutorProfiles.collection
   };
 }
@@ -135,12 +152,14 @@ describe("M5 server flow and load baseline", () => {
         saveServerParentNeed({
           authenticatedUserId: parentUserId,
           collection: dependencies.parentNeedsCollection,
-          input: createParentNeedInput(index)
+          input: createParentNeedInput(index),
+          runTransaction: dependencies.parentNeedRunTransaction
         }),
         saveServerTutorProfile({
           authenticatedUserId: tutorUserId,
           collection: dependencies.tutorProfilesCollection,
-          input: createTutorProfileInput(index)
+          input: createTutorProfileInput(index),
+          runTransaction: dependencies.tutorProfileRunTransaction
         })
       ]);
 
@@ -218,7 +237,9 @@ describe("M5 server flow and load baseline", () => {
         contactProfilesCollection: dependencies.contactProfilesCollection,
         conversationId: conversation.value.id,
         conversationsCollection: dependencies.conversationsCollection,
-        requestsCollection: dependencies.exchangeRequestsCollection
+        parentNeedsCollection: dependencies.parentNeedsCollection,
+        requestsCollection: dependencies.exchangeRequestsCollection,
+        tutorProfilesCollection: dependencies.tutorProfilesCollection
       });
       expect(beforeApproval).toEqual({ ok: true, value: null, errors: {} });
 
@@ -227,7 +248,9 @@ describe("M5 server flow and load baseline", () => {
         contactProfilesCollection: dependencies.contactProfilesCollection,
         conversationId: conversation.value.id,
         conversationsCollection: dependencies.conversationsCollection,
-        requestsCollection: dependencies.exchangeRequestsCollection
+        parentNeedsCollection: dependencies.parentNeedsCollection,
+        requestsCollection: dependencies.exchangeRequestsCollection,
+        tutorProfilesCollection: dependencies.tutorProfilesCollection
       });
       expect(request.ok).toBe(true);
 
@@ -239,9 +262,11 @@ describe("M5 server flow and load baseline", () => {
         authenticatedUserId: tutorUserId,
         contactProfilesCollection: dependencies.contactProfilesCollection,
         conversationsCollection: dependencies.conversationsCollection,
+        parentNeedsCollection: dependencies.parentNeedsCollection,
         requestId: request.value.id,
         requestsCollection: dependencies.exchangeRequestsCollection,
-        secondConfirmation: true
+        secondConfirmation: true,
+        tutorProfilesCollection: dependencies.tutorProfilesCollection
       })).resolves.toMatchObject({ ok: true });
 
       await expect(readServerAuthorizedContactProfiles({
@@ -249,7 +274,9 @@ describe("M5 server flow and load baseline", () => {
         contactProfilesCollection: dependencies.contactProfilesCollection,
         conversationId: conversation.value.id,
         conversationsCollection: dependencies.conversationsCollection,
-        requestsCollection: dependencies.exchangeRequestsCollection
+        parentNeedsCollection: dependencies.parentNeedsCollection,
+        requestsCollection: dependencies.exchangeRequestsCollection,
+        tutorProfilesCollection: dependencies.tutorProfilesCollection
       })).resolves.toMatchObject({
         ok: true,
         value: {
@@ -262,7 +289,9 @@ describe("M5 server flow and load baseline", () => {
         contactProfilesCollection: dependencies.contactProfilesCollection,
         conversationId: conversation.value.id,
         conversationsCollection: dependencies.conversationsCollection,
-        requestsCollection: dependencies.exchangeRequestsCollection
+        parentNeedsCollection: dependencies.parentNeedsCollection,
+        requestsCollection: dependencies.exchangeRequestsCollection,
+        tutorProfilesCollection: dependencies.tutorProfilesCollection
       })).resolves.toEqual({ ok: true, value: null, errors: {} });
       await expect(listServerConversationMessages({
         authenticatedUserId: parentUserId,
@@ -275,5 +304,6 @@ describe("M5 server flow and load baseline", () => {
     }));
 
     expect(performance.now() - startedAt).toBeLessThan(5000);
+    expect(dependencies.auditEvents.documents.size).toBe(pairCount * 2);
   });
 });

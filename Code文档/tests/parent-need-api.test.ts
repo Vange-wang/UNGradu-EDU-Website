@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createParentNeedApiHandlers } from "@/server/parent-need-api";
+import { createParentNeedManagementHandlers } from "@/app/api/parent-needs/management-handlers";
 
 type StoredDocument = Record<string, unknown>;
 
@@ -53,19 +54,35 @@ function createFakeCollection(initialValues: Record<string, StoredDocument> = {}
 }
 
 function createHandlers(env = { NODE_ENV: "test", NEXT_PUBLIC_ALLOW_TEST_LOGIN: "true" }) {
-  return createParentNeedApiHandlers({
-    collection: createFakeCollection({
-      "need-a": {
-        ...validInput,
-        ownerUserId: "parent-a",
-        budgetMin: 80,
-        budgetMax: 120,
-        status: "published",
-        createdAt: "2026-06-22T00:00:00.000Z"
-      }
-    }),
-    env
+  const collection = createFakeCollection({
+    "need-a": {
+      ...validInput,
+      ownerUserId: "parent-a",
+      budgetMin: 80,
+      budgetMax: 120,
+      status: "published",
+      createdAt: "2026-06-22T00:00:00.000Z",
+      updatedAt: "2026-06-22T00:00:00.000Z",
+      version: 1
+    }
   });
+
+  const publicHandlers = createParentNeedApiHandlers({ collection, env });
+  const managementHandlers = createParentNeedManagementHandlers({
+    collection,
+    env,
+    runTransaction: async (operation) => operation({
+      auditCollection: createFakeCollection(),
+      contactExchangeRequestsCollection: createFakeCollection(),
+      conversationsCollection: createFakeCollection(),
+      sourceCollection: collection
+    })
+  });
+
+  return {
+    GET_COLLECTION: publicHandlers.GET_COLLECTION,
+    ...managementHandlers
+  };
 }
 
 describe("parent need API handlers", () => {
@@ -144,12 +161,40 @@ describe("parent need API handlers", () => {
     });
   });
 
+  it("preserves transaction-unavailable status instead of flattening it to 400", async () => {
+    const collection = createFakeCollection();
+    const handlers = createParentNeedManagementHandlers({
+      collection,
+      env: { NODE_ENV: "test", NEXT_PUBLIC_ALLOW_TEST_LOGIN: "true" },
+      runTransaction: undefined as never
+    });
+    const response = await handlers.POST_COLLECTION(
+      new Request("http://localhost/api/parent-needs", {
+        body: JSON.stringify(validInput),
+        headers: { "x-ungradu-test-user-phone": "parent-b" },
+        method: "POST"
+      })
+    );
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "TRANSACTION_UNAVAILABLE",
+      errors: { request: "内容管理事务暂不可用" },
+      ok: false
+    });
+  });
+
   it("allows only the owner to update a parent need by id", async () => {
     const handlers = createHandlers();
 
     const updated = await handlers.PATCH_ITEM(
       new Request("http://localhost/api/parent-needs/need-a", {
-        body: JSON.stringify({ ...validInput, budgetMin: "100", budgetMax: "150" }),
+        body: JSON.stringify({
+          ...validInput,
+          budgetMin: "100",
+          budgetMax: "150",
+          version: 1
+        }),
         headers: { "x-ungradu-test-user-phone": "parent-a" },
         method: "PATCH"
       }),
@@ -157,7 +202,12 @@ describe("parent need API handlers", () => {
     );
     const forbidden = await handlers.PATCH_ITEM(
       new Request("http://localhost/api/parent-needs/need-a", {
-        body: JSON.stringify({ ...validInput, budgetMin: "110", budgetMax: "160" }),
+        body: JSON.stringify({
+          ...validInput,
+          budgetMin: "110",
+          budgetMax: "160",
+          version: 1
+        }),
         headers: { "x-ungradu-test-user-phone": "parent-b" },
         method: "PATCH"
       }),
@@ -169,6 +219,62 @@ describe("parent need API handlers", () => {
       ok: true,
       value: { id: "need-a", ownerUserId: "parent-a", budgetMin: 100 }
     });
-    expect(forbidden.status).toBe(403);
+    expect(forbidden.status).toBe(404);
+  });
+
+  it("soft deletes, hides public detail, and restores with version and idempotency headers", async () => {
+    const handlers = createHandlers();
+    const context = { params: Promise.resolve({ id: "need-a" }) };
+    const deleted = await handlers.DELETE_ITEM(
+      new Request("http://localhost/api/parent-needs/need-a", {
+        body: JSON.stringify({ version: 1 }),
+        headers: {
+          "content-type": "application/json",
+          "idempotency-key": "delete-need-a-api-1",
+          "x-ungradu-test-user-phone": "parent-a"
+        },
+        method: "DELETE"
+      }),
+      context
+    );
+    const publicDetail = await handlers.GET_ITEM(
+      new Request("http://localhost/api/parent-needs/need-a"),
+      context
+    );
+    const hiddenFromOtherOwner = await handlers.GET_ITEM(
+      new Request("http://localhost/api/parent-needs/need-a?scope=mine", {
+        headers: { "x-ungradu-test-user-phone": "parent-b" }
+      }),
+      context
+    );
+    const restored = await handlers.POST_ITEM(
+      new Request("http://localhost/api/parent-needs/need-a", {
+        body: JSON.stringify({ action: "restore", version: 2 }),
+        headers: {
+          "content-type": "application/json",
+          "idempotency-key": "restore-need-a-api-2",
+          "x-ungradu-test-user-phone": "parent-a"
+        },
+        method: "POST"
+      }),
+      context
+    );
+
+    expect(deleted.status).toBe(200);
+    expect(publicDetail.status).toBe(404);
+    expect(hiddenFromOtherOwner.status).toBe(404);
+    await expect(publicDetail.json()).resolves.toMatchObject({
+      ok: false,
+      errors: { request: "未找到该发布记录" }
+    });
+    await expect(hiddenFromOtherOwner.json()).resolves.toMatchObject({
+      ok: false,
+      errors: { request: "未找到该发布记录" }
+    });
+    expect(restored.status).toBe(200);
+    await expect(restored.json()).resolves.toMatchObject({
+      ok: true,
+      value: { status: "published", version: 3 }
+    });
   });
 });

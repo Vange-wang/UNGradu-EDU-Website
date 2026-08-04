@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createTutorProfileApiHandlers } from "@/server/tutor-profile-api";
+import { createTutorProfileManagementHandlers } from "@/app/api/tutor-profiles/management-handlers";
 
 type StoredDocument = Record<string, unknown>;
 
@@ -49,18 +50,34 @@ function createFakeCollection(initialValues: Record<string, StoredDocument> = {}
 }
 
 function createHandlers(env = { NODE_ENV: "test", NEXT_PUBLIC_ALLOW_TEST_LOGIN: "true" }) {
-  return createTutorProfileApiHandlers({
-    collection: createFakeCollection({
-      "profile-a": {
-        ...validInput,
-        ownerUserId: "tutor-a",
-        feeRanges: [{ grade: "初中", subject: "数学", min: 90, max: 130 }],
-        status: "published",
-        createdAt: "2026-06-22T00:00:00.000Z"
-      }
-    }),
-    env
+  const collection = createFakeCollection({
+    "profile-a": {
+      ...validInput,
+      ownerUserId: "tutor-a",
+      feeRanges: [{ grade: "初中", subject: "数学", min: 90, max: 130 }],
+      status: "published",
+      createdAt: "2026-06-22T00:00:00.000Z",
+      updatedAt: "2026-06-22T00:00:00.000Z",
+      version: 1
+    }
   });
+
+  const publicHandlers = createTutorProfileApiHandlers({ collection, env });
+  const managementHandlers = createTutorProfileManagementHandlers({
+    collection,
+    env,
+    runTransaction: async (operation) => operation({
+      auditCollection: createFakeCollection(),
+      contactExchangeRequestsCollection: createFakeCollection(),
+      conversationsCollection: createFakeCollection(),
+      sourceCollection: collection
+    })
+  });
+
+  return {
+    GET_COLLECTION: publicHandlers.GET_COLLECTION,
+    ...managementHandlers
+  };
 }
 
 describe("tutor profile API handlers", () => {
@@ -136,6 +153,29 @@ describe("tutor profile API handlers", () => {
     });
   });
 
+  it("preserves transaction-unavailable status instead of flattening it to 400", async () => {
+    const collection = createFakeCollection();
+    const handlers = createTutorProfileManagementHandlers({
+      collection,
+      env: { NODE_ENV: "test", NEXT_PUBLIC_ALLOW_TEST_LOGIN: "true" },
+      runTransaction: undefined as never
+    });
+    const response = await handlers.POST_COLLECTION(
+      new Request("http://localhost/api/tutor-profiles", {
+        body: JSON.stringify(validInput),
+        headers: { "x-ungradu-test-user-phone": "tutor-b" },
+        method: "POST"
+      })
+    );
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "TRANSACTION_UNAVAILABLE",
+      errors: { request: "内容管理事务暂不可用" },
+      ok: false
+    });
+  });
+
   it("allows only the owner to update a tutor profile by id", async () => {
     const handlers = createHandlers();
 
@@ -143,7 +183,8 @@ describe("tutor profile API handlers", () => {
       new Request("http://localhost/api/tutor-profiles/profile-a", {
         body: JSON.stringify({
           ...validInput,
-          abilityDescription: "Updated ability description"
+          abilityDescription: "Updated ability description",
+          version: 1
         }),
         headers: { "x-ungradu-test-user-phone": "tutor-a" },
         method: "PATCH"
@@ -154,7 +195,8 @@ describe("tutor profile API handlers", () => {
       new Request("http://localhost/api/tutor-profiles/profile-a", {
         body: JSON.stringify({
           ...validInput,
-          abilityDescription: "Forbidden update"
+          abilityDescription: "Forbidden update",
+          version: 1
         }),
         headers: { "x-ungradu-test-user-phone": "tutor-b" },
         method: "PATCH"
@@ -171,6 +213,6 @@ describe("tutor profile API handlers", () => {
         abilityDescription: "Updated ability description"
       }
     });
-    expect(forbidden.status).toBe(403);
+    expect(forbidden.status).toBe(404);
   });
 });

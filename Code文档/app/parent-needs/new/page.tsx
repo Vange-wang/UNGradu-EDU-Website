@@ -1,13 +1,18 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { RequireTestSession } from "@/features/auth/require-test-session";
 import {
   type ParentNeedInput,
   validateParentNeedInput
 } from "@/features/parent-needs/parent-need";
-import { saveParentNeedToApi } from "@/features/parent-needs/parent-need-api-client";
+import {
+  readMyParentNeedFromApi,
+  saveParentNeedToApi,
+  updateParentNeedToApi
+} from "@/features/parent-needs/parent-need-api-client";
 
 const teacherGenderOptions = ["不限", "女老师", "男老师"];
 const subjectOptions = ["语文", "数学", "英语", "物理", "化学", "生物"];
@@ -49,9 +54,63 @@ function toggleValue(values: string[], value: string) {
 }
 
 function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit")?.trim() ?? "";
   const [input, setInput] = useState<ParentNeedInput>(initialInput);
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [saved, setSaved] = useState(false);
+  const [submissionReady, setSubmissionReady] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [version, setVersion] = useState<number | null>(null);
+  const submissionLock = useRef(false);
+
+  useEffect(() => {
+    setSubmissionReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!editId) {
+      return;
+    }
+
+    let cancelled = false;
+    setVersion(null);
+    setSaved(false);
+    setErrors({});
+
+    void readMyParentNeedFromApi({ currentUserPhone: ownerPhone, id: editId })
+      .then((result) => {
+        if (cancelled) return;
+
+        if (!result.ok) {
+          setErrors(result.errors);
+          return;
+        }
+
+        if (result.value.managementState !== "managed" || result.value.status !== "published") {
+          setErrors({ request: "该记录当前不可编辑，请返回我的需求查看状态。" });
+          return;
+        }
+
+        setInput({
+          teacherGenderPreference: result.value.teacherGenderPreference,
+          subjects: result.value.subjects,
+          grade: result.value.grade,
+          budgetMin: String(result.value.budgetMin),
+          budgetMax: String(result.value.budgetMax),
+          timeSlots: result.value.timeSlots,
+          region: result.value.region,
+          community: result.value.community,
+          childIntro: result.value.childIntro
+        });
+        setVersion(result.value.version);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editId, ownerPhone]);
 
   function updateInput<K extends keyof ParentNeedInput>(
     field: K,
@@ -59,11 +118,29 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
   ) {
     setInput((current) => ({ ...current, [field]: value }));
     setSaved(false);
-    setErrors({});
+    setSubmitError("");
+    setErrors((current) =>
+      editId && version === null && current.request
+        ? { request: current.request }
+        : {}
+    );
   }
 
   async function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!submissionReady || submissionLock.current) {
+      return;
+    }
+
+    if (editId && version === null) {
+      setErrors((current) => ({
+        ...current,
+        request: current.request ?? "编辑记录尚未安全加载，暂不能保存。"
+      }));
+      return;
+    }
+
     const validation = validateParentNeedInput(input);
 
     if (!validation.ok) {
@@ -71,30 +148,59 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
       return;
     }
 
-    const result = await saveParentNeedToApi({
-      currentUserPhone: ownerPhone,
-      input
-    });
+    submissionLock.current = true;
+    setSubmitting(true);
+    setSubmitError("");
+    setSaved(false);
 
-    if (!result.ok) {
-      setErrors(result.errors);
-      return;
+    try {
+      const result = editId
+        ? await updateParentNeedToApi({
+            currentUserPhone: ownerPhone,
+            id: editId,
+            input,
+            version: version as number
+          })
+        : await saveParentNeedToApi({ currentUserPhone: ownerPhone, input });
+
+      if (!result.ok) {
+        setErrors(result.errors);
+        setSubmitError(result.errors.request ?? "家教需求提交失败，请稍后重试。");
+        return;
+      }
+
+      if (editId) {
+        setVersion(result.value.version);
+      } else {
+        setInput(initialInput);
+      }
+      setErrors({});
+      setSaved(true);
+    } catch {
+      const message = "家教需求提交失败，请稍后重试。";
+      setErrors({ request: message });
+      setSubmitError(message);
+    } finally {
+      submissionLock.current = false;
+      setSubmitting(false);
     }
-
-    setInput(initialInput);
-    setErrors({});
-    setSaved(true);
   }
 
   return (
     <section className="wide-panel">
       <div className="publish-hero">
         <div className="publish-copy">
-          <span className="eyebrow">发布需求</span>
-          <h1 className="section-title">发布家教需求</h1>
-          <p>填写孩子情况、科目、预算和时间；公开说明不要写联系方式。</p>
+          <span className="eyebrow">{editId ? "编辑需求" : "发布需求"}</span>
+          <h1 className="section-title">{editId ? "编辑家教需求" : "发布家教需求"}</h1>
+          <p>{editId ? "保存时会校验最新版本，避免覆盖其他修改。" : "填写孩子情况、科目、预算和时间；公开说明不要写联系方式。"}</p>
         </div>
       </div>
+
+      {errors.request && !submitError ? (
+        <p aria-live="assertive" className="privacy-note error" role="alert">
+          {errors.request}
+        </p>
+      ) : null}
 
       <div className="step-form-layout">
         <aside className="step-rail" aria-label="发布需求填写步骤">
@@ -317,10 +423,24 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
           </section>
 
           <section className="submit-section">
-            <button className="button primary" type="submit">
-              发布家教需求
+            <button
+              className="button primary"
+              data-submit-action
+              disabled={
+                !submissionReady ||
+                submitting ||
+                (Boolean(editId) && version === null)
+              }
+              type="submit"
+            >
+              {submitting ? "提交中..." : editId ? "保存修改" : "发布家教需求"}
             </button>
-            {saved ? <p className="success">家教需求已发布。</p> : null}
+            {submitError ? (
+              <p aria-live="assertive" className="error" role="alert">
+                {submitError}
+              </p>
+            ) : null}
+            {saved ? <p aria-live="polite" className="success" role="status">{editId ? "家教需求已更新。" : "家教需求已发布。"}</p> : null}
           </section>
         </form>
       </div>

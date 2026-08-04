@@ -286,6 +286,15 @@ const mockApiScript = String.raw`
       headers: { "content-type": "application/json" },
       status: 200
     });
+  const failure = (message, status = 400) =>
+    new Response(JSON.stringify({
+      ok: false,
+      value: null,
+      errors: { request: message }
+    }), {
+      headers: { "content-type": "application/json" },
+      status
+    });
   const parentNeed = {
     id: "preview-parent",
     teacherGenderPreference: "不限",
@@ -303,7 +312,11 @@ const mockApiScript = String.raw`
     childIntro: "本地匿名视觉验收数据",
     status: "published",
     createdAt: "2026-07-30T00:00:00.000Z",
-    updatedAt: "2026-07-30T00:00:00.000Z"
+    updatedAt: "2026-07-30T00:00:00.000Z",
+    version: 1,
+    managementState: "managed",
+    deletedAt: null,
+    deletedByUserId: null
   };
   const tutorProfile = {
     id: "preview-tutor",
@@ -318,18 +331,150 @@ const mockApiScript = String.raw`
     proofImages: [],
     status: "published",
     createdAt: "2026-07-30T00:00:00.000Z",
-    updatedAt: "2026-07-30T00:00:00.000Z"
+    updatedAt: "2026-07-30T00:00:00.000Z",
+    version: 1,
+    managementState: "managed",
+    deletedAt: null,
+    deletedByUserId: null
   };
   const conversation = {
     id: "preview-chat",
     sourceId: "preview-parent",
     sourceType: "parent-need",
-    createdAt: "2026-07-30T00:00:00.000Z"
+    createdAt: "2026-07-30T00:00:00.000Z",
+    sourceStatus: "published",
+    readOnly: false
   };
 
   window.fetch = (input, init) => {
     const rawUrl = typeof input === "string" ? input : input.url;
     const url = new URL(rawUrl, location.origin);
+    const method = (init && init.method ? init.method : "GET").toUpperCase();
+    const mode = localStorage.getItem("issue0033-mode") || "normal";
+
+    if (
+      url.pathname === "/api/parent-needs" &&
+      url.searchParams.get("scope") === "mine"
+    ) {
+      if (mode === "parent-list-failure") {
+        return Promise.resolve(failure("需求列表加载失败", 503));
+      }
+      const now = Date.now();
+      return Promise.resolve(success([
+        { ...parentNeed, id: "active-parent", grade: "有效年级" },
+        {
+          ...parentNeed,
+          id: "deleted-parent",
+          grade: "待恢复年级",
+          status: "deleted",
+          deletedAt: new Date(now - 60 * 60 * 1000).toISOString(),
+          version: 2
+        },
+        {
+          ...parentNeed,
+          id: "expired-parent",
+          grade: "过期年级",
+          status: "deleted",
+          deletedAt: new Date(now - 49 * 60 * 60 * 1000).toISOString(),
+          version: 2
+        },
+        {
+          ...parentNeed,
+          id: "legacy-parent",
+          grade: "旧记录年级",
+          managementState: "legacy-readonly",
+          updatedAt: "",
+          version: 0
+        }
+      ]));
+    }
+
+    if (
+      url.pathname === "/api/tutor-profiles" &&
+      url.searchParams.get("scope") === "mine"
+    ) {
+      if (mode === "tutor-list-failure") {
+        return Promise.resolve(failure("家教信息列表加载失败", 503));
+      }
+      const now = Date.now();
+      return Promise.resolve(success([
+        { ...tutorProfile, id: "active-tutor", school: "有效大学" },
+        {
+          ...tutorProfile,
+          id: "deleted-tutor",
+          school: "待恢复大学",
+          status: "deleted",
+          deletedAt: new Date(now - 60 * 60 * 1000).toISOString(),
+          version: 2
+        },
+        {
+          ...tutorProfile,
+          id: "expired-tutor",
+          school: "过期大学",
+          status: "deleted",
+          deletedAt: new Date(now - 49 * 60 * 60 * 1000).toISOString(),
+          version: 2
+        },
+        {
+          ...tutorProfile,
+          id: "legacy-tutor",
+          school: "旧记录大学",
+          managementState: "legacy-readonly",
+          updatedAt: "",
+          version: 0
+        }
+      ]));
+    }
+
+    if (url.pathname === "/api/parent-needs" && method === "GET") {
+      return Promise.resolve(success([parentNeed]));
+    }
+
+    if (url.pathname === "/api/tutor-profiles" && method === "GET") {
+      return Promise.resolve(success([tutorProfile]));
+    }
+
+    if (url.searchParams.get("scope") === "mine") {
+      const id = url.pathname.split("/").pop();
+      const record = url.pathname.startsWith("/api/parent-needs/")
+        ? { ...parentNeed, id }
+        : { ...tutorProfile, id };
+
+      if (id === "edit-slow") {
+        return new Promise((resolve) => setTimeout(() => resolve(success(record)), 1500));
+      }
+      if (id === "edit-missing") {
+        return Promise.resolve(failure("编辑记录加载失败", 404));
+      }
+      if (id === "edit-legacy") {
+        return Promise.resolve(success({
+          ...record,
+          managementState: "legacy-readonly",
+          updatedAt: "",
+          version: 0
+        }));
+      }
+      if (id === "edit-deleted") {
+        return Promise.resolve(success({
+          ...record,
+          status: "deleted",
+          deletedAt: new Date().toISOString(),
+          version: 2
+        }));
+      }
+    }
+
+    if (
+      method === "DELETE" &&
+      (url.pathname.startsWith("/api/parent-needs/") ||
+        url.pathname.startsWith("/api/tutor-profiles/"))
+    ) {
+      return Promise.resolve(
+        mode === "delete-failure"
+          ? failure("删除操作失败", 409)
+          : success({ status: "deleted", version: 2 })
+      );
+    }
 
     if (url.pathname === "/api/parent-needs/preview-parent") {
       return Promise.resolve(success(parentNeed));
@@ -340,7 +485,9 @@ const mockApiScript = String.raw`
     }
 
     if (url.pathname === "/api/conversations/preview-chat") {
-      return Promise.resolve(success(conversation));
+      return Promise.resolve(success(mode === "chat-deleted"
+        ? { ...conversation, sourceStatus: "deleted", readOnly: true }
+        : conversation));
     }
 
     if (url.pathname === "/api/conversations/preview-chat/messages") {
@@ -352,7 +499,30 @@ const mockApiScript = String.raw`
       url.searchParams.get("conversationId") === "preview-chat"
     ) {
       return Promise.resolve(
-        success(url.searchParams.get("view") === "authorized-profiles" ? null : [])
+        success(url.searchParams.get("view") === "authorized-profiles"
+          ? null
+          : mode === "chat-deleted"
+            ? [
+                {
+                  id: "received-pending",
+                  conversationId: "preview-chat",
+                  direction: "received",
+                  status: "pending",
+                  secondConfirmedAt: null,
+                  createdAt: "2026-07-30T00:00:00.000Z",
+                  updatedAt: "2026-07-30T00:00:00.000Z"
+                },
+                {
+                  id: "sent-pending",
+                  conversationId: "preview-chat",
+                  direction: "sent",
+                  status: "pending",
+                  secondConfirmedAt: null,
+                  createdAt: "2026-07-30T00:00:00.000Z",
+                  updatedAt: "2026-07-30T00:00:00.000Z"
+                }
+              ]
+            : [])
       );
     }
 
@@ -411,9 +581,10 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
 
   async function navigate(pathname: string, selector: string) {
     await cdp.send("Page.navigate", { url: `${baseUrl}${pathname}` });
+    const expectedPathname = new URL(pathname, baseUrl).pathname;
     await waitFor(
       `document.readyState === "complete" && location.pathname === ${JSON.stringify(
-        pathname
+        expectedPathname
       )}`,
       `页面未完成导航：${pathname}`
     );
@@ -1116,4 +1287,278 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
       "utf8"
     );
   }, 240_000);
+
+  it("shows management actions only for active owner records", async () => {
+    await setViewport(1280, 800);
+
+    for (const contract of [
+      {
+        active: "有效年级",
+        deleted: "待恢复年级",
+        legacy: "旧记录年级",
+        pathname: "/profile/parent-needs",
+        publicPathname: "/parent-needs"
+      },
+      {
+        active: "有效大学",
+        deleted: "待恢复大学",
+        legacy: "旧记录大学",
+        pathname: "/profile/tutor-profiles",
+        publicPathname: "/tutor-profiles"
+      }
+    ]) {
+      await evaluate(`localStorage.removeItem("issue0033-mode")`);
+      await navigate(contract.pathname, ".profile-record-list");
+      const activeState = (await evaluate<{ actions: string[]; records: string[] }>(`(() => ({
+        actions: Array.from(document.querySelectorAll(".profile-record-card a, .profile-record-card button"))
+          .map((node) => node.textContent.trim()),
+        records: Array.from(document.querySelectorAll(".profile-record-card h2"))
+          .map((node) => node.textContent.trim())
+      }))()`))!;
+      expect.soft(activeState.records).toHaveLength(1);
+      expect.soft(activeState.records[0]).toContain(contract.active);
+      expect.soft(activeState.actions).toEqual(expect.arrayContaining(["编辑", "删除"]));
+
+      await evaluate(`Array.from(document.querySelectorAll(".management-view-tabs button"))
+        .find((button) => button.textContent.includes("已删除"))?.click()`);
+      await waitFor(
+        `document.body.textContent.includes(${JSON.stringify(contract.deleted)})`,
+        `已删除视图未渲染：${contract.pathname}`
+      );
+      const deletedActions = (await evaluate<string[]>(`Array.from(
+        document.querySelectorAll(".profile-record-card a, .profile-record-card button")
+      ).map((node) => node.textContent.trim())`))!;
+      expect.soft(deletedActions).not.toContain("编辑");
+      expect.soft(deletedActions).not.toContain("删除");
+
+      await evaluate(`Array.from(document.querySelectorAll(".management-view-tabs button"))
+        .find((button) => button.textContent.includes("旧记录"))?.click()`);
+      await waitFor(
+        `document.body.textContent.includes(${JSON.stringify(contract.legacy)})`,
+        `旧记录视图未渲染：${contract.pathname}`
+      );
+      const legacyState = (await evaluate<{ actions: string[]; text: string }>(`(() => ({
+        actions: Array.from(document.querySelectorAll(".profile-record-card a, .profile-record-card button"))
+          .map((node) => node.textContent.trim()),
+        text: document.querySelector(".profile-record-list")?.textContent || ""
+      }))()`))!;
+      expect.soft(legacyState.text).toContain("重新发布以启用管理能力");
+      expect.soft(legacyState.actions).not.toContain("编辑");
+      expect.soft(legacyState.actions).not.toContain("删除");
+      expect.soft(legacyState.actions).not.toContain("恢复");
+
+      await navigate(contract.publicPathname, ".listing-card");
+      const publicActions = (await evaluate<string[]>(`Array.from(
+        document.querySelectorAll(".listing-card a, .listing-card button")
+      ).map((node) => node.textContent.trim())`))!;
+      expect.soft(publicActions).not.toContain("编辑");
+      expect.soft(publicActions).not.toContain("删除");
+    }
+  }, 120_000);
+
+  it("keeps ISSUE-0033 management states explicit and fail-closed", async () => {
+    await setViewport(1280, 800);
+    await evaluate(`localStorage.removeItem("issue0033-mode")`);
+
+    for (const contract of [
+      {
+        active: "有效年级",
+        deleted: "待恢复年级",
+        expired: "过期年级",
+        failureMode: "parent-list-failure",
+        failureText: "需求列表加载失败",
+        legacy: "旧记录年级",
+        pathname: "/profile/parent-needs"
+      },
+      {
+        active: "有效大学",
+        deleted: "待恢复大学",
+        expired: "过期大学",
+        failureMode: "tutor-list-failure",
+        failureText: "家教信息列表加载失败",
+        legacy: "旧记录大学",
+        pathname: "/profile/tutor-profiles"
+      }
+    ]) {
+      await evaluate(`localStorage.removeItem("issue0033-mode")`);
+      await navigate(contract.pathname, ".profile-list-toolbar");
+      await waitFor(
+        `document.querySelector(".profile-record-list")`,
+        `默认有效列表未渲染：${contract.pathname}`
+      );
+
+      const defaultState = (await evaluate<{
+        buttons: string[];
+        records: string[];
+      }>(`(() => ({
+        buttons: Array.from(document.querySelectorAll(".management-view-tabs button"))
+          .map((node) => node.textContent.trim()),
+        records: Array.from(document.querySelectorAll(".profile-record-card h2"))
+          .map((node) => node.textContent.trim())
+      }))()`))!;
+      expect.soft(defaultState.records).toHaveLength(1);
+      expect.soft(defaultState.records[0]).toContain(contract.active);
+      expect.soft(defaultState.buttons).toHaveLength(3);
+
+      const clickedDeleted = await evaluate<boolean>(`(() => {
+        const button = Array.from(document.querySelectorAll(".management-view-tabs button"))
+          .find((node) => node.textContent.includes("已删除"));
+        if (!button) return false;
+        button.click();
+        return true;
+      })()`);
+      expect.soft(clickedDeleted).toBe(true);
+      if (clickedDeleted) {
+        await waitFor(
+          `document.body.textContent.includes(${JSON.stringify(contract.deleted)})`,
+          `已删除视图未渲染：${contract.pathname}`
+        );
+        const deletedState = (await evaluate<{
+          expiredHasRestore: boolean;
+          text: string;
+        }>(`(() => {
+          const cards = Array.from(document.querySelectorAll(".profile-record-card"));
+          const expired = cards.find((card) => card.textContent.includes(${JSON.stringify(
+            contract.expired
+          )}));
+          return {
+            expiredHasRestore: Boolean(expired && Array.from(expired.querySelectorAll("button"))
+              .some((button) => button.textContent.trim() === "恢复")),
+            text: document.querySelector(".profile-record-list").textContent
+          };
+        })()`))!;
+        expect.soft(deletedState.text).toContain(contract.deleted);
+        expect.soft(deletedState.text).toContain(contract.expired);
+        expect.soft(deletedState.text).toContain("恢复期已过");
+        expect.soft(deletedState.expiredHasRestore).toBe(false);
+      }
+
+      const clickedLegacy = await evaluate<boolean>(`(() => {
+        const button = Array.from(document.querySelectorAll(".management-view-tabs button"))
+          .find((node) => node.textContent.includes("旧记录"));
+        if (!button) return false;
+        button.click();
+        return true;
+      })()`);
+      expect.soft(clickedLegacy).toBe(true);
+      if (clickedLegacy) {
+        await waitFor(
+          `document.body.textContent.includes(${JSON.stringify(contract.legacy)})`,
+          `旧记录视图未渲染：${contract.pathname}`
+        );
+      }
+
+      await evaluate(`localStorage.setItem("issue0033-mode", ${JSON.stringify(
+        contract.failureMode
+      )})`);
+      await navigate(contract.pathname, ".profile-list-toolbar");
+      await waitFor(
+        `document.querySelector('[role="alert"]') &&
+          Array.from(document.querySelectorAll("button"))
+            .some((button) => button.textContent.includes("重试"))`,
+        `列表失败态未渲染：${contract.pathname}`
+      );
+      const failureState = (await evaluate<{
+        alertText: string;
+        hasRetry: boolean;
+      }>(`(() => ({
+        alertText: document.querySelector('[role="alert"]')?.textContent?.trim() || "",
+        hasRetry: Array.from(document.querySelectorAll("button"))
+          .some((button) => button.textContent.includes("重试"))
+      }))()`))!;
+      expect.soft(failureState.alertText).toContain(contract.failureText);
+      expect.soft(failureState.hasRetry).toBe(true);
+
+      await evaluate(`localStorage.removeItem("issue0033-mode")`);
+      const clickedRetry = await evaluate<boolean>(`(() => {
+        const button = Array.from(document.querySelectorAll("button"))
+          .find((node) => node.textContent.includes("重试"));
+        if (!button) return false;
+        button.click();
+        return true;
+      })()`);
+      expect.soft(clickedRetry).toBe(true);
+      if (clickedRetry) {
+        await waitFor(
+          `document.body.textContent.includes(${JSON.stringify(contract.active)})`,
+          `重试后列表未恢复：${contract.pathname}`
+        );
+      }
+    }
+
+    await navigate("/profile/parent-needs", ".profile-record-list");
+    await evaluate(`window.confirm = () => true;
+      localStorage.setItem("issue0033-mode", "delete-failure")`);
+    await evaluate(`Array.from(document.querySelectorAll(".profile-record-card button"))
+      .find((button) => button.textContent.trim() === "删除")?.click()`);
+    await waitFor(
+      `document.body.textContent.includes("删除操作失败")`,
+      "删除失败提示未渲染"
+    );
+    const deleteFailureNotice = (await evaluate<{
+      className: string;
+      live: string | null;
+      role: string | null;
+    }>(`(() => {
+      const notice = Array.from(document.querySelectorAll("p"))
+        .find((node) => node.textContent.includes("删除操作失败"));
+      return {
+        className: notice?.className || "",
+        live: notice?.getAttribute("aria-live") || null,
+        role: notice?.getAttribute("role") || null
+      };
+    })()`))!;
+    expect.soft(deleteFailureNotice.className).toContain("error");
+    expect.soft(deleteFailureNotice.className).not.toContain("success");
+    expect.soft(deleteFailureNotice.live).toBe("assertive");
+    expect.soft(deleteFailureNotice.role).toBe("alert");
+
+    for (const pathname of ["/parent-needs/new", "/tutor-profiles/new"]) {
+      for (const editId of ["edit-slow", "edit-missing", "edit-legacy", "edit-deleted"]) {
+        await navigate(`${pathname}?edit=${editId}`, "form");
+        if (editId !== "edit-slow") {
+          await waitFor(
+            `document.querySelector('[role="alert"]')`,
+            `编辑失败未显示：${pathname}?edit=${editId}`
+          );
+        }
+        const editState = (await evaluate<{
+          alertText: string;
+          disabled: boolean;
+          submitText: string;
+        }>(`(() => {
+          const submit = document.querySelector('form [data-submit-action]');
+          return {
+            alertText: document.querySelector('[role="alert"]')?.textContent?.trim() || "",
+            disabled: Boolean(submit?.disabled),
+            submitText: submit?.textContent?.trim() || ""
+          };
+        })()`))!;
+        expect.soft(editState.disabled).toBe(true);
+        expect.soft(editState.submitText).toContain("保存修改");
+        if (editId !== "edit-slow") {
+          expect.soft(editState.alertText.length).toBeGreaterThan(0);
+        }
+      }
+    }
+
+    await evaluate(`localStorage.setItem("issue0033-mode", "chat-deleted")`);
+    await navigate("/chats/preview-chat", ".conversation-workspace");
+    await waitFor(
+      `document.querySelectorAll(".exchange-card").length === 2`,
+      "删除态交换请求未渲染"
+    );
+    const readOnlyActions = (await evaluate<{
+      actionTexts: string[];
+      requestDisabled: boolean;
+    }>(`(() => ({
+      actionTexts: Array.from(document.querySelectorAll(".exchange-card button"))
+        .map((button) => button.textContent.trim()),
+      requestDisabled: Boolean(Array.from(document.querySelectorAll("button"))
+        .find((button) => button.textContent.includes("请求交换联系方式"))?.disabled)
+    }))()`))!;
+    expect.soft(readOnlyActions.requestDisabled).toBe(true);
+    expect.soft(readOnlyActions.actionTexts).toEqual([]);
+    await evaluate(`localStorage.removeItem("issue0033-mode")`);
+  }, 180_000);
 });

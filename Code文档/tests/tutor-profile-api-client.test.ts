@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  deleteTutorProfileFromApi,
   listMyTutorProfilesFromApi,
   listPublicTutorProfilesFromApi,
+  readMyTutorProfileFromApi,
   readPublicTutorProfileFromApi,
-  saveTutorProfileToApi
+  restoreTutorProfileFromApi,
+  saveTutorProfileToApi,
+  updateTutorProfileToApi
 } from "@/features/tutor-profiles/tutor-profile-api-client";
 
 const input = {
@@ -47,6 +51,26 @@ describe("tutor profile API client", () => {
       fetcher,
       input
     });
+    await readMyTutorProfileFromApi({ currentUserPhone: "13900139000", fetcher, id: "profile-a" });
+    await updateTutorProfileToApi({
+      currentUserPhone: "13900139000",
+      fetcher,
+      id: "profile-a",
+      input,
+      version: 3
+    });
+    await deleteTutorProfileFromApi({
+      currentUserPhone: "13900139000",
+      fetcher,
+      id: "profile-a",
+      version: 4
+    });
+    await restoreTutorProfileFromApi({
+      currentUserPhone: "13900139000",
+      fetcher,
+      id: "profile-a",
+      version: 5
+    });
 
     expect(calls[0].url).toBe("/api/tutor-profiles?grade=%E5%88%9D%E4%B8%AD&subject=%E6%95%B0%E5%AD%A6");
     expect(calls[0].headers.get("x-ungradu-test-user-phone")).toBeNull();
@@ -56,5 +80,12 @@ describe("tutor profile API client", () => {
     expect(calls[3].method).toBe("POST");
     expect(calls[3].body).toBe(JSON.stringify(input));
     expect(calls[3].headers.get("x-ungradu-test-user-phone")).toBeNull();
+    expect(calls[4].url).toBe("/api/tutor-profiles/profile-a?scope=mine");
+    expect(calls[5]).toMatchObject({ method: "PATCH", url: "/api/tutor-profiles/profile-a" });
+    expect(JSON.parse(calls[5].body ?? "{}")).toMatchObject({ version: 3 });
+    expect(calls[6]).toMatchObject({ method: "DELETE", url: "/api/tutor-profiles/profile-a" });
+    expect(calls[6].headers.get("idempotency-key")).toMatch(/^delete:profile-a:v4:/);
+    expect(calls[7]).toMatchObject({ method: "POST", url: "/api/tutor-profiles/profile-a" });
+    expect(calls[7].headers.get("idempotency-key")).toMatch(/^restore:profile-a:v5:/);
   });
 });

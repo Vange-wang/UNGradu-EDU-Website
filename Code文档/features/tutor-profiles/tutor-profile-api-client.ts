@@ -12,6 +12,11 @@ function createCookieBackedHeaders() {
   };
 }
 
+function createIdempotencyKey(action: string, id: string, version: number) {
+  const nonce = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`;
+  return `${action}:${id}:v${version}:${nonce}`;
+}
+
 function buildQuery(params: Record<string, string | undefined>) {
   const searchParams = new URLSearchParams();
 
@@ -66,6 +71,94 @@ export async function listMyTutorProfilesFromApi({
   });
 
   return parseApiResponse<ServerTutorProfile[]>(response);
+}
+
+export async function readMyTutorProfileFromApi({
+  fetcher = fetch,
+  id
+}: {
+  currentUserPhone: string;
+  fetcher?: typeof fetch;
+  id: string;
+}) {
+  const response = await fetcher(
+    `/api/tutor-profiles/${encodeURIComponent(id)}?scope=mine`,
+    {
+      credentials: "same-origin",
+      headers: createCookieBackedHeaders(),
+      method: "GET"
+    }
+  );
+
+  return parseApiResponse<ServerTutorProfile>(response);
+}
+
+export async function updateTutorProfileToApi({
+  fetcher = fetch,
+  id,
+  input,
+  version
+}: {
+  currentUserPhone: string;
+  fetcher?: typeof fetch;
+  id: string;
+  input: TutorProfileInput;
+  version: number;
+}) {
+  const response = await fetcher(`/api/tutor-profiles/${encodeURIComponent(id)}`, {
+    body: JSON.stringify({ ...input, version }),
+    credentials: "same-origin",
+    headers: createCookieBackedHeaders(),
+    method: "PATCH"
+  });
+
+  return parseApiResponse<ServerTutorProfile>(response);
+}
+
+export async function deleteTutorProfileFromApi({
+  fetcher = fetch,
+  id,
+  version
+}: {
+  currentUserPhone: string;
+  fetcher?: typeof fetch;
+  id: string;
+  version: number;
+}) {
+  const response = await fetcher(`/api/tutor-profiles/${encodeURIComponent(id)}`, {
+    body: JSON.stringify({ version }),
+    credentials: "same-origin",
+    headers: {
+      ...createCookieBackedHeaders(),
+      "idempotency-key": createIdempotencyKey("delete", id, version)
+    },
+    method: "DELETE"
+  });
+
+  return parseApiResponse<ServerTutorProfile>(response);
+}
+
+export async function restoreTutorProfileFromApi({
+  fetcher = fetch,
+  id,
+  version
+}: {
+  currentUserPhone: string;
+  fetcher?: typeof fetch;
+  id: string;
+  version: number;
+}) {
+  const response = await fetcher(`/api/tutor-profiles/${encodeURIComponent(id)}`, {
+    body: JSON.stringify({ action: "restore", version }),
+    credentials: "same-origin",
+    headers: {
+      ...createCookieBackedHeaders(),
+      "idempotency-key": createIdempotencyKey("restore", id, version)
+    },
+    method: "POST"
+  });
+
+  return parseApiResponse<ServerTutorProfile>(response);
 }
 
 export async function saveTutorProfileToApi({

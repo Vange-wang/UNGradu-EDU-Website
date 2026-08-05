@@ -70,6 +70,11 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
 
   useEffect(() => {
     if (!editId) {
+      setInput(initialInput);
+      setErrors({});
+      setSaved(false);
+      setSubmitError("");
+      setVersion(null);
       return;
     }
 
@@ -108,6 +113,10 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
           proofImages: result.value.proofImages
         });
         setVersion(result.value.version);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setErrors({ request: "原家教信息加载失败，请返回我的家教信息后重试。" });
       });
 
     return () => {
@@ -244,6 +253,13 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
         </p>
       ) : null}
 
+      {editId && version === null ? (
+        errors.request ? null : (
+          <p aria-live="polite" className="empty-state" role="status">
+            正在加载原家教信息...
+          </p>
+        )
+      ) : (
       <div className="step-form-layout">
         <aside className="step-rail" aria-label="发布家教信息填写步骤">
           <div>
@@ -546,6 +562,7 @@ function NewTutorProfileForm({ ownerPhone }: { ownerPhone: string }) {
           </section>
         </form>
       </div>
+      )}
     </section>
   );
 }

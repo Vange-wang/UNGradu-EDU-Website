@@ -443,6 +443,9 @@ const mockApiScript = String.raw`
       if (id === "edit-slow") {
         return new Promise((resolve) => setTimeout(() => resolve(success(record)), 1500));
       }
+      if (id === "edit-reject") {
+        return Promise.reject(new Error("synthetic owner edit GET rejection"));
+      }
       if (id === "edit-missing") {
         return Promise.resolve(failure("编辑记录加载失败", 404));
       }
@@ -462,6 +465,8 @@ const mockApiScript = String.raw`
           version: 2
         }));
       }
+
+      return Promise.resolve(success(record));
     }
 
     if (
@@ -1356,6 +1361,221 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
     }
   }, 120_000);
 
+  it("prefills managed owner edit forms without exposing blank inputs", async () => {
+    await setViewport(1280, 800);
+
+    for (const contract of [
+      {
+        pathname: "/parent-needs/new?edit=edit-slow",
+        title: "编辑家教需求",
+        expected: {
+          values: {
+            "#teacher-gender": "不限",
+            "#grade": "初二",
+            "#budget-min": "80",
+            "#budget-max": "120",
+            "#district": "松山湖",
+            "#community": "匿名测试区域",
+            "#child-intro": "本地匿名视觉验收数据"
+          },
+          checkedLabels: ["数学", "周六下午"]
+        }
+      },
+      {
+        pathname: "/tutor-profiles/new?edit=edit-slow",
+        title: "编辑家教信息",
+        expected: {
+          values: {
+            "#tutor-gender": "女",
+            "#school": "匿名测试大学",
+            "#major": "数学",
+            "#fee-grade-0": "初中",
+            "#fee-subject-0": "数学",
+            "#fee-min-0": "80",
+            "#fee-max-0": "120",
+            "#ability-description": "本地匿名视觉验收数据"
+          },
+          checkedLabels: ["数学", "初中", "周六下午"]
+        }
+      }
+    ]) {
+      await cdp.send("Page.navigate", { url: `${baseUrl}${contract.pathname}` });
+      await waitFor(
+        `document.readyState === "complete" && document.body.textContent.includes(${JSON.stringify(
+          contract.title
+        )})`,
+        `编辑页未进入加载态：${contract.pathname}`
+      );
+
+      const loadingState = (await evaluate<{ formVisible: boolean; statusText: string }>(`(() => ({
+        formVisible: Boolean(document.querySelector(".step-form")),
+        statusText: document.querySelector('[role="status"]')?.textContent?.trim() || ""
+      }))()`))!;
+      expect.soft(loadingState.formVisible).toBe(false);
+      expect.soft(loadingState.statusText).toContain("正在加载");
+
+      await waitFor(
+        `document.querySelector(".step-form") && !document.querySelector("[data-submit-action]").disabled`,
+        `managed owner 编辑表单未安全回填：${contract.pathname}`
+      );
+      const populated = (await evaluate<{
+        checkedLabels: string[];
+        values: Record<string, string>;
+      }>(`(() => {
+        const selectors = ${JSON.stringify(Object.keys(contract.expected.values))};
+        return {
+          checkedLabels: Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+            .map((input) => input.closest("label")?.textContent?.trim() || ""),
+          values: Object.fromEntries(selectors.map((selector) => [
+            selector,
+            document.querySelector(selector)?.value || ""
+          ]))
+        };
+      })()`))!;
+      expect.soft(populated.values).toEqual(contract.expected.values);
+      expect.soft(populated.checkedLabels).toEqual(
+        expect.arrayContaining(contract.expected.checkedLabels)
+      );
+      await delay(250);
+      const stableValues = (await evaluate<Record<string, string>>(`(() => {
+        const selectors = ${JSON.stringify(Object.keys(contract.expected.values))};
+        return Object.fromEntries(selectors.map((selector) => [
+          selector,
+          document.querySelector(selector)?.value || ""
+        ]));
+      })()`))!;
+      expect.soft(stableValues).toEqual(contract.expected.values);
+    }
+
+    for (const contract of [
+      {
+        editHref: "/parent-needs/new?edit=active-parent",
+        field: "#child-intro",
+        listPathname: "/profile/parent-needs",
+        value: "本地匿名视觉验收数据"
+      },
+      {
+        editHref: "/tutor-profiles/new?edit=active-tutor",
+        field: "#ability-description",
+        listPathname: "/profile/tutor-profiles",
+        value: "本地匿名视觉验收数据"
+      }
+    ]) {
+      await navigate(contract.listPathname, ".profile-record-list");
+      await evaluate(`document.querySelector(${JSON.stringify(
+        `a[href="${contract.editHref}"]`
+      )}).click()`);
+      await waitFor(
+        `location.pathname + location.search === ${JSON.stringify(contract.editHref)} && document.querySelector(${JSON.stringify(contract.field)})?.value === ${JSON.stringify(contract.value)}`,
+        `管理页编辑入口未保留 id 或未回填：${contract.editHref}`
+      );
+    }
+  }, 120_000);
+
+  it("fails closed when managed owner edit GET rejects", async () => {
+    await setViewport(1280, 800);
+
+    for (const contract of [
+      { pathname: "/parent-needs/new?edit=edit-reject", title: "编辑家教需求" },
+      { pathname: "/tutor-profiles/new?edit=edit-reject", title: "编辑家教信息" }
+    ]) {
+      await cdp.send("Page.navigate", { url: `${baseUrl}${contract.pathname}` });
+      await waitFor(
+        `document.readyState === "complete" && document.body.textContent.includes(${JSON.stringify(
+          contract.title
+        )})`,
+        `编辑页未进入请求态：${contract.pathname}`
+      );
+      await delay(500);
+      const state = (await evaluate<{
+        alertText: string;
+        formVisible: boolean;
+        statusText: string;
+      }>(`(() => ({
+        alertText: document.querySelector('[role="alert"]')?.textContent?.trim() || "",
+        formVisible: Boolean(document.querySelector(".step-form")),
+        statusText: document.querySelector('[role="status"]')?.textContent?.trim() || ""
+      }))()`))!;
+      expect.soft(state.formVisible).toBe(false);
+      expect.soft(state.alertText).toContain("加载失败");
+      expect.soft(state.statusText).not.toContain("正在加载");
+    }
+  }, 120_000);
+
+  it("resets managed edit state when the same page returns to publish mode", async () => {
+    await setViewport(1280, 800);
+
+    for (const contract of [
+      {
+        editPathname: "/parent-needs/new?edit=edit-slow",
+        loadedSelector: "#child-intro",
+        publishPathname: "/parent-needs/new",
+        publishTitle: "发布家教需求",
+        expected: {
+          checkedCount: 0,
+          submitText: "发布家教需求",
+          values: {
+            "#teacher-gender": "不限",
+            "#grade": "",
+            "#budget-min": "",
+            "#budget-max": "",
+            "#district": "松山湖",
+            "#community": "",
+            "#child-intro": ""
+          }
+        }
+      },
+      {
+        editPathname: "/tutor-profiles/new?edit=edit-slow",
+        loadedSelector: "#ability-description",
+        publishPathname: "/tutor-profiles/new",
+        publishTitle: "发布家教信息",
+        expected: {
+          checkedCount: 0,
+          submitText: "发布家教信息",
+          values: {
+            "#tutor-gender": "女",
+            "#school": "",
+            "#major": "",
+            "#fee-grade-0": "",
+            "#fee-subject-0": "",
+            "#fee-min-0": "",
+            "#fee-max-0": "",
+            "#ability-description": ""
+          }
+        }
+      }
+    ]) {
+      await cdp.send("Page.navigate", { url: `${baseUrl}${contract.editPathname}` });
+      await waitFor(
+        `document.querySelector(${JSON.stringify(contract.loadedSelector)})?.value === "本地匿名视觉验收数据"`,
+        `编辑记录未先完成回填：${contract.editPathname}`
+      );
+      await evaluate(`history.pushState(null, "", ${JSON.stringify(contract.publishPathname)})`);
+      await waitFor(
+        `location.pathname + location.search === ${JSON.stringify(contract.publishPathname)} && document.body.textContent.includes(${JSON.stringify(contract.publishTitle)})`,
+        `同组件未切换到发布模式：${contract.publishPathname}`
+      );
+
+      const state = (await evaluate<{
+        checkedCount: number;
+        submitText: string;
+        values: Record<string, string>;
+      }>(`(() => {
+        const selectors = ${JSON.stringify(Object.keys(contract.expected.values))};
+        return {
+          checkedCount: document.querySelectorAll('input[type="checkbox"]:checked').length,
+          submitText: document.querySelector('[data-submit-action]')?.textContent?.trim() || "",
+          values: Object.fromEntries(selectors.map((selector) => [
+            selector,
+            document.querySelector(selector)?.value || ""
+          ]))
+        };
+      })()`))!;
+      expect.soft(state).toEqual(contract.expected);
+    }
+  }, 120_000);
+
   it("keeps ISSUE-0033 management states explicit and fail-closed", async () => {
     await setViewport(1280, 800);
     await evaluate(`localStorage.removeItem("issue0033-mode")`);
@@ -1514,31 +1734,23 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
     expect.soft(deleteFailureNotice.role).toBe("alert");
 
     for (const pathname of ["/parent-needs/new", "/tutor-profiles/new"]) {
-      for (const editId of ["edit-slow", "edit-missing", "edit-legacy", "edit-deleted"]) {
-        await navigate(`${pathname}?edit=${editId}`, "form");
-        if (editId !== "edit-slow") {
-          await waitFor(
-            `document.querySelector('[role="alert"]')`,
-            `编辑失败未显示：${pathname}?edit=${editId}`
-          );
-        }
+      for (const editId of ["edit-missing", "edit-legacy", "edit-deleted"]) {
+        await navigate(`${pathname}?edit=${editId}`, ".wide-panel");
+        await waitFor(
+          `document.querySelector('[role="alert"]')`,
+          `编辑失败未显示：${pathname}?edit=${editId}`
+        );
         const editState = (await evaluate<{
           alertText: string;
-          disabled: boolean;
-          submitText: string;
+          formVisible: boolean;
         }>(`(() => {
-          const submit = document.querySelector('form [data-submit-action]');
           return {
             alertText: document.querySelector('[role="alert"]')?.textContent?.trim() || "",
-            disabled: Boolean(submit?.disabled),
-            submitText: submit?.textContent?.trim() || ""
+            formVisible: Boolean(document.querySelector('.step-form'))
           };
         })()`))!;
-        expect.soft(editState.disabled).toBe(true);
-        expect.soft(editState.submitText).toContain("保存修改");
-        if (editId !== "edit-slow") {
-          expect.soft(editState.alertText.length).toBeGreaterThan(0);
-        }
+        expect.soft(editState.formVisible).toBe(false);
+        expect.soft(editState.alertText.length).toBeGreaterThan(0);
       }
     }
 

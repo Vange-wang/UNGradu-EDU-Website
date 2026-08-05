@@ -71,6 +71,11 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
 
   useEffect(() => {
     if (!editId) {
+      setInput(initialInput);
+      setErrors({});
+      setSaved(false);
+      setSubmitError("");
+      setVersion(null);
       return;
     }
 
@@ -105,6 +110,10 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
           childIntro: result.value.childIntro
         });
         setVersion(result.value.version);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setErrors({ request: "原家教需求加载失败，请返回我的需求后重试。" });
       });
 
     return () => {
@@ -202,6 +211,13 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
         </p>
       ) : null}
 
+      {editId && version === null ? (
+        errors.request ? null : (
+          <p aria-live="polite" className="empty-state" role="status">
+            正在加载原家教需求...
+          </p>
+        )
+      ) : (
       <div className="step-form-layout">
         <aside className="step-rail" aria-label="发布需求填写步骤">
           <div>
@@ -444,6 +460,7 @@ function NewParentNeedForm({ ownerPhone }: { ownerPhone: string }) {
           </section>
         </form>
       </div>
+      )}
     </section>
   );
 }

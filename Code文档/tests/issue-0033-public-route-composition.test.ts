@@ -101,6 +101,41 @@ function postRequest(pathname: string, body: unknown, userId: string) {
   });
 }
 
+function authenticatedRequest(
+  pathname: string,
+  userId: string,
+  options: { body?: unknown; idempotencyKey?: string; method?: string } = {}
+) {
+  return new Request(`http://localhost${pathname}`, {
+    ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
+    headers: {
+      "content-type": "application/json",
+      ...(options.idempotencyKey
+        ? { "idempotency-key": options.idempotencyKey }
+        : {}),
+      "x-ungradu-test-user-phone": userId
+    },
+    method: options.method ?? "GET"
+  });
+}
+
+function managementProjection(record: StoredDocument) {
+  return {
+    id: record.id,
+    managementState: record.managementState,
+    status: record.status,
+    updatedAt: record.updatedAt,
+    version: record.version
+  };
+}
+
+function collectionSnapshot() {
+  return Array.from(cloudBaseState.collections.entries()).map(([name, documents]) => [
+    name,
+    Array.from(documents.entries())
+  ]);
+}
+
 describe("ISSUE-0033 public Next route composition", () => {
   beforeEach(() => {
     cloudBaseState.collections.clear();
@@ -169,5 +204,336 @@ describe("ISSUE-0033 public Next route composition", () => {
     expect(cloudBaseState.collections.get("parent_needs")?.size ?? 0).toBe(0);
     expect(cloudBaseState.collections.get("tutor_profiles")?.size ?? 0).toBe(0);
     expect(cloudBaseState.collections.get("audit_events")?.size ?? 0).toBe(0);
+  });
+
+  it("keeps owner list and dynamic item routes consistent across the full management lifecycle", async () => {
+    const parentCollectionRoute = await import("@/app/api/parent-needs/route");
+    const tutorCollectionRoute = await import("@/app/api/tutor-profiles/route");
+    const parentItemRoute = await import("@/app/api/parent-needs/[id]/route");
+    const tutorItemRoute = await import("@/app/api/tutor-profiles/[id]/route");
+
+    const parentOwner = "synthetic-parent-owner";
+    const tutorOwner = "synthetic-tutor-owner";
+    const parentCreatedResponse = await parentCollectionRoute.POST(
+      postRequest("/api/parent-needs", parentPayload, parentOwner)
+    );
+    const tutorCreatedResponse = await tutorCollectionRoute.POST(
+      postRequest("/api/tutor-profiles", tutorPayload, tutorOwner)
+    );
+    const parentCreated = (await parentCreatedResponse.json()) as {
+      value: StoredDocument;
+    };
+    const tutorCreated = (await tutorCreatedResponse.json()) as {
+      value: StoredDocument;
+    };
+    const parentId = String(parentCreated.value.id);
+    const tutorId = String(tutorCreated.value.id);
+    const routeContext = (id: string) => ({ params: Promise.resolve({ id }) });
+
+    const parentListResponse = await parentCollectionRoute.GET(
+      authenticatedRequest("/api/parent-needs?scope=mine", parentOwner)
+    );
+    const tutorListResponse = await tutorCollectionRoute.GET(
+      authenticatedRequest("/api/tutor-profiles?scope=mine", tutorOwner)
+    );
+    const parentList = (await parentListResponse.json()) as {
+      value: StoredDocument[];
+    };
+    const tutorList = (await tutorListResponse.json()) as {
+      value: StoredDocument[];
+    };
+    const parentOwnerResponse = await parentItemRoute.GET(
+      authenticatedRequest(`/api/parent-needs/${parentId}?scope=mine`, parentOwner),
+      routeContext(parentId)
+    );
+    const tutorOwnerResponse = await tutorItemRoute.GET(
+      authenticatedRequest(`/api/tutor-profiles/${tutorId}?scope=mine`, tutorOwner),
+      routeContext(tutorId)
+    );
+    const parentOwnerItem = (await parentOwnerResponse.json()) as {
+      value: StoredDocument;
+    };
+    const tutorOwnerItem = (await tutorOwnerResponse.json()) as {
+      value: StoredDocument;
+    };
+
+    expect(parentOwnerResponse.status).toBe(200);
+    expect(tutorOwnerResponse.status).toBe(200);
+    expect(managementProjection(parentOwnerItem.value)).toEqual(
+      managementProjection(parentList.value[0])
+    );
+    expect(managementProjection(tutorOwnerItem.value)).toEqual(
+      managementProjection(tutorList.value[0])
+    );
+    expect(managementProjection(parentOwnerItem.value)).toMatchObject({
+      id: parentId,
+      managementState: "managed",
+      status: "published",
+      version: 1
+    });
+    expect(managementProjection(tutorOwnerItem.value)).toMatchObject({
+      id: tutorId,
+      managementState: "managed",
+      status: "published",
+      version: 1
+    });
+
+    const parentPublicResponse = await parentItemRoute.GET(
+      new Request(`http://localhost/api/parent-needs/${parentId}`),
+      routeContext(parentId)
+    );
+    const tutorPublicResponse = await tutorItemRoute.GET(
+      new Request(`http://localhost/api/tutor-profiles/${tutorId}`),
+      routeContext(tutorId)
+    );
+    const parentPublic = (await parentPublicResponse.json()) as {
+      ok: boolean;
+      value: StoredDocument;
+    };
+    const tutorPublic = (await tutorPublicResponse.json()) as {
+      ok: boolean;
+      value: StoredDocument;
+    };
+    expect(parentPublicResponse.status).toBe(200);
+    expect(tutorPublicResponse.status).toBe(200);
+    expect(parentPublic.ok).toBe(true);
+    expect(tutorPublic.ok).toBe(true);
+    expect(parentPublic.value).not.toHaveProperty("managementState");
+    expect(parentPublic.value).not.toHaveProperty("ownerUserId");
+    expect(parentPublic.value).not.toHaveProperty("version");
+    expect(tutorPublic.value).not.toHaveProperty("managementState");
+    expect(tutorPublic.value).not.toHaveProperty("ownerUserId");
+    expect(tutorPublic.value).not.toHaveProperty("version");
+
+    const parentUnauthenticated = await parentItemRoute.GET(
+      new Request(`http://localhost/api/parent-needs/${parentId}?scope=mine`),
+      routeContext(parentId)
+    );
+    const tutorUnauthenticated = await tutorItemRoute.GET(
+      new Request(`http://localhost/api/tutor-profiles/${tutorId}?scope=mine`),
+      routeContext(tutorId)
+    );
+    expect(parentUnauthenticated.status).toBe(401);
+    expect(tutorUnauthenticated.status).toBe(401);
+
+    expect(typeof parentItemRoute.PATCH).toBe("function");
+    expect(typeof parentItemRoute.DELETE).toBe("function");
+    expect(typeof parentItemRoute.POST).toBe("function");
+    expect(typeof tutorItemRoute.PATCH).toBe("function");
+    expect(typeof tutorItemRoute.DELETE).toBe("function");
+    expect(typeof tutorItemRoute.POST).toBe("function");
+
+    const parentUpdatedResponse = await parentItemRoute.PATCH(
+      authenticatedRequest(`/api/parent-needs/${parentId}`, parentOwner, {
+        body: { ...parentPayload, version: 1 },
+        method: "PATCH"
+      }),
+      routeContext(parentId)
+    );
+    const tutorUpdatedResponse = await tutorItemRoute.PATCH(
+      authenticatedRequest(`/api/tutor-profiles/${tutorId}`, tutorOwner, {
+        body: { ...tutorPayload, version: 1 },
+        method: "PATCH"
+      }),
+      routeContext(tutorId)
+    );
+    await expect(parentUpdatedResponse.json()).resolves.toMatchObject({
+      ok: true,
+      value: { status: "published", version: 2 }
+    });
+    await expect(tutorUpdatedResponse.json()).resolves.toMatchObject({
+      ok: true,
+      value: { status: "published", version: 2 }
+    });
+
+    const parentDeletedResponse = await parentItemRoute.DELETE(
+      authenticatedRequest(`/api/parent-needs/${parentId}`, parentOwner, {
+        body: { version: 2 },
+        idempotencyKey: "route-parent-delete-v2",
+        method: "DELETE"
+      }),
+      routeContext(parentId)
+    );
+    const tutorDeletedResponse = await tutorItemRoute.DELETE(
+      authenticatedRequest(`/api/tutor-profiles/${tutorId}`, tutorOwner, {
+        body: { version: 2 },
+        idempotencyKey: "route-tutor-delete-v2",
+        method: "DELETE"
+      }),
+      routeContext(tutorId)
+    );
+    await expect(parentDeletedResponse.json()).resolves.toMatchObject({
+      ok: true,
+      value: { status: "deleted", version: 3 }
+    });
+    await expect(tutorDeletedResponse.json()).resolves.toMatchObject({
+      ok: true,
+      value: { status: "deleted", version: 3 }
+    });
+
+    const parentDeletedOwnerResponse = await parentItemRoute.GET(
+      authenticatedRequest(`/api/parent-needs/${parentId}?scope=mine`, parentOwner),
+      routeContext(parentId)
+    );
+    const tutorDeletedOwnerResponse = await tutorItemRoute.GET(
+      authenticatedRequest(`/api/tutor-profiles/${tutorId}?scope=mine`, tutorOwner),
+      routeContext(tutorId)
+    );
+    await expect(parentDeletedOwnerResponse.json()).resolves.toMatchObject({
+      ok: true,
+      value: { managementState: "managed", status: "deleted", version: 3 }
+    });
+    await expect(tutorDeletedOwnerResponse.json()).resolves.toMatchObject({
+      ok: true,
+      value: { managementState: "managed", status: "deleted", version: 3 }
+    });
+
+    const parentDeletedPublicResponse = await parentItemRoute.GET(
+      new Request(`http://localhost/api/parent-needs/${parentId}`),
+      routeContext(parentId)
+    );
+    const tutorDeletedPublicResponse = await tutorItemRoute.GET(
+      new Request(`http://localhost/api/tutor-profiles/${tutorId}`),
+      routeContext(tutorId)
+    );
+    expect(parentDeletedPublicResponse.status).toBe(404);
+    expect(tutorDeletedPublicResponse.status).toBe(404);
+
+    const parentRestoredResponse = await parentItemRoute.POST(
+      authenticatedRequest(`/api/parent-needs/${parentId}`, parentOwner, {
+        body: { action: "restore", version: 3 },
+        idempotencyKey: "route-parent-restore-v3",
+        method: "POST"
+      }),
+      routeContext(parentId)
+    );
+    const tutorRestoredResponse = await tutorItemRoute.POST(
+      authenticatedRequest(`/api/tutor-profiles/${tutorId}`, tutorOwner, {
+        body: { action: "restore", version: 3 },
+        idempotencyKey: "route-tutor-restore-v3",
+        method: "POST"
+      }),
+      routeContext(tutorId)
+    );
+    await expect(parentRestoredResponse.json()).resolves.toMatchObject({
+      ok: true,
+      value: { status: "published", version: 4 }
+    });
+    await expect(tutorRestoredResponse.json()).resolves.toMatchObject({
+      ok: true,
+      value: { status: "published", version: 4 }
+    });
+  });
+
+  it("fails closed when dynamic route transactions are unavailable", async () => {
+    const parentCollectionRoute = await import("@/app/api/parent-needs/route");
+    const tutorCollectionRoute = await import("@/app/api/tutor-profiles/route");
+    const parentItemRoute = await import("@/app/api/parent-needs/[id]/route");
+    const tutorItemRoute = await import("@/app/api/tutor-profiles/[id]/route");
+    const parentOwner = "synthetic-parent-owner";
+    const tutorOwner = "synthetic-tutor-owner";
+    const routeContext = (id: string) => ({ params: Promise.resolve({ id }) });
+
+    const createParent = async () => {
+      const response = await parentCollectionRoute.POST(
+        postRequest("/api/parent-needs", parentPayload, parentOwner)
+      );
+      const body = (await response.json()) as { value: StoredDocument };
+      return String(body.value.id);
+    };
+    const createTutor = async () => {
+      const response = await tutorCollectionRoute.POST(
+        postRequest("/api/tutor-profiles", tutorPayload, tutorOwner)
+      );
+      const body = (await response.json()) as { value: StoredDocument };
+      return String(body.value.id);
+    };
+
+    const parentPublishedId = await createParent();
+    const tutorPublishedId = await createTutor();
+    const parentDeletedId = await createParent();
+    const tutorDeletedId = await createTutor();
+    await parentItemRoute.DELETE(
+      authenticatedRequest(`/api/parent-needs/${parentDeletedId}`, parentOwner, {
+        body: { version: 1 },
+        idempotencyKey: "route-parent-seed-delete",
+        method: "DELETE"
+      }),
+      routeContext(parentDeletedId)
+    );
+    await tutorItemRoute.DELETE(
+      authenticatedRequest(`/api/tutor-profiles/${tutorDeletedId}`, tutorOwner, {
+        body: { version: 1 },
+        idempotencyKey: "route-tutor-seed-delete",
+        method: "DELETE"
+      }),
+      routeContext(tutorDeletedId)
+    );
+
+    cloudBaseState.transactionAvailable = false;
+    cloudBaseState.transactionCalls = 0;
+    vi.resetModules();
+    const parentUnavailableRoute = await import("@/app/api/parent-needs/[id]/route");
+    const tutorUnavailableRoute = await import("@/app/api/tutor-profiles/[id]/route");
+    const before = collectionSnapshot();
+
+    const responses = [
+      await parentUnavailableRoute.PATCH(
+        authenticatedRequest(`/api/parent-needs/${parentPublishedId}`, parentOwner, {
+          body: { ...parentPayload, version: 1 },
+          method: "PATCH"
+        }),
+        routeContext(parentPublishedId)
+      ),
+      await parentUnavailableRoute.DELETE(
+        authenticatedRequest(`/api/parent-needs/${parentPublishedId}`, parentOwner, {
+          body: { version: 1 },
+          idempotencyKey: "route-parent-unavailable-delete",
+          method: "DELETE"
+        }),
+        routeContext(parentPublishedId)
+      ),
+      await parentUnavailableRoute.POST(
+        authenticatedRequest(`/api/parent-needs/${parentDeletedId}`, parentOwner, {
+          body: { action: "restore", version: 2 },
+          idempotencyKey: "route-parent-unavailable-restore",
+          method: "POST"
+        }),
+        routeContext(parentDeletedId)
+      ),
+      await tutorUnavailableRoute.PATCH(
+        authenticatedRequest(`/api/tutor-profiles/${tutorPublishedId}`, tutorOwner, {
+          body: { ...tutorPayload, version: 1 },
+          method: "PATCH"
+        }),
+        routeContext(tutorPublishedId)
+      ),
+      await tutorUnavailableRoute.DELETE(
+        authenticatedRequest(`/api/tutor-profiles/${tutorPublishedId}`, tutorOwner, {
+          body: { version: 1 },
+          idempotencyKey: "route-tutor-unavailable-delete",
+          method: "DELETE"
+        }),
+        routeContext(tutorPublishedId)
+      ),
+      await tutorUnavailableRoute.POST(
+        authenticatedRequest(`/api/tutor-profiles/${tutorDeletedId}`, tutorOwner, {
+          body: { action: "restore", version: 2 },
+          idempotencyKey: "route-tutor-unavailable-restore",
+          method: "POST"
+        }),
+        routeContext(tutorDeletedId)
+      )
+    ];
+
+    for (const response of responses) {
+      expect(response.status).toBe(503);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "TRANSACTION_UNAVAILABLE",
+        ok: false
+      });
+    }
+    expect(cloudBaseState.transactionCalls).toBe(0);
+    expect(collectionSnapshot()).toEqual(before);
   });
 });

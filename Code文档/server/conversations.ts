@@ -7,6 +7,8 @@ export type ServerConversationView = {
   id: string;
   sourceId: string;
   sourceType: ServerConversationSourceType;
+  sourceStatus: "deleted" | "published";
+  readOnly: boolean;
   createdAt: string;
 };
 
@@ -22,6 +24,7 @@ type SourceDocument = {
   id?: string;
   ownerUserId?: string;
   status?: string;
+  version?: number;
 };
 
 type ConversationDocument = {
@@ -32,6 +35,7 @@ type ConversationDocument = {
   sourceId?: string;
   sourceKey?: string;
   sourceType?: ServerConversationSourceType;
+  sourceVersion?: number;
   createdAt?: string;
 };
 
@@ -169,7 +173,10 @@ function requireAuthenticatedUser(authenticatedUserId: string) {
 
 function normalizeConversation(
   conversation: ConversationDocument
-): Required<Pick<ConversationDocument, "createdAt" | "id" | "participantUserIds" | "sourceId" | "sourceType">> | null {
+): (Required<Pick<
+  ConversationDocument,
+  "createdAt" | "id" | "participantUserIds" | "sourceId" | "sourceType"
+>> & Pick<ConversationDocument, "sourceVersion">) | null {
   if (
     !conversation.id ||
     !conversation.createdAt ||
@@ -185,6 +192,7 @@ function normalizeConversation(
     participantUserIds: conversation.participantUserIds.map(normalizeUserId),
     sourceId: conversation.sourceId,
     sourceType: conversation.sourceType,
+    sourceVersion: conversation.sourceVersion,
     createdAt: conversation.createdAt
   };
 }
@@ -216,12 +224,15 @@ function isParticipant(conversation: ConversationDocument, userId: string) {
 }
 
 function toConversationView(
-  conversation: Required<Pick<ConversationDocument, "createdAt" | "id" | "sourceId" | "sourceType">>
+  conversation: Required<Pick<ConversationDocument, "createdAt" | "id" | "sourceId" | "sourceType">>,
+  sourceStatus: "deleted" | "published" = "published"
 ): ServerConversationView {
   return {
     id: conversation.id,
     sourceId: conversation.sourceId,
     sourceType: conversation.sourceType,
+    sourceStatus,
+    readOnly: sourceStatus === "deleted",
     createdAt: conversation.createdAt
   };
 }
@@ -248,14 +259,58 @@ async function readSourceOwnerUserId({
   sourceId: string;
   sourceType: ServerConversationSourceType;
 }) {
+  const source = await readSourceState({
+    parentNeedsCollection,
+    sourceId,
+    sourceType,
+    tutorProfilesCollection
+  });
+
+  return source?.status === "published" && source.ownerUserId
+    ? normalizeUserId(source.ownerUserId)
+    : null;
+}
+
+async function readSourceState({
+  parentNeedsCollection,
+  sourceId,
+  sourceType,
+  tutorProfilesCollection
+}: Pick<ConversationDependencies, "parentNeedsCollection" | "tutorProfilesCollection"> & {
+  sourceId: string;
+  sourceType: ServerConversationSourceType;
+}) {
   const collection =
     sourceType === "parent-need" ? parentNeedsCollection : tutorProfilesCollection;
   const result = await collection.doc(sourceId).get();
   const source = result.data?.[0] as SourceDocument | undefined;
 
-  return source?.status === "published" && source.ownerUserId
-    ? normalizeUserId(source.ownerUserId)
-    : null;
+  return source ?? null;
+}
+
+async function toConversationViewWithSource(
+  conversation: Required<Pick<
+    ConversationDocument,
+    "createdAt" | "id" | "sourceId" | "sourceType"
+  >> & Pick<ConversationDocument, "sourceVersion">,
+  dependencies: Pick<
+    ConversationDependencies,
+    "parentNeedsCollection" | "tutorProfilesCollection"
+  >
+) {
+  const source = await readSourceState({
+    ...dependencies,
+    sourceId: conversation.sourceId,
+    sourceType: conversation.sourceType
+  });
+  const versionMatches = !Number.isInteger(conversation.sourceVersion) ||
+    !Number.isInteger(source?.version) ||
+    conversation.sourceVersion === source?.version;
+  const sourceStatus = source?.status === "published" && versionMatches
+    ? "published"
+    : "deleted";
+
+  return toConversationView(conversation, sourceStatus);
 }
 
 async function getQueryResult(query: ReturnType<ConversationDependencies["conversationsCollection"]["where"]>) {
@@ -498,7 +553,9 @@ export async function createOrReadServerConversationFromSource({
 export async function readServerConversationForUser({
   authenticatedUserId,
   conversationId,
-  conversationsCollection
+  conversationsCollection,
+  parentNeedsCollection,
+  tutorProfilesCollection
 }: ConversationDependencies & {
   authenticatedUserId: string;
   conversationId: string;
@@ -511,18 +568,21 @@ export async function readServerConversationForUser({
 
   const conversation = await readConversation({ conversationId, conversationsCollection });
 
-  return {
-    ok: true,
-    value: conversation && isParticipant(conversation, currentUserId)
-      ? toConversationView(conversation)
-      : null,
-    errors: {}
-  };
+  const value = conversation && isParticipant(conversation, currentUserId)
+    ? await toConversationViewWithSource(conversation, {
+        parentNeedsCollection,
+        tutorProfilesCollection
+      })
+    : null;
+
+  return { ok: true, value, errors: {} };
 }
 
 export async function listServerConversationsForUser({
   authenticatedUserId,
-  conversationsCollection
+  conversationsCollection,
+  parentNeedsCollection,
+  tutorProfilesCollection
 }: ConversationDependencies & {
   authenticatedUserId: string;
 }): Promise<Success<ServerConversationView[]> | Failure> {
@@ -540,12 +600,19 @@ export async function listServerConversationsForUser({
     .sort(
       (left, right) =>
         new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+    );
+  const views = await Promise.all(
+    conversations.map((conversation) =>
+      toConversationViewWithSource(conversation, {
+        parentNeedsCollection,
+        tutorProfilesCollection
+      })
     )
-    .map(toConversationView);
+  );
 
   return {
     ok: true,
-    value: conversations,
+    value: views,
     errors: {}
   };
 }
@@ -556,7 +623,9 @@ export async function sendServerConversationMessage({
   conversationsCollection,
   messagesCollection,
   now = new Date().toISOString(),
-  text
+  parentNeedsCollection,
+  text,
+  tutorProfilesCollection
 }: ConversationDependencies & {
   authenticatedUserId: string;
   conversationId: string;
@@ -573,6 +642,21 @@ export async function sendServerConversationMessage({
 
   if (!conversation || !isParticipant(conversation, currentUserId)) {
     return createFailure("只有会话参与者可以发送消息");
+  }
+
+  const source = await readSourceState({
+    parentNeedsCollection,
+    sourceId: conversation.sourceId,
+    sourceType: conversation.sourceType,
+    tutorProfilesCollection
+  });
+
+  const sourceVersionMatches = !Number.isInteger(conversation.sourceVersion) ||
+    !Number.isInteger(source?.version) ||
+    conversation.sourceVersion === source?.version;
+
+  if (source?.status !== "published" || !sourceVersionMatches) {
+    return createFailure("关联发布已删除，会话当前只读");
   }
 
   const normalizedText = text.trim();

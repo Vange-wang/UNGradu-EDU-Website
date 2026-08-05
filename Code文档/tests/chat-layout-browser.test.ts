@@ -116,8 +116,9 @@ function renderFixture(css: string, messageCount: number, contentWidth?: number)
       authorizedProfiles: false,
       messages: buildMessages(messageCount),
       messageText: "",
-      onMessageTextChange: () => undefined,
-      onSubmit: () => undefined
+        onMessageTextChange: () => undefined,
+        onSubmit: () => undefined,
+        readOnly: false
     })
   );
 

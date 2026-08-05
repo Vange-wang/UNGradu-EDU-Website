@@ -345,6 +345,9 @@ const mockApiScript = String.raw`
     sourceStatus: "published",
     readOnly: false
   };
+  let chatRaceConversationReads = 0;
+  let chatRaceOldChildResponsesRemaining = 0;
+  window.issue0033RaceOldPublishedReleased = false;
 
   window.fetch = (input, init) => {
     const rawUrl = typeof input === "string" ? input : input.url;
@@ -490,12 +493,36 @@ const mockApiScript = String.raw`
     }
 
     if (url.pathname === "/api/conversations/preview-chat") {
+      if (mode === "chat-refresh-race") {
+        chatRaceConversationReads += 1;
+
+        if (chatRaceConversationReads === 1) {
+          return new Promise((resolve) => setTimeout(() => {
+            chatRaceOldChildResponsesRemaining = 3;
+            window.issue0033RaceOldPublishedReleased = true;
+            resolve(success(conversation));
+          }, 3500));
+        }
+
+        return Promise.resolve(success({
+          ...conversation,
+          sourceStatus: "deleted",
+          readOnly: true
+        }));
+      }
+
       return Promise.resolve(success(mode === "chat-deleted"
         ? { ...conversation, sourceStatus: "deleted", readOnly: true }
         : conversation));
     }
 
     if (url.pathname === "/api/conversations/preview-chat/messages") {
+      if (
+        mode === "chat-refresh-race" &&
+        chatRaceOldChildResponsesRemaining > 0
+      ) {
+        chatRaceOldChildResponsesRemaining -= 1;
+      }
       return Promise.resolve(success([]));
     }
 
@@ -503,31 +530,63 @@ const mockApiScript = String.raw`
       url.pathname === "/api/contact-exchange" &&
       url.searchParams.get("conversationId") === "preview-chat"
     ) {
+      const isOldRaceResponse =
+        mode === "chat-refresh-race" &&
+        chatRaceOldChildResponsesRemaining > 0;
+
+      if (isOldRaceResponse) {
+        chatRaceOldChildResponsesRemaining -= 1;
+      }
+
+      if (url.searchParams.get("view") === "authorized-profiles") {
+        const profiles = {
+          currentUser: {
+            ownerUserId: "preview-parent",
+            phone: "00000000000",
+            wechat: "issue0033_current",
+            updatedAt: "2026-07-30T00:00:00.000Z"
+          },
+          otherUser: {
+            ownerUserId: "preview-tutor",
+            phone: "11111111111",
+            wechat: "issue0033_other",
+            updatedAt: "2026-07-30T00:00:00.000Z"
+          }
+        };
+
+        return mode === "chat-deleted"
+          ? new Promise((resolve) => setTimeout(() => resolve(success(null)), 1500))
+          : Promise.resolve(success(
+              mode === "chat-refresh-race" && !isOldRaceResponse
+                ? null
+                : profiles
+            ));
+      }
+
       return Promise.resolve(
-        success(url.searchParams.get("view") === "authorized-profiles"
-          ? null
-          : mode === "chat-deleted"
-            ? [
-                {
-                  id: "received-pending",
-                  conversationId: "preview-chat",
-                  direction: "received",
-                  status: "pending",
-                  secondConfirmedAt: null,
-                  createdAt: "2026-07-30T00:00:00.000Z",
-                  updatedAt: "2026-07-30T00:00:00.000Z"
-                },
-                {
-                  id: "sent-pending",
-                  conversationId: "preview-chat",
-                  direction: "sent",
-                  status: "pending",
-                  secondConfirmedAt: null,
-                  createdAt: "2026-07-30T00:00:00.000Z",
-                  updatedAt: "2026-07-30T00:00:00.000Z"
-                }
-              ]
-            : [])
+        success(mode === "chat-deleted" ||
+          (mode === "chat-refresh-race" && !isOldRaceResponse)
+          ? [
+              {
+                id: "received-pending",
+                conversationId: "preview-chat",
+                direction: "received",
+                status: "pending",
+                secondConfirmedAt: null,
+                createdAt: "2026-07-30T00:00:00.000Z",
+                updatedAt: "2026-07-30T00:00:00.000Z"
+              },
+              {
+                id: "sent-pending",
+                conversationId: "preview-chat",
+                direction: "sent",
+                status: "pending",
+                secondConfirmedAt: null,
+                createdAt: "2026-07-30T00:00:00.000Z",
+                updatedAt: "2026-07-30T00:00:00.000Z"
+              }
+            ]
+          : [])
       );
     }
 
@@ -1754,8 +1813,32 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
       }
     }
 
-    await evaluate(`localStorage.setItem("issue0033-mode", "chat-deleted")`);
+    await evaluate(`localStorage.removeItem("issue0033-mode")`);
     await navigate("/chats/preview-chat", ".conversation-workspace");
+    await waitFor(
+      `document.querySelector(".contact-panel")?.textContent.includes("00000000000")`,
+      "已授权联系方式未渲染"
+    );
+    await evaluate(`localStorage.setItem("issue0033-mode", "chat-deleted")`);
+    await waitFor(
+      `Boolean(Array.from(document.querySelectorAll("button"))
+        .find((button) => button.textContent.includes("请求交换联系方式"))?.disabled)`,
+      "删除态未通过轮询进入只读"
+    );
+    const readOnlyTransition = (await evaluate<{
+      contactPanelVisible: boolean;
+      contactText: string;
+      deletedNotice: string;
+    }>(`(() => ({
+      contactPanelVisible: Boolean(document.querySelector(".contact-panel")),
+      contactText: document.querySelector(".contact-status-panel")?.textContent || "",
+      deletedNotice: document.querySelector(".contact-status-panel .privacy-note")?.textContent || ""
+    }))()`))!;
+    expect.soft(readOnlyTransition.contactPanelVisible).toBe(false);
+    expect.soft(readOnlyTransition.contactText).not.toContain("00000000000");
+    expect.soft(readOnlyTransition.contactText).not.toContain("11111111111");
+    expect.soft(readOnlyTransition.deletedNotice).toContain("关联发布已删除");
+
     await waitFor(
       `document.querySelectorAll(".exchange-card").length === 2`,
       "删除态交换请求未渲染"
@@ -1771,6 +1854,56 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
     }))()`))!;
     expect.soft(readOnlyActions.requestDisabled).toBe(true);
     expect.soft(readOnlyActions.actionTexts).toEqual([]);
+    await evaluate(`localStorage.removeItem("issue0033-mode")`);
+  }, 180_000);
+
+  it("keeps a newer deleted refresh authoritative when an older published refresh resolves late", async () => {
+    await setViewport(1280, 800);
+    await evaluate(`localStorage.removeItem("issue0033-mode");
+      window.issue0033RaceOldPublishedReleased = false`);
+    await navigate("/chats/preview-chat", ".conversation-workspace");
+    await waitFor(
+      `document.querySelector(".contact-panel")?.textContent.includes("00000000000")`,
+      "乱序刷新前已授权联系方式未渲染"
+    );
+
+    await evaluate(`localStorage.setItem("issue0033-mode", "chat-refresh-race")`);
+    await waitFor(
+      `Boolean(document.querySelector("#message-text")?.disabled)`,
+      "较新的删除态刷新未先完成"
+    );
+    await waitFor(
+      `window.issue0033RaceOldPublishedReleased === true`,
+      "较旧的 published 刷新未按契约延迟完成"
+    );
+    await delay(200);
+
+    const stateAfterLatePublished = (await evaluate<{
+      composeDisabled: boolean;
+      contactPanelVisible: boolean;
+      contactText: string;
+      deletedNotice: string;
+      exchangeActions: string[];
+      requestDisabled: boolean;
+    }>(`(() => ({
+      composeDisabled: Boolean(document.querySelector("#message-text")?.disabled),
+      contactPanelVisible: Boolean(document.querySelector(".contact-panel")),
+      contactText: document.querySelector(".contact-status-panel")?.textContent || "",
+      deletedNotice: document.querySelector(".contact-status-panel .privacy-note")?.textContent || "",
+      exchangeActions: Array.from(document.querySelectorAll(".exchange-card button"))
+        .map((button) => button.textContent.trim()),
+      requestDisabled: Boolean(Array.from(document.querySelectorAll("button"))
+        .find((button) => button.textContent.includes("请求交换联系方式"))?.disabled)
+    }))()`))!;
+
+    expect.soft(stateAfterLatePublished.composeDisabled).toBe(true);
+    expect.soft(stateAfterLatePublished.requestDisabled).toBe(true);
+    expect.soft(stateAfterLatePublished.exchangeActions).toEqual([]);
+    expect.soft(stateAfterLatePublished.contactPanelVisible).toBe(false);
+    expect.soft(stateAfterLatePublished.contactText).not.toContain("00000000000");
+    expect.soft(stateAfterLatePublished.contactText).not.toContain("11111111111");
+    expect.soft(stateAfterLatePublished.deletedNotice).toContain("关联发布已删除");
+
     await evaluate(`localStorage.removeItem("issue0033-mode")`);
   }, 180_000);
 });

@@ -59,7 +59,9 @@ describe("M5 API hardening", () => {
       contactProfilesCollection: createFakeCollection(),
       conversationsCollection: createFakeCollection(),
       env,
-      requestsCollection: createFakeCollection()
+      parentNeedsCollection: createFakeCollection(),
+      requestsCollection: createFakeCollection(),
+      tutorProfilesCollection: createFakeCollection()
     });
     const parentNeeds = createParentNeedApiHandlers({
       collection: createFakeCollection(),

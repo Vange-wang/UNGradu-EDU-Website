@@ -8,6 +8,7 @@ type ChatMessagePanelProps = {
   authorizedProfiles: boolean;
   messages: ServerConversationMessageView[];
   messageText: string;
+  readOnly: boolean;
   onMessageTextChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
@@ -26,7 +27,8 @@ export function ChatMessagePanel({
   messages,
   messageText,
   onMessageTextChange,
-  onSubmit
+  onSubmit,
+  readOnly
 }: ChatMessagePanelProps) {
   const messageListRef = useRef<HTMLDivElement>(null);
   const latestMessageId = messages.at(-1)?.id;
@@ -74,18 +76,25 @@ export function ChatMessagePanel({
         })}
       </div>
 
+      {readOnly ? (
+        <p className="privacy-note" role="status">
+          关联发布已删除；历史消息仍可查看，但当前会话不可发送新消息。
+        </p>
+      ) : null}
+
       <form className="chat-compose" onSubmit={onSubmit}>
         <label className="field" htmlFor="message-text">
           <span>发送文字消息</span>
           <textarea
             id="message-text"
+            disabled={readOnly}
             onChange={(event) => onMessageTextChange(event.target.value)}
             placeholder="输入沟通内容，不直接发送联系方式"
             rows={3}
             value={messageText}
           />
         </label>
-        <button className="button primary" type="submit">
+        <button className="button primary" disabled={readOnly} type="submit">
           发送
         </button>
       </form>

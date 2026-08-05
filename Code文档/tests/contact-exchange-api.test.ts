@@ -71,7 +71,11 @@ function createHandlers(env = { NODE_ENV: "test", NEXT_PUBLIC_ALLOW_TEST_LOGIN: 
       }
     }),
     env,
-    requestsCollection: createFakeCollection()
+    parentNeedsCollection: createFakeCollection({
+      "parent-need-a": { ownerUserId: "parent-a", status: "published", version: 1 }
+    }),
+    requestsCollection: createFakeCollection(),
+    tutorProfilesCollection: createFakeCollection()
   });
 }
 

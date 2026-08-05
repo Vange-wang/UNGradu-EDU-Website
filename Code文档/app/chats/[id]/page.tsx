@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import type { FormEvent } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { RequireTestSession } from "@/features/auth/require-test-session";
 import {
@@ -37,6 +37,7 @@ type AuthorizedProfiles = {
   currentUser: ContactProfileInput;
   otherUser: ContactProfileInput;
 } | null;
+type Notice = { kind: "error" | "success"; message: string } | null;
 
 function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
   const params = useParams<{ id: string }>();
@@ -46,19 +47,28 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
   const [authorizedProfiles, setAuthorizedProfiles] =
     useState<AuthorizedProfiles>(null);
   const [messageText, setMessageText] = useState("");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<Notice>(null);
   const [loaded, setLoaded] = useState(false);
+  const mountedRef = useRef(true);
+  const refreshSequenceRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    const refreshSequence = ++refreshSequenceRef.current;
+    const canCommit = () =>
+      mountedRef.current && refreshSequence === refreshSequenceRef.current;
     const conversationResult = await readConversationFromApi({
       conversationId: params.id,
       currentUserPhone
     });
+
+    if (!canCommit()) {
+      return;
+    }
+
     const currentConversation = conversationResult.ok ? conversationResult.value : null;
 
-    setConversation(currentConversation);
-
     if (!currentConversation) {
+      setConversation(null);
       setMessages([]);
       setRequests([]);
       setAuthorizedProfiles(null);
@@ -82,6 +92,11 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
         })
       ]);
 
+    if (!canCommit()) {
+      return;
+    }
+
+    setConversation(currentConversation);
     setMessages(messagesResult.ok ? messagesResult.value : []);
     setRequests(requestsResult.ok ? requestsResult.value : []);
     setAuthorizedProfiles(
@@ -89,6 +104,15 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
     );
     setLoaded(true);
   }, [currentUserPhone, params.id]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+      refreshSequenceRef.current += 1;
+    };
+  }, []);
 
   useEffect(() => {
     void refresh();
@@ -104,7 +128,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
 
   async function handleSendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice("");
+    setNotice(null);
 
     if (!conversation) {
       return;
@@ -117,16 +141,20 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
     });
 
     if (!result.ok) {
-      setNotice(result.errors.request ?? "消息发送失败");
+      setNotice({
+        kind: "error",
+        message: result.errors.request ?? "消息发送失败"
+      });
       return;
     }
 
+    setNotice({ kind: "success", message: "消息已发送。" });
     setMessageText("");
     await refresh();
   }
 
   async function handleCreateExchangeRequest() {
-    setNotice("");
+    setNotice(null);
 
     if (!conversation) {
       return;
@@ -137,12 +165,17 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
       currentUserPhone
     });
 
-    setNotice(result.ok ? "已发送联系方式交换请求。" : result.errors.request ?? "请求失败");
+    setNotice({
+      kind: result.ok ? "success" : "error",
+      message: result.ok
+        ? "已发送联系方式交换请求。"
+        : result.errors.request ?? "请求失败"
+    });
     await refresh();
   }
 
   async function handleApproveRequest(requestId: string) {
-    setNotice("");
+    setNotice(null);
 
     const confirmed = window.confirm(
       "二次确认：同意后双方将在本会话中看到彼此存档联系方式。是否继续？"
@@ -154,31 +187,46 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
       secondConfirmation: confirmed
     });
 
-    setNotice(result.ok ? "已同意交换联系方式。" : result.errors.request ?? "处理失败");
+    setNotice({
+      kind: result.ok ? "success" : "error",
+      message: result.ok
+        ? "已同意交换联系方式。"
+        : result.errors.request ?? "处理失败"
+    });
     await refresh();
   }
 
   async function handleRejectRequest(requestId: string) {
-    setNotice("");
+    setNotice(null);
 
     const result = await rejectContactExchangeRequestFromApi({
       currentUserPhone,
       requestId
     });
 
-    setNotice(result.ok ? "已拒绝该联系方式交换请求。" : result.errors.request ?? "处理失败");
+    setNotice({
+      kind: result.ok ? "success" : "error",
+      message: result.ok
+        ? "已拒绝该联系方式交换请求。"
+        : result.errors.request ?? "处理失败"
+    });
     await refresh();
   }
 
   async function handleWithdrawRequest(requestId: string) {
-    setNotice("");
+    setNotice(null);
 
     const result = await withdrawContactExchangeRequestFromApi({
       currentUserPhone,
       requestId
     });
 
-    setNotice(result.ok ? "已撤回该联系方式交换请求。" : result.errors.request ?? "处理失败");
+    setNotice({
+      kind: result.ok ? "success" : "error",
+      message: result.ok
+        ? "已撤回该联系方式交换请求。"
+        : result.errors.request ?? "处理失败"
+    });
     await refresh();
   }
 
@@ -235,6 +283,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
           messageText={messageText}
           onMessageTextChange={setMessageText}
           onSubmit={handleSendMessage}
+          readOnly={conversation.readOnly}
         />
 
         <aside className="chat-side contact-status-panel" aria-label="联系方式交换状态">
@@ -243,7 +292,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
             <h2>联系方式交换</h2>
           </div>
 
-          {authorizedProfiles ? (
+          {authorizedProfiles && !conversation.readOnly ? (
             <div className="contact-panel">
               <h3>已授权展示</h3>
               <p>我的手机号：{authorizedProfiles.currentUser.phone}</p>
@@ -252,18 +301,31 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
               <p>对方微信号：{authorizedProfiles.otherUser.wechat || "未填写"}</p>
             </div>
           ) : (
-            <p className="privacy-note">双方确认前，联系方式不会展示。</p>
+            <p className="privacy-note">
+              {conversation.readOnly
+                ? "关联发布已删除，联系方式不可查看或继续交换。"
+                : "双方确认前，联系方式不会展示。"}
+            </p>
           )}
 
           <button
             className="button primary full-width"
+            disabled={conversation.readOnly}
             onClick={handleCreateExchangeRequest}
             type="button"
           >
             请求交换联系方式
           </button>
 
-          {notice ? <p className="success">{notice}</p> : null}
+          {notice ? (
+            <p
+              aria-live={notice.kind === "error" ? "assertive" : "polite"}
+              className={notice.kind === "success" ? "success" : "privacy-note error"}
+              role={notice.kind === "error" ? "alert" : "status"}
+            >
+              {notice.message}
+            </p>
+          ) : null}
 
           <div className="exchange-list">
             {requests.length === 0 ? (
@@ -284,7 +346,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
                     </p>
                   </div>
 
-                  {request.status === "pending" && isReceiver ? (
+                  {request.status === "pending" && isReceiver && !conversation.readOnly ? (
                     <div className="exchange-actions">
                       <button
                         className="button primary"
@@ -303,7 +365,7 @@ function ChatRoom({ currentUserPhone }: { currentUserPhone: string }) {
                     </div>
                   ) : null}
 
-                  {request.status === "pending" && isRequester ? (
+                  {request.status === "pending" && isRequester && !conversation.readOnly ? (
                     <button
                       className="button secondary"
                       onClick={() => void handleWithdrawRequest(request.id)}

@@ -82,12 +82,23 @@ function createDependencies() {
     }
   });
   const requests = createFakeCollection();
+  const parentNeeds = createFakeCollection({
+    "parent-need-a": {
+      ownerUserId: "parent-a",
+      status: "published",
+      version: 1
+    }
+  });
+  const tutorProfiles = createFakeCollection();
 
   return {
     contactProfilesCollection: contactProfiles.collection,
     conversationsCollection: conversations.collection,
+    parentNeeds,
+    parentNeedsCollection: parentNeeds.collection,
     requests,
-    requestsCollection: requests.collection
+    requestsCollection: requests.collection,
+    tutorProfilesCollection: tutorProfiles.collection
   };
 }
 
@@ -275,5 +286,91 @@ describe("server contact exchange interface", () => {
       ok: false,
       errors: { request: "联系方式交换请求已过期" }
     });
+  });
+
+  it("blocks every exchange transition and hides previously authorized profiles while the source is deleted", async () => {
+    const dependencies = createDependencies();
+    const activeTimes = activeExchangeTimes();
+    const request = await createServerContactExchangeRequest({
+      ...dependencies,
+      authenticatedUserId: "parent-a",
+      conversationId: "conversation-a",
+      now: activeTimes.createdAt
+    });
+    await dependencies.parentNeedsCollection.doc("parent-need-a").set({
+      ownerUserId: "parent-a",
+      status: "deleted",
+      version: 2
+    });
+
+    await expect(
+      createServerContactExchangeRequest({
+        ...dependencies,
+        authenticatedUserId: "parent-a",
+        conversationId: "conversation-a"
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      errors: { request: "关联发布已删除，暂不可交换联系方式" }
+    });
+    await expect(
+      approveServerContactExchangeRequest({
+        ...dependencies,
+        authenticatedUserId: "tutor-a",
+        now: activeTimes.approvedAt,
+        requestId: request.ok ? request.value.id : "",
+        secondConfirmation: true
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      errors: { request: "关联发布已删除，暂不可交换联系方式" }
+    });
+    await expect(
+      rejectServerContactExchangeRequest({
+        ...dependencies,
+        authenticatedUserId: "tutor-a",
+        requestId: request.ok ? request.value.id : ""
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      errors: { request: "关联发布已删除，暂不可交换联系方式" }
+    });
+    await expect(
+      withdrawServerContactExchangeRequest({
+        ...dependencies,
+        authenticatedUserId: "parent-a",
+        requestId: request.ok ? request.value.id : ""
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      errors: { request: "关联发布已删除，暂不可交换联系方式" }
+    });
+
+    const approvedDependencies = createDependencies();
+    const approvedRequest = await createServerContactExchangeRequest({
+      ...approvedDependencies,
+      authenticatedUserId: "parent-a",
+      conversationId: "conversation-a",
+      now: activeTimes.createdAt
+    });
+    await approveServerContactExchangeRequest({
+      ...approvedDependencies,
+      authenticatedUserId: "tutor-a",
+      now: activeTimes.approvedAt,
+      requestId: approvedRequest.ok ? approvedRequest.value.id : "",
+      secondConfirmation: true
+    });
+    await approvedDependencies.parentNeedsCollection.doc("parent-need-a").set({
+      ownerUserId: "parent-a",
+      status: "deleted",
+      version: 2
+    });
+    await expect(
+      readServerAuthorizedContactProfiles({
+        ...approvedDependencies,
+        authenticatedUserId: "parent-a",
+        conversationId: "conversation-a"
+      })
+    ).resolves.toEqual({ ok: true, value: null, errors: {} });
   });
 });

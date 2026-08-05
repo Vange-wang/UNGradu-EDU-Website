@@ -26,7 +26,14 @@ type ConversationDocument = {
   participantUserIds?: string[];
   sourceId?: string;
   sourceType?: "parent-need" | "tutor-profile";
+  sourceStatus?: "deleted" | "published";
+  sourceVersion?: number;
   createdAt?: string;
+};
+
+type SourceDocument = {
+  status?: string;
+  version?: number;
 };
 
 type ContactExchangeRequestDocument = {
@@ -55,7 +62,9 @@ type ContactProfileCollection = Parameters<typeof readServerContactProfile>[0]["
 type ContactExchangeDependencies = {
   contactProfilesCollection: ContactProfileCollection;
   conversationsCollection: DocumentCollection<ConversationDocument>;
+  parentNeedsCollection: DocumentCollection<SourceDocument>;
   requestsCollection: DocumentCollection<ContactExchangeRequestDocument>;
+  tutorProfilesCollection: DocumentCollection<SourceDocument>;
 };
 
 type Failure = {
@@ -119,6 +128,35 @@ async function readConversation({
     id: conversationId,
     participantUserIds: conversation.participantUserIds.map(normalizeUserId)
   };
+}
+
+async function isConversationSourceAvailable({
+  conversation,
+  parentNeedsCollection,
+  tutorProfilesCollection
+}: Pick<
+  ContactExchangeDependencies,
+  "parentNeedsCollection" | "tutorProfilesCollection"
+> & {
+  conversation: ConversationDocument;
+}) {
+  if (!conversation.sourceId || !conversation.sourceType) {
+    return false;
+  }
+
+  const collection = conversation.sourceType === "parent-need"
+    ? parentNeedsCollection
+    : tutorProfilesCollection;
+  const result = await collection.doc(conversation.sourceId).get();
+  const source = result.data?.[0] as SourceDocument | undefined;
+
+  if (source?.status !== "published") {
+    return false;
+  }
+
+  return !Number.isInteger(conversation.sourceVersion) ||
+    !Number.isInteger(source.version) ||
+    conversation.sourceVersion === source.version;
 }
 
 function isParticipant(conversation: ConversationDocument, userId: string) {
@@ -303,7 +341,9 @@ export async function createServerContactExchangeRequest({
   conversationId,
   conversationsCollection,
   now = new Date().toISOString(),
-  requestsCollection
+  parentNeedsCollection,
+  requestsCollection,
+  tutorProfilesCollection
 }: ContactExchangeDependencies & {
   authenticatedUserId: string;
   conversationId: string;
@@ -322,6 +362,14 @@ export async function createServerContactExchangeRequest({
 
   if (!conversation || !isParticipant(conversation, currentUserId)) {
     return createFailure("只有会话参与者可以请求交换联系方式");
+  }
+
+  if (!(await isConversationSourceAvailable({
+    conversation,
+    parentNeedsCollection,
+    tutorProfilesCollection
+  }))) {
+    return createFailure("关联发布已删除，暂不可交换联系方式");
   }
 
   const receiverUserId = findOtherParticipant(conversation, currentUserId);
@@ -353,10 +401,13 @@ export async function createServerContactExchangeRequest({
 export async function approveServerContactExchangeRequest({
   authenticatedUserId,
   contactProfilesCollection,
+  conversationsCollection,
   now = new Date().toISOString(),
+  parentNeedsCollection,
   requestId,
   requestsCollection,
-  secondConfirmation
+  secondConfirmation,
+  tutorProfilesCollection
 }: ContactExchangeDependencies & {
   authenticatedUserId: string;
   now?: string;
@@ -381,6 +432,22 @@ export async function approveServerContactExchangeRequest({
 
   if (request.status !== "pending") {
     return createFailure("只能处理待处理的联系方式交换请求");
+  }
+
+  const conversation = await readConversation({
+    conversationId: request.conversationId,
+    conversationsCollection
+  });
+
+  if (
+    !conversation ||
+    !(await isConversationSourceAvailable({
+      conversation,
+      parentNeedsCollection,
+      tutorProfilesCollection
+    }))
+  ) {
+    return createFailure("关联发布已删除，暂不可交换联系方式");
   }
 
   if (!secondConfirmation) {
@@ -418,9 +485,12 @@ export async function approveServerContactExchangeRequest({
 
 export async function rejectServerContactExchangeRequest({
   authenticatedUserId,
+  conversationsCollection,
   now = new Date().toISOString(),
+  parentNeedsCollection,
   requestId,
-  requestsCollection
+  requestsCollection,
+  tutorProfilesCollection
 }: ContactExchangeDependencies & {
   authenticatedUserId: string;
   now?: string;
@@ -442,6 +512,22 @@ export async function rejectServerContactExchangeRequest({
     return createFailure("只能处理待处理的联系方式交换请求");
   }
 
+  const conversation = await readConversation({
+    conversationId: request.conversationId,
+    conversationsCollection
+  });
+
+  if (
+    !conversation ||
+    !(await isConversationSourceAvailable({
+      conversation,
+      parentNeedsCollection,
+      tutorProfilesCollection
+    }))
+  ) {
+    return createFailure("关联发布已删除，暂不可交换联系方式");
+  }
+
   const rejectedRequest = {
     ...request,
     status: "rejected" as const,
@@ -459,9 +545,12 @@ export async function rejectServerContactExchangeRequest({
 
 export async function withdrawServerContactExchangeRequest({
   authenticatedUserId,
+  conversationsCollection,
   now = new Date().toISOString(),
+  parentNeedsCollection,
   requestId,
-  requestsCollection
+  requestsCollection,
+  tutorProfilesCollection
 }: ContactExchangeDependencies & {
   authenticatedUserId: string;
   now?: string;
@@ -481,6 +570,22 @@ export async function withdrawServerContactExchangeRequest({
 
   if (request.status !== "pending") {
     return createFailure("只能撤回待处理的联系方式交换请求");
+  }
+
+  const conversation = await readConversation({
+    conversationId: request.conversationId,
+    conversationsCollection
+  });
+
+  if (
+    !conversation ||
+    !(await isConversationSourceAvailable({
+      conversation,
+      parentNeedsCollection,
+      tutorProfilesCollection
+    }))
+  ) {
+    return createFailure("关联发布已删除，暂不可交换联系方式");
   }
 
   const withdrawnRequest = {
@@ -547,7 +652,9 @@ export async function readServerAuthorizedContactProfiles({
   conversationId,
   conversationsCollection,
   now = new Date().toISOString(),
-  requestsCollection
+  parentNeedsCollection,
+  requestsCollection,
+  tutorProfilesCollection
 }: ContactExchangeDependencies & {
   authenticatedUserId: string;
   conversationId: string;
@@ -575,6 +682,14 @@ export async function readServerAuthorizedContactProfiles({
       value: null,
       errors: {}
     };
+  }
+
+  if (!(await isConversationSourceAvailable({
+    conversation,
+    parentNeedsCollection,
+    tutorProfilesCollection
+  }))) {
+    return { ok: true, value: null, errors: {} };
   }
 
   const approvedRequest = (await readRequestsForConversation({

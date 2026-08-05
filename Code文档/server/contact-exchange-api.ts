@@ -46,8 +46,18 @@ export function createContactExchangeApiHandlers({
   contactProfilesCollection,
   conversationsCollection,
   env = process.env,
-  requestsCollection
+  parentNeedsCollection,
+  requestsCollection,
+  tutorProfilesCollection
 }: ContactExchangeApiDependencies) {
+  const dependencies = {
+    contactProfilesCollection,
+    conversationsCollection,
+    parentNeedsCollection,
+    requestsCollection,
+    tutorProfilesCollection
+  };
+
   return {
     async GET(request: Request) {
       const auth = readTemporaryAuthenticatedUserId(request, env);
@@ -65,22 +75,18 @@ export function createContactExchangeApiHandlers({
 
       if (url.searchParams.get("view") === "authorized-profiles") {
         const result = await readServerAuthorizedContactProfiles({
+          ...dependencies,
           authenticatedUserId: auth.authenticatedUserId,
-          contactProfilesCollection,
-          conversationId,
-          conversationsCollection,
-          requestsCollection
+          conversationId
         });
 
         return jsonResponse(result, statusForResult(result, 403));
       }
 
       const result = await listServerContactExchangeRequests({
+        ...dependencies,
         authenticatedUserId: auth.authenticatedUserId,
-        contactProfilesCollection,
-        conversationId,
-        conversationsCollection,
-        requestsCollection
+        conversationId
       });
 
       return jsonResponse(result, statusForResult(result, 403));
@@ -101,12 +107,10 @@ export function createContactExchangeApiHandlers({
 
       if (body.value.action === "create" && body.value.conversationId) {
         const result = await createServerContactExchangeRequest({
+          ...dependencies,
           authenticatedUserId: auth.authenticatedUserId,
-          contactProfilesCollection,
           conversationId: body.value.conversationId,
-          conversationsCollection,
-          now: body.value.now,
-          requestsCollection
+          now: body.value.now
         });
 
         return jsonResponse(result, statusForResult(result, 403));
@@ -114,12 +118,10 @@ export function createContactExchangeApiHandlers({
 
       if (body.value.action === "approve" && body.value.requestId) {
         const result = await approveServerContactExchangeRequest({
+          ...dependencies,
           authenticatedUserId: auth.authenticatedUserId,
-          contactProfilesCollection,
-          conversationsCollection,
           now: body.value.now,
           requestId: body.value.requestId,
-          requestsCollection,
           secondConfirmation: Boolean(body.value.secondConfirmation)
         });
 
@@ -128,12 +130,10 @@ export function createContactExchangeApiHandlers({
 
       if (body.value.action === "reject" && body.value.requestId) {
         const result = await rejectServerContactExchangeRequest({
+          ...dependencies,
           authenticatedUserId: auth.authenticatedUserId,
-          contactProfilesCollection,
-          conversationsCollection,
           now: body.value.now,
-          requestId: body.value.requestId,
-          requestsCollection
+          requestId: body.value.requestId
         });
 
         return jsonResponse(result, statusForResult(result, 403));
@@ -141,12 +141,10 @@ export function createContactExchangeApiHandlers({
 
       if (body.value.action === "withdraw" && body.value.requestId) {
         const result = await withdrawServerContactExchangeRequest({
+          ...dependencies,
           authenticatedUserId: auth.authenticatedUserId,
-          contactProfilesCollection,
-          conversationsCollection,
           now: body.value.now,
-          requestId: body.value.requestId,
-          requestsCollection
+          requestId: body.value.requestId
         });
 
         return jsonResponse(result, statusForResult(result, 403));

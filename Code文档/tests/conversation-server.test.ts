@@ -229,6 +229,60 @@ describe("server conversations interface", () => {
     ).resolves.toEqual({ ok: true, value: [], errors: {} });
   });
 
+  it("keeps historical messages readable but blocks new messages when the source is deleted", async () => {
+    const dependencies = createDependencies();
+    const created = await createOrReadServerConversationFromSource({
+      ...dependencies,
+      authenticatedUserId: "tutor-a",
+      sourceId: "parent-need-a",
+      sourceType: "parent-need"
+    });
+    const conversationId = created.ok ? created.value.id : "";
+
+    await sendServerConversationMessage({
+      ...dependencies,
+      authenticatedUserId: "tutor-a",
+      conversationId,
+      text: "删除前消息"
+    });
+    dependencies.parentNeedsCollection.doc("parent-need-a").set({
+      ownerUserId: "parent-a",
+      status: "deleted"
+    });
+
+    await expect(
+      listServerConversationMessages({
+        ...dependencies,
+        authenticatedUserId: "parent-a",
+        conversationId
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      value: [expect.objectContaining({ text: "删除前消息" })]
+    });
+    await expect(
+      readServerConversationForUser({
+        ...dependencies,
+        authenticatedUserId: "parent-a",
+        conversationId
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      value: { readOnly: true, sourceStatus: "deleted" }
+    });
+    await expect(
+      sendServerConversationMessage({
+        ...dependencies,
+        authenticatedUserId: "parent-a",
+        conversationId,
+        text: "删除后不得发送"
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      errors: { request: "关联发布已删除，会话当前只读" }
+    });
+  });
+
   it("lists only conversations that include the current user", async () => {
     const dependencies = createDependencies();
     await createOrReadServerConversationFromSource({

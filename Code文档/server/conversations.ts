@@ -49,7 +49,7 @@ type ConversationMessageDocument = {
 
 type DocumentCollection<T extends Record<string, unknown>> = {
   doc: (docId: string) => {
-    get: () => Promise<{ data?: unknown[] }>;
+    get: () => Promise<{ data?: unknown[] | Record<string, unknown> }>;
     set: (data: T) => Promise<unknown>;
   };
   get?: () => Promise<{ data?: unknown[] }>;
@@ -78,6 +78,12 @@ type DocumentCollection<T extends Record<string, unknown>> = {
     get: () => Promise<{ data?: unknown[] }>;
   };
 };
+
+function firstDocument(result: { data?: unknown }) {
+  const data = result.data;
+  if (Array.isArray(data)) return data[0];
+  return data && typeof data === "object" ? data : undefined;
+}
 
 type ConversationDependencies = {
   conversationsCollection: DocumentCollection<ConversationDocument>;
@@ -108,6 +114,17 @@ function createOpaqueId(prefix: string) {
   }
 
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function resolveDocumentId(preallocatedId: string | undefined, prefix: string) {
+  if (preallocatedId === undefined) {
+    return createOpaqueId(prefix);
+  }
+
+  const normalizedId = preallocatedId.trim();
+  return normalizedId.startsWith(`${prefix}-`) && normalizedId.length <= 160
+    ? normalizedId
+    : null;
 }
 
 function createConversationUniqKey({
@@ -283,7 +300,7 @@ async function readSourceState({
   const collection =
     sourceType === "parent-need" ? parentNeedsCollection : tutorProfilesCollection;
   const result = await collection.doc(sourceId).get();
-  const source = result.data?.[0] as SourceDocument | undefined;
+  const source = firstDocument(result) as SourceDocument | undefined;
 
   return source ?? null;
 }
@@ -392,7 +409,7 @@ async function readConversation({
   conversationId: string;
 }) {
   const result = await conversationsCollection.doc(conversationId).get();
-  const conversation = result.data?.[0] as ConversationDocument | undefined;
+  const conversation = firstDocument(result) as ConversationDocument | undefined;
 
   return conversation
     ? normalizeConversation({ ...conversation, id: conversationId })
@@ -467,12 +484,14 @@ export async function createOrReadServerConversationFromSource({
   conversationsCollection,
   now = new Date().toISOString(),
   parentNeedsCollection,
+  preallocatedId,
   sourceId,
   sourceType,
   tutorProfilesCollection
 }: ConversationDependencies & {
   authenticatedUserId: string;
   now?: string;
+  preallocatedId?: string;
   sourceId: string;
   sourceType: ServerConversationSourceType;
 }): Promise<Success<ServerConversationView> | Failure> {
@@ -503,6 +522,25 @@ export async function createOrReadServerConversationFromSource({
     sourceId,
     sourceType
   });
+  const requestedId = resolveDocumentId(preallocatedId, "conversation");
+  if (!requestedId) {
+    return createFailure("会话标识无效");
+  }
+  if (preallocatedId !== undefined) {
+    const exactDocument = firstDocument(
+      await conversationsCollection.doc(requestedId).get()
+    ) as
+      | ConversationDocument
+      | undefined;
+    const exact = exactDocument ? normalizeConversation(exactDocument) : null;
+    if (exact) {
+      return exact.sourceId === sourceId &&
+        exact.sourceType === sourceType &&
+        exact.participantUserIds.join(":") === participants.join(":")
+        ? { ok: true, value: toConversationView(exact), errors: {} }
+        : createFailure("会话标识已被占用");
+    }
+  }
   const existingConversation = (await readConversationsByUniqueKey({
     conversationUniqKey,
     conversationsCollection
@@ -532,7 +570,7 @@ export async function createOrReadServerConversationFromSource({
 
   const conversation = {
     conversationUniqKey,
-    id: createOpaqueId("conversation"),
+    id: requestedId,
     participantKeys: participants,
     participantUserIds: participants,
     sourceId,
@@ -624,12 +662,14 @@ export async function sendServerConversationMessage({
   messagesCollection,
   now = new Date().toISOString(),
   parentNeedsCollection,
+  preallocatedId,
   text,
   tutorProfilesCollection
 }: ConversationDependencies & {
   authenticatedUserId: string;
   conversationId: string;
   now?: string;
+  preallocatedId?: string;
   text: string;
 }): Promise<Success<ServerConversationMessageView> | Failure> {
   const currentUserId = requireAuthenticatedUser(authenticatedUserId);
@@ -665,8 +705,27 @@ export async function sendServerConversationMessage({
     return createFailure("消息内容不能为空");
   }
 
+  const requestedId = resolveDocumentId(preallocatedId, "message");
+  if (!requestedId) {
+    return createFailure("消息标识无效");
+  }
+  if (preallocatedId !== undefined) {
+    const existing = firstDocument(await messagesCollection.doc(requestedId).get()) as
+      | ConversationMessageDocument
+      | undefined;
+    if (existing) {
+      const normalizedExisting = normalizeMessage({ ...existing, id: requestedId });
+      return normalizedExisting &&
+        existing.conversationId === conversationId &&
+        existing.senderUserId === currentUserId &&
+        existing.text === normalizedText
+        ? { ok: true, value: toMessageView(normalizedExisting, currentUserId), errors: {} }
+        : createFailure("消息标识已被占用");
+    }
+  }
+
   const message = {
-    id: createOpaqueId("message"),
+    id: requestedId,
     conversationId,
     senderUserId: currentUserId,
     text: normalizedText,

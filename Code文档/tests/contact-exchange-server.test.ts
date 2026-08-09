@@ -374,3 +374,71 @@ describe("server contact exchange interface", () => {
     ).resolves.toEqual({ ok: true, value: null, errors: {} });
   });
 });
+
+describe("synthetic fixture deterministic contact seam", () => {
+  it("replays preallocated create and approval ids without duplicate writes", async () => {
+    const dependencies = createDependencies();
+    const requestId = "contact-exchange-synthetic-deterministic";
+    const createInput = {
+      ...dependencies,
+      authenticatedUserId: "tutor-a",
+      conversationId: "conversation-a",
+      now: "2026-08-05T18:00:00.000Z",
+      preallocatedId: requestId
+    };
+    const first = await createServerContactExchangeRequest(createInput);
+    const replayed = await createServerContactExchangeRequest(createInput);
+    expect(first).toMatchObject({ ok: true, value: { id: requestId, status: "pending" } });
+    expect(replayed).toEqual(first);
+    expect(dependencies.requests.documents).toHaveLength(1);
+
+    const approveInput = {
+      ...dependencies,
+      authenticatedUserId: "parent-a",
+      approvalIdempotencyKey: "approve-synthetic-deterministic",
+      now: "2026-08-05T18:00:01.000Z",
+      requestId,
+      secondConfirmation: true
+    };
+    const approved = await approveServerContactExchangeRequest(approveInput);
+    const replayedApproval = await approveServerContactExchangeRequest(approveInput);
+    expect(approved).toMatchObject({ ok: true, value: { id: requestId, status: "approved" } });
+    expect(replayedApproval).toEqual(approved);
+
+    await dependencies.parentNeedsCollection.doc("parent-need-a").set({
+      ownerUserId: "parent-a",
+      status: "deleted",
+      version: 2
+    });
+    await expect(approveServerContactExchangeRequest(approveInput)).resolves.toMatchObject({
+      ok: false,
+      errors: { request: "关联发布已删除，暂不可交换联系方式" }
+    });
+
+    await dependencies.parentNeedsCollection.doc("parent-need-a").set({
+      ownerUserId: "parent-a",
+      status: "published",
+      version: 1
+    });
+    await expect(approveServerContactExchangeRequest(approveInput)).resolves.toEqual(approved);
+  });
+
+  it("fails closed when a preallocated request id belongs to another relation", async () => {
+    const dependencies = createDependencies();
+    dependencies.requests.documents.set("contact-exchange-synthetic-collision", {
+      conversationId: "other-conversation",
+      requesterUserId: "tutor-a",
+      receiverUserId: "parent-a",
+      status: "pending",
+      secondConfirmedAt: null,
+      createdAt: "2026-08-05T18:00:00.000Z",
+      updatedAt: "2026-08-05T18:00:00.000Z"
+    });
+    await expect(createServerContactExchangeRequest({
+      ...dependencies,
+      authenticatedUserId: "tutor-a",
+      conversationId: "conversation-a",
+      preallocatedId: "contact-exchange-synthetic-collision"
+    })).resolves.toMatchObject({ ok: false });
+  });
+});

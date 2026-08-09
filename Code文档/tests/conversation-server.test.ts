@@ -431,3 +431,65 @@ describe("server conversations interface", () => {
     });
   });
 });
+
+describe("synthetic fixture deterministic write seam", () => {
+  it("replays a preallocated conversation and message id without a second write", async () => {
+    const dependencies = createDependencies();
+    const conversationId = "conversation-synthetic-deterministic";
+    const messageId = "message-synthetic-deterministic";
+
+    const conversationInput = {
+      ...dependencies,
+      authenticatedUserId: "tutor-a",
+      now: "2026-08-05T18:00:00.000Z",
+      preallocatedId: conversationId,
+      sourceId: "parent-need-a",
+      sourceType: "parent-need" as const
+    };
+    const firstConversation = await createOrReadServerConversationFromSource(conversationInput);
+    const replayedConversation = await createOrReadServerConversationFromSource(conversationInput);
+    expect(firstConversation).toMatchObject({ ok: true, value: { id: conversationId } });
+    expect(replayedConversation).toEqual(firstConversation);
+    expect(dependencies.conversations.documents).toHaveLength(1);
+
+    const messageInput = {
+      ...dependencies,
+      authenticatedUserId: "tutor-a",
+      conversationId,
+      now: "2026-08-05T18:00:01.000Z",
+      preallocatedId: messageId,
+      text: "synthetic deterministic message"
+    };
+    const firstMessage = await sendServerConversationMessage(messageInput);
+    const replayedMessage = await sendServerConversationMessage(messageInput);
+    expect(firstMessage).toMatchObject({ ok: true, value: { id: messageId } });
+    expect(replayedMessage).toEqual(firstMessage);
+    expect(dependencies.messages.documents).toHaveLength(1);
+  });
+
+  it("fails closed when a preallocated message id belongs to different content", async () => {
+    const dependencies = createDependencies();
+    const conversation = await createOrReadServerConversationFromSource({
+      ...dependencies,
+      authenticatedUserId: "tutor-a",
+      preallocatedId: "conversation-synthetic-collision",
+      sourceId: "parent-need-a",
+      sourceType: "parent-need"
+    });
+    if (!conversation.ok) throw new Error("fixture setup failed");
+    await sendServerConversationMessage({
+      ...dependencies,
+      authenticatedUserId: "tutor-a",
+      conversationId: conversation.value.id,
+      preallocatedId: "message-synthetic-collision",
+      text: "first"
+    });
+    await expect(sendServerConversationMessage({
+      ...dependencies,
+      authenticatedUserId: "tutor-a",
+      conversationId: conversation.value.id,
+      preallocatedId: "message-synthetic-collision",
+      text: "different"
+    })).resolves.toMatchObject({ ok: false });
+  });
+});

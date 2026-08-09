@@ -37,6 +37,7 @@ type SourceDocument = {
 };
 
 type ContactExchangeRequestDocument = {
+  approvalIdempotencyKey?: string;
   id?: string;
   conversationId?: string;
   requesterUserId?: string;
@@ -49,13 +50,19 @@ type ContactExchangeRequestDocument = {
 
 type DocumentCollection<T extends Record<string, unknown>> = {
   doc: (docId: string) => {
-    get: () => Promise<{ data?: unknown[] }>;
+    get: () => Promise<{ data?: unknown[] | Record<string, unknown> }>;
     set: (data: T) => Promise<unknown>;
   };
   where: (query: Record<string, unknown>) => {
     get: () => Promise<{ data?: unknown[] }>;
   };
 };
+
+function firstDocument(result: { data?: unknown }) {
+  const data = result.data;
+  if (Array.isArray(data)) return data[0];
+  return data && typeof data === "object" ? data : undefined;
+}
 
 type ContactProfileCollection = Parameters<typeof readServerContactProfile>[0]["collection"];
 
@@ -93,6 +100,17 @@ function createOpaqueId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
+function resolveDocumentId(preallocatedId: string | undefined, prefix: string) {
+  if (preallocatedId === undefined) {
+    return createOpaqueId(prefix);
+  }
+
+  const normalizedId = preallocatedId.trim();
+  return normalizedId.startsWith(`${prefix}-`) && normalizedId.length <= 160
+    ? normalizedId
+    : null;
+}
+
 function createFailure(message: string): Failure {
   return {
     ok: false,
@@ -117,7 +135,7 @@ async function readConversation({
   conversationId: string;
 }) {
   const result = await conversationsCollection.doc(conversationId).get();
-  const conversation = result.data?.[0] as ConversationDocument | undefined;
+  const conversation = firstDocument(result) as ConversationDocument | undefined;
 
   if (!conversation?.participantUserIds?.length) {
     return null;
@@ -148,7 +166,7 @@ async function isConversationSourceAvailable({
     ? parentNeedsCollection
     : tutorProfilesCollection;
   const result = await collection.doc(conversation.sourceId).get();
-  const source = result.data?.[0] as SourceDocument | undefined;
+  const source = firstDocument(result) as SourceDocument | undefined;
 
   if (source?.status !== "published") {
     return false;
@@ -210,7 +228,7 @@ function normalizeRequest(
     | "status"
     | "updatedAt"
   >
-> | null {
+> & Pick<ContactExchangeRequestDocument, "approvalIdempotencyKey"> | null {
   if (
     !request.id ||
     !request.conversationId ||
@@ -229,6 +247,7 @@ function normalizeRequest(
     requesterUserId: request.requesterUserId,
     receiverUserId: request.receiverUserId,
     status: request.status,
+    approvalIdempotencyKey: request.approvalIdempotencyKey,
     secondConfirmedAt: request.secondConfirmedAt ?? null,
     createdAt: request.createdAt,
     updatedAt: request.updatedAt
@@ -267,7 +286,7 @@ async function readRequestById({
   requestId: string;
 }) {
   const result = await requestsCollection.doc(requestId).get();
-  const rawRequest = result.data?.[0] as ContactExchangeRequestDocument | undefined;
+  const rawRequest = firstDocument(result) as ContactExchangeRequestDocument | undefined;
 
   if (!rawRequest) {
     return null;
@@ -342,12 +361,14 @@ export async function createServerContactExchangeRequest({
   conversationsCollection,
   now = new Date().toISOString(),
   parentNeedsCollection,
+  preallocatedId,
   requestsCollection,
   tutorProfilesCollection
 }: ContactExchangeDependencies & {
   authenticatedUserId: string;
   conversationId: string;
   now?: string;
+  preallocatedId?: string;
 }): Promise<Success<ServerContactExchangeRequestView> | Failure> {
   const currentUserId = requireAuthenticatedUser(authenticatedUserId);
 
@@ -378,8 +399,23 @@ export async function createServerContactExchangeRequest({
     return createFailure("无法找到联系方式交换接收方");
   }
 
+  const requestedId = resolveDocumentId(preallocatedId, "contact-exchange");
+  if (!requestedId) {
+    return createFailure("联系方式交换请求标识无效");
+  }
+  if (preallocatedId !== undefined) {
+    const existing = await readRequestById({ now, requestId: requestedId, requestsCollection });
+    if (existing) {
+      return existing.conversationId === conversationId &&
+        existing.requesterUserId === currentUserId &&
+        existing.receiverUserId === receiverUserId
+        ? { ok: true, value: toRequestView(existing, currentUserId), errors: {} }
+        : createFailure("联系方式交换请求标识已被占用");
+    }
+  }
+
   const request = {
-    id: createOpaqueId("contact-exchange"),
+    id: requestedId,
     conversationId,
     requesterUserId: currentUserId,
     receiverUserId,
@@ -400,6 +436,7 @@ export async function createServerContactExchangeRequest({
 
 export async function approveServerContactExchangeRequest({
   authenticatedUserId,
+  approvalIdempotencyKey,
   contactProfilesCollection,
   conversationsCollection,
   now = new Date().toISOString(),
@@ -410,6 +447,7 @@ export async function approveServerContactExchangeRequest({
   tutorProfilesCollection
 }: ContactExchangeDependencies & {
   authenticatedUserId: string;
+  approvalIdempotencyKey?: string;
   now?: string;
   requestId: string;
   secondConfirmation: boolean;
@@ -430,7 +468,13 @@ export async function approveServerContactExchangeRequest({
     return createFailure("联系方式交换请求已过期");
   }
 
-  if (request.status !== "pending") {
+  const normalizedApprovalKey = approvalIdempotencyKey?.trim();
+  const isMatchingApprovalReplay =
+    request.status === "approved" &&
+    Boolean(normalizedApprovalKey) &&
+    request.approvalIdempotencyKey === normalizedApprovalKey;
+
+  if (request.status !== "pending" && !isMatchingApprovalReplay) {
     return createFailure("只能处理待处理的联系方式交换请求");
   }
 
@@ -467,10 +511,15 @@ export async function approveServerContactExchangeRequest({
     return createFailure("双方都必须先填写存档手机号");
   }
 
+  if (isMatchingApprovalReplay) {
+    return { ok: true, value: toRequestView(request, currentUserId), errors: {} };
+  }
+
   const approvedRequest = {
     ...request,
     status: "approved" as const,
     secondConfirmedAt: now,
+    ...(normalizedApprovalKey ? { approvalIdempotencyKey: normalizedApprovalKey } : {}),
     updatedAt: now
   };
 

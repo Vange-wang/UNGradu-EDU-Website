@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { appendFileSync, existsSync, writeFileSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
@@ -18,6 +18,22 @@ const browserPath = [
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ].find((candidate): candidate is string => Boolean(candidate && existsSync(candidate)));
 const describeWithBrowser = browserPath ? describe : describe.skip;
+
+function attachDiagnosticNextLogs(nextProcess: ReturnType<typeof spawn>, label: string) {
+  const directory = process.env.ISSUE_0034_DIAGNOSTIC_LOG_DIR;
+  if (!directory) return;
+
+  const stdoutPath = path.join(directory, `${label}.next.stdout.log`);
+  const stderrPath = path.join(directory, `${label}.next.stderr.log`);
+  try {
+    writeFileSync(stdoutPath, "", { encoding: "utf8" });
+    writeFileSync(stderrPath, "", { encoding: "utf8" });
+    nextProcess.stdout?.on("data", (chunk) => appendFileSync(stdoutPath, chunk));
+    nextProcess.stderr?.on("data", (chunk) => appendFileSync(stderrPath, chunk));
+  } catch {
+    // The diagnostic harness records the failure separately if the directory is unavailable.
+  }
+}
 const require = createRequire(import.meta.url);
 
 type WebSocketClient = {
@@ -227,10 +243,13 @@ describeWithBrowser("真实共享 Header 访问轨迹返回", () => {
           AUTH_SESSION_SECRET: "navigation-browser-test-secret",
           NEXT_PUBLIC_ALLOW_TEST_LOGIN: "true"
         },
-        stdio: "ignore",
+        stdio: process.env.ISSUE_0034_DIAGNOSTIC_LOG_DIR
+          ? ["ignore", "pipe", "pipe"]
+          : "ignore",
         windowsHide: true
       }
     );
+    attachDiagnosticNextLogs(nextProcess, "navigation-trail");
 
     for (let attempt = 0; attempt < 300; attempt += 1) {
       try {

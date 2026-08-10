@@ -6,9 +6,41 @@ import {
   evaluateOriginRequest,
   normalizeOriginVerificationMode
 } from "./server/origin-request-verification";
+import { evaluateWriteRequest } from "./server/security/request-guard";
+import { createRedactedSecurityAudit } from "./server/security/security-observability";
+import { readAuthSessionFromRequest } from "./server/auth-session";
+import {
+  createContentSecurityPolicy,
+  createCspNonce
+} from "./server/security/content-security-policy";
 
 export function middleware(request: NextRequest) {
-  const mode = normalizeOriginVerificationMode(process.env.ORIGIN_VERIFY_MODE);
+  const nonce = createCspNonce();
+
+  if (!nonce) {
+    return new NextResponse("Security configuration unavailable.", {
+      headers: {
+        "Cache-Control": "no-store",
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      status: 503
+    });
+  }
+
+  const isProduction =
+    process.env.APP_ENV === "production" || process.env.NODE_ENV === "production";
+  const contentSecurityPolicy = createContentSecurityPolicy(nonce, {
+    allowUnsafeEval: !isProduction
+  });
+  const withContentSecurityPolicy = (response: NextResponse) => {
+    response.headers.set("Content-Security-Policy", contentSecurityPolicy);
+    return response;
+  };
+
+  const mode = normalizeOriginVerificationMode(process.env.ORIGIN_VERIFY_MODE, {
+    appEnv: process.env.APP_ENV,
+    nodeEnv: process.env.NODE_ENV
+  });
   const result = evaluateOriginRequest({
     mode,
     expectedSecret: process.env.ORIGIN_VERIFY_SECRET,
@@ -28,16 +60,64 @@ export function middleware(request: NextRequest) {
   }
 
   if (result.shouldReject) {
-    return new NextResponse("Forbidden.", {
+    return withContentSecurityPolicy(new NextResponse("Forbidden.", {
       headers: {
         "Cache-Control": "no-store",
         "Content-Type": "text/plain; charset=utf-8"
       },
       status: 403
-    });
+    }));
   }
 
-  return NextResponse.next();
+  const writeGuard = evaluateWriteRequest({
+    env: {
+      allowedOrigins: process.env.ALLOWED_ORIGINS ??
+        (process.env.NODE_ENV === "production" ? undefined : request.nextUrl.origin),
+      csrfSecret: process.env.CSRF_SECRET,
+      mode,
+      appEnv: process.env.APP_ENV,
+      nodeEnv: process.env.NODE_ENV,
+      subjectId: readAuthSessionFromRequest(request, process.env)?.userId
+    },
+    request
+  });
+
+  if (!writeGuard.ok) {
+    console.warn(
+      JSON.stringify(
+        createRedactedSecurityAudit({
+          correlationId: writeGuard.correlationId,
+          event: "write_request_rejected",
+          metadata: {
+            method: request.method,
+            pathname: request.nextUrl.pathname,
+            reason: writeGuard.reason
+          }
+        })
+      )
+    );
+    return withContentSecurityPolicy(new NextResponse("Forbidden.", {
+      headers: {
+        "Cache-Control": "no-store",
+        "Content-Type": "text/plain; charset=utf-8",
+        "x-correlation-id": writeGuard.correlationId
+      },
+      status: 403
+    }));
+  }
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("Content-Security-Policy", contentSecurityPolicy);
+  // Next App Router reads the per-request nonce from the forwarded request
+  // headers and applies it to its inline hydration scripts/styles. Keep the
+  // nonce internal to the render request; never expose it in the response.
+  requestHeaders.set("x-nonce", nonce);
+  const response = NextResponse.next({
+    request: { headers: requestHeaders }
+  });
+  response.headers.set("Content-Security-Policy", contentSecurityPolicy);
+  response.headers.set("x-correlation-id", writeGuard.correlationId);
+  return response;
 }
 
 export const config = {

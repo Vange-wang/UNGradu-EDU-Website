@@ -1,5 +1,6 @@
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { appendFileSync, existsSync, writeFileSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
@@ -18,6 +19,22 @@ const browserPath = [
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ].find((candidate): candidate is string => Boolean(candidate && existsSync(candidate)));
 const describeWithBrowser = browserPath ? describe : describe.skip;
+
+function attachDiagnosticNextLogs(nextProcess: ReturnType<typeof spawn>, label: string) {
+  const directory = process.env.ISSUE_0034_DIAGNOSTIC_LOG_DIR;
+  if (!directory) return;
+
+  const stdoutPath = path.join(directory, `${label}.next.stdout.log`);
+  const stderrPath = path.join(directory, `${label}.next.stderr.log`);
+  try {
+    writeFileSync(stdoutPath, "", { encoding: "utf8" });
+    writeFileSync(stderrPath, "", { encoding: "utf8" });
+    nextProcess.stdout?.on("data", (chunk) => appendFileSync(stdoutPath, chunk));
+    nextProcess.stderr?.on("data", (chunk) => appendFileSync(stderrPath, chunk));
+  } catch {
+    // The diagnostic harness records the failure separately if the directory is unavailable.
+  }
+}
 const require = createRequire(import.meta.url);
 
 type WebSocketClient = {
@@ -36,11 +53,14 @@ const WebSocketClient = require("ws") as WebSocketConstructor;
 type CdpResponse = {
   error?: { message: string };
   id?: number;
+  method?: string;
+  params?: unknown;
   result?: unknown;
 };
 
 class CdpClient {
   private nextId = 1;
+  private readonly eventListeners = new Map<string, Array<(params: unknown) => void>>();
   private readonly pending = new Map<
     number,
     { reject: (error: Error) => void; resolve: (value: unknown) => void }
@@ -51,6 +71,11 @@ class CdpClient {
       const message = JSON.parse(data.toString()) as CdpResponse;
 
       if (!message.id) {
+        if (message.method) {
+          for (const listener of this.eventListeners.get(message.method) ?? []) {
+            listener(message.params);
+          }
+        }
         return;
       }
 
@@ -71,6 +96,12 @@ class CdpClient {
     });
   }
 
+  onEvent(method: string, listener: (params: unknown) => void) {
+    const listeners = this.eventListeners.get(method) ?? [];
+    listeners.push(listener);
+    this.eventListeners.set(method, listeners);
+  }
+
   close() {
     this.socket.close();
   }
@@ -84,6 +115,24 @@ class CdpClient {
       this.socket.send(JSON.stringify({ id, method, params }));
     });
   }
+}
+
+function hashDiagnostic(value: string) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function classifyBrowserEvent(value: unknown) {
+  const text = String(value ?? "");
+  if (/refused to execute inline script|script-src/i.test(text)) return "csp-script-blocked";
+  if (/style-src-attr|style attribute/i.test(text)) return "csp-style-attr-blocked";
+  if (/style-src-elem|style element|<style/i.test(text)) return "csp-style-element-blocked";
+  if (/refused to apply inline style|style-src/i.test(text)) return "csp-style-blocked";
+  if (/csp|content security|unsafe-inline|unsafe-eval/i.test(text)) return "csp-blocked";
+  if (/ERR_ABORTED|aborted/i.test(text)) return "request-aborted";
+  if (/404|not found/i.test(text)) return "http-404";
+  if (/500|internal server/i.test(text)) return "http-500";
+  if (/hydration|react/i.test(text)) return "react-hydration";
+  return "other";
 }
 
 type PageMetrics = {
@@ -322,12 +371,15 @@ const mockApiScript = String.raw`
     id: "preview-tutor",
     gender: "女",
     school: "匿名测试大学",
+    schoolSummary: "匿名测试大学",
     major: "数学",
+    majorSummary: "数学",
     subjects: ["数学"],
     grades: ["初中"],
     timeSlots: ["周六下午"],
     feeRanges: [{ grade: "初中", subject: "数学", min: 80, max: 120 }],
     abilityDescription: "本地匿名视觉验收数据",
+    abilityDescriptionSummary: "能力说明暂未公开",
     proofImages: [],
     status: "published",
     createdAt: "2026-07-30T00:00:00.000Z",
@@ -492,6 +544,24 @@ const mockApiScript = String.raw`
       return Promise.resolve(success(tutorProfile));
     }
 
+    if (url.pathname === "/api/auth/session" && method === "GET") {
+      return Promise.resolve(success({
+        userId: "preview-user",
+        phone: "13800138000"
+      }));
+    }
+
+    if (url.pathname === "/api/auth/test-login" && method === "POST") {
+      return Promise.resolve(success({
+        userId: "preview-user",
+        phone: "13800138000"
+      }));
+    }
+
+    if (url.pathname === "/api/conversations" && method === "GET") {
+      return Promise.resolve(success([]));
+    }
+
     if (url.pathname === "/api/conversations/preview-chat") {
       if (mode === "chat-refresh-race") {
         chatRaceConversationReads += 1;
@@ -609,6 +679,136 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
     Record<string, HomeMetrics | IntroMetrics | ProfileMetrics>
   > = {};
   const mobileCrops: Array<{ buffer: Buffer; label: string }> = [];
+  const browserEvidenceDirectory = process.env.ISSUE_0034_DYNAMIC_EVIDENCE_DIR;
+  const browserEvents: Array<{ type: string; class: string }> = [];
+  const documentCspHistory: Array<{
+    hasNonce: boolean;
+    nonceHashes: string[];
+    unsafeEval: boolean;
+    unsafeInline: boolean;
+  }> = [];
+  let lastDocumentCsp: {
+    hasNonce: boolean;
+    nonceHashes: string[];
+    unsafeEval: boolean;
+    unsafeInline: boolean;
+  } = {
+    hasNonce: false,
+    nonceHashes: [],
+    unsafeEval: false,
+    unsafeInline: false
+  };
+
+  function recordBrowserEvent(type: string, detail: unknown) {
+    browserEvents.push({ type, class: classifyBrowserEvent(detail) });
+    if (browserEvents.length > 64) browserEvents.shift();
+  }
+
+  function readCspNonceHashes(value: string | null) {
+    if (!value) {
+      return {
+        hasNonce: false,
+        nonceHashes: [],
+        unsafeEval: false,
+        unsafeInline: false
+      };
+    }
+    const nonceHashes = [...String(value).matchAll(/'nonce-([^']+)'/gi)]
+      .map((match) => hashDiagnostic(match[1].toLowerCase()))
+      .sort();
+    return {
+      hasNonce: nonceHashes.length > 0,
+      nonceHashes,
+      unsafeEval: /'unsafe-eval'/i.test(value),
+      unsafeInline: /'unsafe-inline'/i.test(value)
+    };
+  }
+
+  async function writeDynamicEvidence(pathname: string, selector: string, reason: string) {
+    if (!browserEvidenceDirectory) return;
+    await mkdir(browserEvidenceDirectory, { recursive: true });
+    const outputPath = path.join(browserEvidenceDirectory, `${hashDiagnostic(pathname)}.json`);
+    if (existsSync(outputPath)) return;
+    const dom = await evaluate<{
+      bodyTextLength: number;
+      htmlLength: number;
+      nextInlineScriptCount: number;
+      nextInlineNonceCount: number;
+      pathname: string;
+      scriptCount: number;
+      imageStyleAttributeCount: number;
+      inlineStyleAttributeHashes: string[];
+      inlineStyleAttributeCount: number;
+      styleNonceCount: number;
+      styleTagCount: number;
+      targetPresent: boolean;
+    }>(`(() => ({
+      pathname: location.pathname,
+      htmlLength: document.documentElement?.outerHTML?.length || 0,
+      bodyTextLength: document.body?.innerText?.length || 0,
+      scriptCount: document.scripts.length,
+      nextInlineScriptCount: Array.from(document.scripts).filter((node) => node.textContent?.includes("self.__next_f")).length,
+      nextInlineNonceCount: Array.from(document.scripts).filter((node) => Boolean(node.nonce)).length,
+      inlineStyleAttributeCount: document.querySelectorAll("[style]").length,
+      imageStyleAttributeCount: document.querySelectorAll("img[style]").length,
+      inlineStyleAttributeHashes: [],
+      styleTagCount: document.querySelectorAll("style").length,
+      styleNonceCount: Array.from(document.querySelectorAll("style")).filter((node) => Boolean(node.nonce)).length,
+      targetPresent: Boolean(document.querySelector(${JSON.stringify(selector)}))
+    }))()`);
+    const inlineNonceValues = await evaluate<string[]>(`Array.from(document.scripts).map((node) => node.nonce || "").filter(Boolean)`);
+    const inlineNonceHashes = (inlineNonceValues ?? []).map((value) => hashDiagnostic(value)).sort();
+    const inlineStyleAttributeValues = await evaluate<string[]>(`Array.from(document.querySelectorAll("[style]")).map((node) => node.getAttribute("style") || "").filter(Boolean)`);
+    const inlineStyleAttributeHashes = (inlineStyleAttributeValues ?? []).map((value) => hashDiagnostic(value)).sort();
+    const inlineStyleCssTextValues = await evaluate<string[]>(`Array.from(document.querySelectorAll("[style]")).map((node) => node.style.cssText || "").filter(Boolean)`);
+    const inlineStyleCssTextHashes = (inlineStyleCssTextValues ?? []).map((value) => hashDiagnostic(value)).sort();
+    const styleNonceValues = await evaluate<string[]>(`Array.from(document.querySelectorAll("style")).map((node) => node.nonce || "").filter(Boolean)`);
+    const styleNonceHashes = (styleNonceValues ?? []).map((value) => hashDiagnostic(value)).sort();
+    const responseCspValue = await evaluate<string | null>(`fetch(location.href, { cache: "no-store" }).then((response) => response.headers.get("content-security-policy"))`);
+    const fetchedCsp = readCspNonceHashes(responseCspValue ?? null);
+    const observedCsp = documentCspHistory.length > 0
+      ? documentCspHistory
+      : [lastDocumentCsp];
+    const observedNonceHashes = [...new Set(observedCsp.flatMap((entry) => entry.nonceHashes))];
+    const evidence = {
+      schemaVersion: 1,
+      kind: "issue-0034-tutor-dynamic-cdp",
+      pathname,
+      selector,
+      reason,
+      dom: {
+        htmlNonEmpty: (dom?.htmlLength ?? 0) > 0,
+        targetPresent: dom?.targetPresent ?? false,
+        htmlLength: dom?.htmlLength ?? 0,
+        scriptCount: dom?.scriptCount ?? 0,
+        bodyTextLength: dom?.bodyTextLength ?? 0,
+        nextInlineScriptCount: dom?.nextInlineScriptCount ?? 0,
+        nextInlineNonceCount: dom?.nextInlineNonceCount ?? 0,
+        inlineStyleAttributeCount: dom?.inlineStyleAttributeCount ?? 0,
+        imageStyleAttributeCount: dom?.imageStyleAttributeCount ?? 0,
+        inlineStyleAttributeHashes,
+        inlineStyleCssTextHashes,
+        styleTagCount: dom?.styleTagCount ?? 0,
+        styleNonceCount: dom?.styleNonceCount ?? 0,
+        nonceMatchCount: inlineNonceHashes.filter((value) => observedNonceHashes.includes(value)).length,
+        styleNonceMatchCount: styleNonceHashes.filter((value) => observedNonceHashes.includes(value)).length,
+        nonceLogged: false
+      },
+      responseCsp: {
+        hasNonce: observedCsp.some((entry) => entry.hasNonce) || fetchedCsp.hasNonce,
+        unsafeEval: observedCsp.some((entry) => entry.unsafeEval) || fetchedCsp.unsafeEval,
+        unsafeInline: observedCsp.some((entry) => entry.unsafeInline) || fetchedCsp.unsafeInline,
+        nonceMatchesResponse: inlineNonceHashes.length > 0 &&
+          inlineNonceHashes.every((value) => observedNonceHashes.includes(value))
+      },
+      events: {
+        console: browserEvents.filter((event) => event.type === "console").map((event) => event.class),
+        pageerror: browserEvents.filter((event) => event.type === "pageerror").map((event) => event.class),
+        requestfailed: browserEvents.filter((event) => event.type === "requestfailed").map((event) => event.class)
+      }
+    };
+    await writeFile(outputPath, JSON.stringify(evidence, null, 2), { encoding: "utf8", flag: "wx" });
+  }
 
   async function evaluate<T>(expression: string) {
     return readRuntimeValue<T>(
@@ -644,18 +844,30 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
   }
 
   async function navigate(pathname: string, selector: string) {
+    documentCspHistory.length = 0;
     await cdp.send("Page.navigate", { url: `${baseUrl}${pathname}` });
     const expectedPathname = new URL(pathname, baseUrl).pathname;
+    browserEvents.length = 0;
     await waitFor(
       `document.readyState === "complete" && location.pathname === ${JSON.stringify(
         expectedPathname
       )}`,
       `页面未完成导航：${pathname}`
     );
-    await waitFor(
-      `document.querySelector(${JSON.stringify(selector)})`,
-      `目标区域未渲染：${pathname}`
-    );
+    try {
+      await waitFor(
+        `document.querySelector(${JSON.stringify(selector)})`,
+        `目标区域未渲染：${pathname}`
+      );
+    } catch (error) {
+      await writeDynamicEvidence(pathname, selector, "target-not-rendered");
+      throw error;
+    }
+
+    if (browserEvidenceDirectory &&
+      ["/tutor-profiles", "/tutor-profiles/preview-tutor"].includes(pathname)) {
+      await writeDynamicEvidence(pathname, selector, "target-rendered");
+    }
   }
 
   async function measure(selector: string) {
@@ -997,25 +1209,34 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
       "bin",
       "next"
     );
+    const nextMode = process.env.ISSUE_0034_NEXT_MODE === "production" ? "start" : "dev";
+    const localOriginVerificationSecret = "issue-0034-local-origin-secret";
     nextProcess = spawn(
       process.execPath,
-      [nextBin, "dev", "--hostname", "127.0.0.1", "--port", String(port)],
+      [nextBin, nextMode, "--hostname", "127.0.0.1", "--port", String(port)],
       {
         cwd: process.cwd(),
         env: {
           ...process.env,
           APP_ENV: "test",
           AUTH_SESSION_SECRET: "ui-preview-confirmed-browser-secret",
-          NEXT_PUBLIC_ALLOW_TEST_LOGIN: "true"
+          NODE_ENV: nextMode === "start" ? "production" : "development",
+          NEXT_PUBLIC_ALLOW_TEST_LOGIN: "true",
+          ORIGIN_VERIFY_SECRET: localOriginVerificationSecret
         },
-        stdio: "ignore",
+        stdio: process.env.ISSUE_0034_DIAGNOSTIC_LOG_DIR
+          ? ["ignore", "pipe", "pipe"]
+          : "ignore",
         windowsHide: true
       }
     );
+    attachDiagnosticNextLogs(nextProcess, "ui-preview");
 
     for (let attempt = 0; attempt < 400; attempt += 1) {
       try {
-        const response = await fetch(baseUrl);
+        const response = await fetch(baseUrl, nextMode === "start"
+          ? { headers: { "x-ungrade-origin-verify": localOriginVerificationSecret } }
+          : undefined);
 
         if (response.ok) {
           break;
@@ -1061,6 +1282,42 @@ describeWithBrowser("业务方确认预览的真实 Next 页面几何", () => {
 
     cdp = await connectCdp(target.webSocketDebuggerUrl);
     await cdp.send("Page.enable");
+    await cdp.send("Runtime.enable");
+    await cdp.send("Log.enable");
+    await cdp.send("Network.enable");
+    await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
+    if (nextMode === "start") {
+      await cdp.send("Network.setExtraHTTPHeaders", {
+        headers: { "x-ungrade-origin-verify": localOriginVerificationSecret }
+      });
+    }
+    cdp.onEvent("Runtime.exceptionThrown", (params) => {
+      const details = (params as { exceptionDetails?: { text?: string; exception?: { description?: string } } })?.exceptionDetails;
+      recordBrowserEvent("pageerror", `${details?.text ?? ""} ${details?.exception?.description ?? ""}`);
+    });
+    cdp.onEvent("Runtime.consoleAPICalled", (params) => {
+      const consoleParams = params as { type?: string; args?: Array<{ value?: unknown; description?: string }> };
+      const detail = (consoleParams.args ?? [])
+        .map((arg) => arg.description ?? String(arg.value ?? ""))
+        .join(" ");
+      recordBrowserEvent("console", `${consoleParams.type ?? "console"} ${detail}`);
+    });
+    cdp.onEvent("Log.entryAdded", (params) => {
+      recordBrowserEvent("console", (params as { entry?: { level?: string; text?: string } })?.entry?.text ?? "log");
+    });
+    cdp.onEvent("Network.loadingFailed", (params) => {
+      recordBrowserEvent("requestfailed", (params as { errorText?: string })?.errorText ?? "requestfailed");
+    });
+    cdp.onEvent("Network.responseReceived", (params) => {
+      const response = (params as { response?: { type?: string; headers?: Record<string, string> } })?.response;
+      const csp = Object.entries(response?.headers ?? {})
+        .find(([key]) => key.toLowerCase() === "content-security-policy")?.[1] ?? null;
+      if (csp) {
+        lastDocumentCsp = readCspNonceHashes(csp);
+        documentCspHistory.push(lastDocumentCsp);
+        if (documentCspHistory.length > 8) documentCspHistory.shift();
+      }
+    });
     await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
       source: mockApiScript
     });

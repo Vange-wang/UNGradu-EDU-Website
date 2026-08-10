@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -27,12 +26,13 @@ export function SiteHeader() {
           </Link>
         ) : null}
         <Link aria-label="UNGradu EDU 首页" className="brand" href="/">
-          <Image
-            alt=""
-            aria-hidden="true"
+          {/* The strict CSP hashes only Next's route-announcer style attribute;
+              keep the global brand mark free of runtime style attributes. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            alt="UNGradu EDU 标志"
             className="brand-mark"
             height={49}
-            priority
             src="/assets/sitewide-ui/brand-mark.png"
             width={49}
           />

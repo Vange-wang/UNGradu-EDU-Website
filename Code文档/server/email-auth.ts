@@ -12,6 +12,10 @@ import {
   validateEmailAddress,
   validateEmailCode
 } from "@/features/auth/email-auth";
+import {
+  consumeEmailCodeOnce,
+  type AtomicEmailCodeTransactionRunner
+} from "@/server/security/atomic-email-code";
 
 export const EMAIL_LOGIN_CODES_COLLECTION = "email_login_codes";
 export const EMAIL_LOGIN_USERS_COLLECTION = "email_login_users";
@@ -34,7 +38,7 @@ type StoredDocument = Record<string, unknown>;
 
 export type EmailAuthCollection = {
   doc: (docId: string) => {
-    get: () => Promise<{ data?: unknown[] }>;
+    get: () => Promise<{ data?: unknown[] | Record<string, unknown> }>;
     set: (data: StoredDocument) => Promise<unknown>;
     update?: (data: StoredDocument) => Promise<unknown>;
   };
@@ -45,6 +49,16 @@ export type EmailDelivery = {
     { ok: true } | { ok: false; error: string }
   >;
 };
+
+export type EmailAuthTransactionRunner = AtomicEmailCodeTransactionRunner;
+
+export type EmailAuthTransaction = {
+  collection: (name: string) => EmailAuthCollection;
+};
+
+export type EmailAuthAtomicTransactionRunner = <T>(
+  operation: (transaction: EmailAuthTransaction) => Promise<T>
+) => Promise<T>;
 
 export type EmailCodeDocument = {
   attempts: number;
@@ -77,6 +91,10 @@ type EmailAuthErrors = {
   passwordConfirm?: string;
   request?: string;
 };
+
+type EmailAuthOperationResult =
+  | { ok: false; value: null; errors: EmailAuthErrors }
+  | { ok: true; value: Record<string, string | number | undefined | null>; errors: Record<string, never> };
 
 export function hashEmail(email: string) {
   return createHash("sha256").update(email).digest("hex");
@@ -133,7 +151,10 @@ async function readDocument<TDocument>(
   docId: string
 ) {
   const result = await collection.doc(docId).get();
-  return result.data?.[0] as TDocument | undefined;
+  if (Array.isArray(result.data)) {
+    return result.data[0] as TDocument | undefined;
+  }
+  return result.data as TDocument | undefined;
 }
 
 async function patchDocument(
@@ -311,7 +332,11 @@ export async function verifyEmailLoginCode({
   emailCodeCollection,
   env,
   now = new Date(),
-  userCollection
+  userCollection,
+  consumeCode = false,
+  insideTransaction = false,
+  requireTransaction = false,
+  runTransaction
 }: {
   code: string;
   email: string;
@@ -319,7 +344,54 @@ export async function verifyEmailLoginCode({
   env: RuntimeEnv;
   now?: Date;
   userCollection: EmailAuthCollection;
-}) {
+  consumeCode?: boolean;
+  insideTransaction?: boolean;
+  requireTransaction?: boolean;
+  runTransaction?: EmailAuthAtomicTransactionRunner;
+}): Promise<EmailAuthOperationResult> {
+  if (!consumeCode && !insideTransaction && (env.APP_ENV === "production" || env.NODE_ENV === "production")) {
+    return createFailure({ request: "验证码原子消费暂不可用，请稍后再试" });
+  }
+
+  if (consumeCode) {
+    if (!runTransaction) {
+      return createFailure({ request: "验证码原子消费暂不可用，请稍后再试" });
+    }
+
+    try {
+      return await runTransaction(async (transaction) => {
+        const txCodes = transaction.collection(EMAIL_LOGIN_CODES_COLLECTION);
+        const txUsers = transaction.collection(EMAIL_LOGIN_USERS_COLLECTION);
+        const verified = await verifyEmailLoginCode({
+          code,
+          email,
+          emailCodeCollection: txCodes,
+          env,
+          insideTransaction: true,
+          now,
+          userCollection: txUsers
+        });
+        if (!verified.ok) return verified;
+        const emailHash = hashEmail(email.trim().toLowerCase());
+        const currentCode = await readDocument<EmailCodeDocument>(txCodes, emailHash);
+        if (!currentCode || currentCode.usedAt) {
+          return createFailure({ request: "验证码已使用，请重新获取" });
+        }
+        await txCodes.doc(emailHash).set({
+          ...currentCode,
+          usedAt: now.toISOString()
+        });
+        return verified;
+      });
+    } catch {
+      return createFailure({ request: "验证码原子消费暂不可用，请稍后再试" });
+    }
+  }
+
+  if (requireTransaction && !runTransaction) {
+    return createFailure({ request: "验证码原子消费暂不可用，请稍后再试" });
+  }
+
   const emailValidation = validateEmailAddress(email);
 
   if (!emailValidation.ok) {
@@ -411,11 +483,15 @@ export async function verifyEmailLoginCode({
 export async function markEmailLoginCodeUsed({
   email,
   emailCodeCollection,
-  now = new Date()
+  now = new Date(),
+  requireTransaction = false,
+  runTransaction
 }: {
   email: string;
   emailCodeCollection: EmailAuthCollection;
   now?: Date;
+  requireTransaction?: boolean;
+  runTransaction?: EmailAuthTransactionRunner;
 }) {
   const emailValidation = validateEmailAddress(email);
 
@@ -424,23 +500,26 @@ export async function markEmailLoginCodeUsed({
   }
 
   const emailHash = hashEmail(emailValidation.value);
-  const storedCode = await readDocument<EmailCodeDocument>(
-    emailCodeCollection,
-    emailHash
-  );
-
-  if (!storedCode) {
-    return createFailure({ request: "请先获取验证码" });
+  if (requireTransaction && !runTransaction) {
+    return createFailure({ request: "验证码原子消费暂不可用，请稍后再试" });
   }
 
-  if (storedCode.usedAt) {
-    return createFailure({ request: "验证码已使用，请重新获取" });
-  }
-
-  await patchDocument(emailCodeCollection, emailHash, {
-    attempts: storedCode.attempts,
-    usedAt: now.toISOString()
+  const consumed = await consumeEmailCodeOnce({
+    collection: emailCodeCollection,
+    docId: emailHash,
+    now,
+    runTransaction
   });
+
+  if (!consumed.ok) {
+    if (consumed.reason === "already-used") {
+      return createFailure({ request: "验证码已使用，请重新获取" });
+    }
+    if (consumed.reason === "expired") {
+      return createFailure({ request: "验证码已过期，请重新获取" });
+    }
+    return createFailure({ request: "验证码服务暂时不可用，请稍后再试" });
+  }
 
   return {
     ok: true as const,
@@ -586,7 +665,10 @@ export async function resetEmailPasswordWithCode({
   now = new Date(),
   password,
   passwordConfirm,
-  userCollection
+  userCollection,
+  insideTransaction = false,
+  requireTransaction = false,
+  runTransaction
 }: {
   code: string;
   email: string;
@@ -596,12 +678,43 @@ export async function resetEmailPasswordWithCode({
   password: string;
   passwordConfirm: string;
   userCollection: EmailAuthCollection;
-}) {
+  requireTransaction?: boolean;
+  insideTransaction?: boolean;
+  runTransaction?: EmailAuthAtomicTransactionRunner;
+}): Promise<EmailAuthOperationResult> {
+  if (!requireTransaction && !insideTransaction && (env.APP_ENV === "production" || env.NODE_ENV === "production")) {
+    return createFailure({ request: "验证码原子消费暂不可用，请稍后再试" });
+  }
+
+  if (requireTransaction) {
+    if (!runTransaction) {
+      return createFailure({ request: "验证码原子消费暂不可用，请稍后再试" });
+    }
+    try {
+      return await runTransaction((transaction) =>
+        resetEmailPasswordWithCode({
+          code,
+          email,
+          emailCodeCollection: transaction.collection(EMAIL_LOGIN_CODES_COLLECTION),
+          env,
+          insideTransaction: true,
+          now,
+          password,
+          passwordConfirm,
+          userCollection: transaction.collection(EMAIL_LOGIN_USERS_COLLECTION)
+        })
+      );
+    } catch {
+      return createFailure({ request: "验证码原子消费暂不可用，请稍后再试" });
+    }
+  }
+
   const verified = await verifyEmailLoginCode({
     code,
     email,
     emailCodeCollection,
     env,
+    insideTransaction,
     now,
     userCollection
   });

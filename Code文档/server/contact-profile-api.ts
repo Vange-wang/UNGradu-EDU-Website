@@ -1,8 +1,10 @@
 import type { ContactProfileInput } from "@/features/profile/contact-profile";
 import {
   jsonResponse,
+  guardWriteRequest,
   readJsonBody,
-  readTemporaryAuthenticatedUserId,
+  readAuthenticatedUserIdWithRevocation,
+  createSecurityRuntimeEnv,
   type RuntimeEnv
 } from "@/server/api-utils";
 import {
@@ -15,15 +17,21 @@ type ContactProfileCollection = Parameters<typeof readServerContactProfile>[0]["
 type ContactProfileApiDependencies = {
   collection: ContactProfileCollection;
   env?: RuntimeEnv;
+  sessionRevocationGuard?: RuntimeEnv["sessionRevocationGuard"];
 };
 
 export function createContactProfileApiHandlers({
   collection,
-  env = process.env
+  env = process.env,
+  sessionRevocationGuard
 }: ContactProfileApiDependencies) {
+  const securedEnv: RuntimeEnv = createSecurityRuntimeEnv({
+    ...env,
+    sessionRevocationGuard: sessionRevocationGuard ?? env.sessionRevocationGuard
+  });
   return {
     async GET(request: Request) {
-      const auth = readTemporaryAuthenticatedUserId(request, env);
+      const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
         return auth.response;
@@ -38,13 +46,22 @@ export function createContactProfileApiHandlers({
     },
 
     async PUT(request: Request) {
-      const auth = readTemporaryAuthenticatedUserId(request, env);
+      const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
         return auth.response;
       }
 
-      const body = await readJsonBody<ContactProfileInput>(request);
+      const securityResponse = guardWriteRequest(request, securedEnv, auth.authenticatedUserId);
+      if (securityResponse) return securityResponse;
+
+      const body = await readJsonBody<ContactProfileInput>(request, {
+        allowedKeys: ["phone", "wechat"],
+        schema: {
+          phone: { type: "string" },
+          wechat: { type: "string" }
+        }
+      });
 
       if (!body.ok) {
         return body.response;

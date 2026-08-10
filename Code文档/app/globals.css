@@ -8322,6 +8322,14 @@ body:has(.customer-service-shell) {
   z-index: 1;
 }
 
+.auth-input-shell .auth-input-icon-email {
+  background-image: url("/assets/sitewide-ui/login-email-icon.png");
+}
+
+.auth-input-shell .auth-input-icon-code {
+  background-image: url("/assets/sitewide-ui/login-code-icon.png");
+}
+
 /* ISSUE-0030 frozen chat workspace: the shared site Header is the only
    return control, so the chat Hero uses its remaining grid track for the
    contained decoration and keeps the approved workspace breathing room. */

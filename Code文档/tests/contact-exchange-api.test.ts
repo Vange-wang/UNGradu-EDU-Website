@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createContactExchangeApiHandlers } from "@/server/contact-exchange-api";
+import { createAuthSessionCookie, type AuthSessionRevocationGuard } from "@/server/auth-session";
 
 type StoredDocument = Record<string, unknown>;
 
@@ -181,5 +182,47 @@ describe("contact exchange API handlers", () => {
       ok: false,
       errors: { request: "只有会话参与者可以请求交换联系方式" }
     });
+  });
+
+  it("rejects a revoked session before the contact exchange handler can read or mutate data", async () => {
+    const collection = {
+      doc: vi.fn(() => ({
+        get: vi.fn(async () => ({ data: [] })),
+        set: vi.fn()
+      })),
+      where: vi.fn(() => ({ get: vi.fn(async () => ({ data: [] })) }))
+    };
+    const sessionRevocationGuard: AuthSessionRevocationGuard = {
+      async check() {
+        return { ok: false as const, reason: "revoked" as const };
+      },
+      async revoke() {}
+    };
+    const env = {
+      AUTH_SESSION_SECRET: "synthetic-contact-session-secret",
+      NODE_ENV: "test"
+    };
+    const cookie = createAuthSessionCookie({ env, userId: "participant-a" });
+    const handlers = createContactExchangeApiHandlers({
+      contactProfilesCollection: collection,
+      conversationsCollection: collection,
+      env,
+      parentNeedsCollection: collection,
+      requestsCollection: collection,
+      sessionRevocationGuard,
+      tutorProfilesCollection: collection
+    });
+
+    const response = await handlers.POST(
+      new Request("http://localhost/api/contact-exchange", {
+        body: JSON.stringify({ action: "create", conversationId: "conversation-a" }),
+        headers: { cookie: cookie ?? "" },
+        method: "POST"
+      })
+    );
+
+    expect(response.status).toBe(401);
+    expect(collection.doc).not.toHaveBeenCalled();
+    expect(collection.where).not.toHaveBeenCalled();
   });
 });

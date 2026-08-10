@@ -32,6 +32,19 @@ function formatTutorFeeSummary(profile: PublicServerTutorProfile) {
   return `${Math.min(...minimums)} - ${Math.max(...maximums)} 元 / 小时`;
 }
 
+function isValidPublicSummary(value: string) {
+  const normalized = value.trim();
+  return Boolean(normalized) && !/(?:暂未公开|暂不公开|未公开)/u.test(normalized);
+}
+
+function formatTutorIdentity(profile: PublicServerTutorProfile) {
+  const school = isValidPublicSummary(profile.schoolSummary) ? profile.schoolSummary.trim() : "";
+  const major = isValidPublicSummary(profile.majorSummary) ? profile.majorSummary.trim() : "";
+  if (school && major) return `${school} · ${major}`;
+  if (school || major) return school || major;
+  return "学校与专业信息暂未公开";
+}
+
 function readFiltersFromUrl(): ServerTutorProfileFilters {
   const params = new URLSearchParams(window.location.search);
 
@@ -236,9 +249,7 @@ export default function TutorProfilesPage() {
                   <div className="record-card-header">
                     <div>
                       <span className="listing-card-meta">老师资料</span>
-                      <h2>
-                        {profile.school} · {profile.major}
-                      </h2>
+                      <h2>{formatTutorIdentity(profile)}</h2>
                     </div>
                     <div className="listing-action-stack">
                       <span className="status-pill privacy-status">联系方式未公开</span>
@@ -263,7 +274,7 @@ export default function TutorProfilesPage() {
                     <span>课时费：</span>
                     <strong>{formatTutorFeeSummary(profile)}</strong>
                   </p>
-                  <p>能力说明：{profile.abilityDescription}</p>
+                  <p>{profile.abilityDescriptionSummary}</p>
                   <p className="listing-note">公开资料只用于初步判断，沟通和联系方式交换都在站内完成。</p>
                 </article>
               ))}

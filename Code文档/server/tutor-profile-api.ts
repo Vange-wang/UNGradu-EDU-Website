@@ -1,9 +1,11 @@
 import type { TutorProfileInput } from "@/features/tutor-profiles/tutor-profile";
 import {
   jsonResponse,
+  guardWriteRequest,
   readJsonBody,
-  readTemporaryAuthenticatedUserId,
+  readAuthenticatedUserIdWithRevocation,
   statusForResult,
+  createSecurityRuntimeEnv,
   type RuntimeEnv
 } from "@/server/api-utils";
 import {
@@ -22,17 +24,23 @@ type RouteContext = {
 
 export function createTutorProfileApiHandlers({
   collection,
-  env = process.env
+  env = process.env,
+  sessionRevocationGuard
 }: {
   collection: TutorProfileCollection;
   env?: RuntimeEnv;
+  sessionRevocationGuard?: RuntimeEnv["sessionRevocationGuard"];
 }) {
+  const securedEnv: RuntimeEnv = createSecurityRuntimeEnv({
+    ...env,
+    sessionRevocationGuard: sessionRevocationGuard ?? env.sessionRevocationGuard
+  });
   return {
     async GET_COLLECTION(request: Request) {
       const url = new URL(request.url);
 
       if (url.searchParams.get("scope") === "mine") {
-        const auth = readTemporaryAuthenticatedUserId(request, env);
+        const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
         if (!auth.ok) {
           return auth.response;
@@ -61,13 +69,27 @@ export function createTutorProfileApiHandlers({
     },
 
     async POST_COLLECTION(request: Request) {
-      const auth = readTemporaryAuthenticatedUserId(request, env);
+      const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
         return auth.response;
       }
 
-      const body = await readJsonBody<TutorProfileInput>(request);
+      const securityResponse = guardWriteRequest(request, securedEnv, auth.authenticatedUserId);
+      if (securityResponse) return securityResponse;
+
+      const body = await readJsonBody<TutorProfileInput>(request, {
+        allowedKeys: ["gender", "school", "major", "subjects", "grades", "timeSlots", "feeRanges", "abilityDescription", "proofImages"],
+        schema: {
+          gender: { type: "string" }, school: { type: "string" }, major: { type: "string" },
+          subjects: { type: "array", items: { type: "string" } },
+          grades: { type: "array", items: { type: "string" } },
+          timeSlots: { type: "array", items: { type: "string" } },
+          feeRanges: { type: "array", items: { object: { allowedKeys: ["grade", "subject", "min", "max"], fields: { grade: { type: "string" }, subject: { type: "string" }, min: { type: "string" }, max: { type: "string" } } } } },
+          abilityDescription: { type: "string" },
+          proofImages: { type: "array", items: { object: { allowedKeys: ["name", "type", "size"], fields: { name: { type: "string" }, type: { type: "string" }, size: { type: "number" } } } } }
+        }
+      });
 
       if (!body.ok) {
         return body.response;
@@ -90,13 +112,27 @@ export function createTutorProfileApiHandlers({
     },
 
     async PATCH_ITEM(request: Request, context: RouteContext) {
-      const auth = readTemporaryAuthenticatedUserId(request, env);
+      const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
         return auth.response;
       }
 
-      const body = await readJsonBody<TutorProfileInput>(request);
+      const securityResponse = guardWriteRequest(request, securedEnv, auth.authenticatedUserId);
+      if (securityResponse) return securityResponse;
+
+      const body = await readJsonBody<TutorProfileInput>(request, {
+        allowedKeys: ["gender", "school", "major", "subjects", "grades", "timeSlots", "feeRanges", "abilityDescription", "proofImages"],
+        schema: {
+          gender: { type: "string" }, school: { type: "string" }, major: { type: "string" },
+          subjects: { type: "array", items: { type: "string" } },
+          grades: { type: "array", items: { type: "string" } },
+          timeSlots: { type: "array", items: { type: "string" } },
+          feeRanges: { type: "array", items: { object: { allowedKeys: ["grade", "subject", "min", "max"], fields: { grade: { type: "string" }, subject: { type: "string" }, min: { type: "string" }, max: { type: "string" } } } } },
+          abilityDescription: { type: "string" },
+          proofImages: { type: "array", items: { object: { allowedKeys: ["name", "type", "size"], fields: { name: { type: "string" }, type: { type: "string" }, size: { type: "number" } } } } }
+        }
+      });
 
       if (!body.ok) {
         return body.response;

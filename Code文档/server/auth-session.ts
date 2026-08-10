@@ -1,15 +1,29 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import {
+  type AuthSessionRevocationGuard,
+  type SessionLifecycleResult
+} from "@/server/security/session-revocation";
+import {
+  createHmacSha256Hex,
+  timingSafeEqualText
+} from "@/server/security/request-guard";
 
 export const AUTH_SESSION_COOKIE_NAME = "ungradu_auth_session";
 
 export type AuthSessionEnv = {
+  APP_ENV?: string;
   AUTH_SESSION_SECRET?: string;
+  AUTH_SESSION_KEY_VERSION?: string;
+  AUTH_SESSION_REVOKED_AT?: string;
+  AUTH_SESSION_REVOCATION_REQUIRED?: string;
   NODE_ENV?: string;
 };
+
+export type { AuthSessionRevocationGuard } from "@/server/security/session-revocation";
 
 export type AuthSession = {
   emailMasked?: string;
   createdAt: string;
+  keyVersion?: string;
   phone?: string;
   userId?: string;
 };
@@ -40,7 +54,14 @@ function readSessionSecret(env: AuthSessionEnv) {
 }
 
 function signPayload(payload: string, secret: string) {
-  return createHmac("sha256", secret).update(payload).digest("base64url");
+  const hex = createHmacSha256Hex(secret, payload);
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let index = 0; index < bytes.length; index += 1) {
+    bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+  }
+  let binary = "";
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/u, "");
 }
 
 function parseCookieHeader(cookieHeader: string | null) {
@@ -65,11 +86,7 @@ function parseCookieHeader(cookieHeader: string | null) {
 }
 
 function verifySignature(expected: string, actual: string) {
-  const expectedBuffer = Buffer.from(expected);
-  const actualBuffer = Buffer.from(actual);
-
-  return expectedBuffer.length === actualBuffer.length &&
-    timingSafeEqual(expectedBuffer, actualBuffer);
+  return timingSafeEqualText(expected, actual);
 }
 
 export function createAuthSessionCookie({
@@ -96,6 +113,7 @@ export function createAuthSessionCookie({
   const session: AuthSession = {
     createdAt: createdAt ?? now.toISOString(),
     emailMasked: emailMasked?.trim() || undefined,
+    keyVersion: env.AUTH_SESSION_KEY_VERSION?.trim() || undefined,
     phone: phone?.trim() || undefined,
     userId: userId?.trim() || phone?.trim() || undefined
   };
@@ -111,14 +129,15 @@ export function createAuthSessionCookie({
   return `${AUTH_SESSION_COOKIE_NAME}=${payload}.${signature}; Path=/; Max-Age=${MAX_AGE_SECONDS}; HttpOnly; SameSite=Lax${secure}`;
 }
 
-export function clearAuthSessionCookie() {
-  return `${AUTH_SESSION_COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`;
+export function clearAuthSessionCookie(env: AuthSessionEnv = process.env) {
+  const secure = env.NODE_ENV === "production" ? "; Secure" : "";
+  return `${AUTH_SESSION_COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secure}`;
 }
 
 export function readAuthSessionFromRequest(
   request: Request,
   env: AuthSessionEnv,
-  options: { now?: Date } = {}
+  options: { now?: Date; revokedAt?: string } = {}
 ) {
   const secret = readSessionSecret(env);
 
@@ -165,13 +184,61 @@ export function readAuthSessionFromRequest(
       return null;
     }
 
+    const activeKeyVersion = env.AUTH_SESSION_KEY_VERSION?.trim();
+    if (activeKeyVersion && session.keyVersion !== activeKeyVersion) {
+      return null;
+    }
+
+    const revokedAt = options.revokedAt?.trim() || env.AUTH_SESSION_REVOKED_AT?.trim();
+    if (revokedAt) {
+      const revokedAtTime = new Date(revokedAt).getTime();
+      if (!Number.isFinite(revokedAtTime) || createdAtTime <= revokedAtTime) {
+        return null;
+      }
+    }
+
     return {
       createdAt: session.createdAt,
       emailMasked: session.emailMasked?.trim(),
+      keyVersion: session.keyVersion?.trim(),
       phone: session.phone?.trim(),
       userId: session.userId?.trim() || session.phone?.trim()
     };
   } catch {
     return null;
   }
+}
+
+export async function readAuthSessionFromRequestWithRevocation(
+  request: Request,
+  env: AuthSessionEnv,
+  guard?: AuthSessionRevocationGuard,
+  options: { now?: Date } = {}
+): Promise<
+  | { ok: true; session: AuthSession }
+  | { ok: false; reason: "missing" | "revoked" | "unavailable" }
+> {
+  const session = readAuthSessionFromRequest(request, env, options);
+  if (!session) return { ok: false, reason: "missing" };
+
+  const requiresRevocation = env.AUTH_SESSION_REVOCATION_REQUIRED === "true" || env.NODE_ENV === "production" || env.APP_ENV === "production";
+  if (requiresRevocation && !guard) return { ok: false, reason: "unavailable" };
+  if (!guard) return { ok: true, session };
+
+  let result: SessionLifecycleResult;
+  try {
+    result = await guard.check({
+      createdAt: session.createdAt,
+      keyVersion: session.keyVersion,
+      now: options.now,
+      userId: session.userId ?? session.phone ?? ""
+    });
+  } catch {
+    return { ok: false, reason: "unavailable" };
+  }
+  if (!result.ok) {
+    return { ok: false, reason: result.reason === "revoked" ? "revoked" : "missing" };
+  }
+
+  return { ok: true, session };
 }

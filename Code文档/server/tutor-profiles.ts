@@ -3,7 +3,6 @@ import {
   type TutorProfileInput,
   validateTutorProfileInput
 } from "@/features/tutor-profiles/tutor-profile";
-
 export const TUTOR_PROFILES_COLLECTION = "tutor_profiles";
 
 export type ServerTutorProfile = TutorProfile & {
@@ -18,15 +17,23 @@ export type ServerTutorProfile = TutorProfile & {
   deletedByUserId: string | null;
 };
 
-export type PublicServerTutorProfile = Omit<
+export type PublicServerTutorProfile = Pick<
   ServerTutorProfile,
-  | "deletedAt"
-  | "deletedByUserId"
-  | "managementState"
-  | "ownerUserId"
-  | "updatedAt"
-  | "version"
-> & { status: "published" };
+  | "createdAt"
+  | "feeRanges"
+  | "gender"
+  | "grades"
+  | "id"
+  | "status"
+  | "subjects"
+  | "timeSlots"
+> & {
+  abilityDescriptionSummary: string;
+  majorSummary: string;
+  publicSafetyNote: string;
+  schoolSummary: string;
+  status: "published";
+};
 
 export type ServerTutorProfileFilters = {
   subject?: string;
@@ -578,14 +585,14 @@ function toPublicTutorProfile(profile: ServerTutorProfile): PublicServerTutorPro
   return {
     id: profile.id,
     gender: profile.gender,
-    school: profile.school,
-    major: profile.major,
     subjects: profile.subjects,
     grades: profile.grades,
     timeSlots: profile.timeSlots,
     feeRanges: profile.feeRanges,
-    abilityDescription: profile.abilityDescription,
-    proofImages: profile.proofImages,
+    schoolSummary: "学校信息暂未公开",
+    majorSummary: "专业信息暂未公开",
+    abilityDescriptionSummary: "能力说明暂未公开",
+    publicSafetyNote: "联系方式未公开，先通过站内沟通",
     status: "published",
     createdAt: profile.createdAt
   };

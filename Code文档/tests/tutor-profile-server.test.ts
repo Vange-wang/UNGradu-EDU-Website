@@ -582,11 +582,11 @@ describe("server tutor_profiles interface", () => {
 
     expect(publicList).toMatchObject({
       ok: true,
-      value: [{ id: "profile-a", school: "东莞理工学院" }]
+      value: [{ id: "profile-a" }]
     });
     expect(publicDetail).toMatchObject({
       ok: true,
-      value: { id: "profile-a", school: "东莞理工学院" }
+      value: { id: "profile-a" }
     });
     expect(JSON.stringify(publicList)).not.toContain("tutor-a");
     expect(JSON.stringify(publicDetail)).not.toContain("tutor-a");

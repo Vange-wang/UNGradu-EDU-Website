@@ -6,6 +6,7 @@ import {
   readAuthSessionFromRequest
 } from "@/server/auth-session";
 import { createContactProfileApiHandlers } from "@/server/contact-profile-api";
+import { createCsrfProof } from "@/server/security/request-guard";
 
 type StoredDocument = Record<string, unknown>;
 
@@ -120,7 +121,9 @@ describe("backend trusted auth session API", () => {
     const handlers = createAuthApiHandlers({
       env: {
         APP_ENV: "test",
+        ALLOWED_ORIGINS: "https://ungraduedu.eu.cc",
         AUTH_SESSION_SECRET: "m5-test-secret",
+        CSRF_SECRET: "m5-test-csrf-secret",
         M5_ENABLE_HOSTED_TEST_LOGIN: "true",
         NODE_ENV: "production",
         NEXT_PUBLIC_ALLOW_TEST_LOGIN: "false"
@@ -130,6 +133,15 @@ describe("backend trusted auth session API", () => {
     const response = await handlers.POST_TEST_LOGIN(
       new Request("http://localhost/api/auth/test-login", {
         body: JSON.stringify({ phone: "13800138000", code: "000000" }),
+        headers: {
+          origin: "https://ungraduedu.eu.cc",
+          "x-ungrade-csrf": createCsrfProof({
+            method: "POST",
+            origin: "https://ungraduedu.eu.cc",
+            secret: "m5-test-csrf-secret",
+            subjectId: "13800138000"
+          })
+        },
         method: "POST"
       })
     );

@@ -94,11 +94,11 @@ describe("tutor profile API handlers", () => {
 
     await expect(list.json()).resolves.toMatchObject({
       ok: true,
-      value: [{ id: "profile-a", school: "东莞理工学院" }]
+      value: [{ id: "profile-a" }]
     });
     await expect(detail.json()).resolves.toMatchObject({
       ok: true,
-      value: { id: "profile-a", school: "东莞理工学院" }
+      value: { id: "profile-a" }
     });
   });
 

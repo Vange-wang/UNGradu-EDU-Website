@@ -13,6 +13,10 @@ export const metadata: Metadata = {
   title: "UNGradu EDU"
 };
 
+// Per-request CSP nonces require the App Router tree to render dynamically;
+// otherwise a static HTML shell cannot receive the request-bound nonce.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh-CN">

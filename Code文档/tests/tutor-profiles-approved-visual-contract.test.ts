@@ -8,6 +8,10 @@ const pageSource = fs.readFileSync(
   path.join(root, "app", "tutor-profiles", "page.tsx"),
   "utf8"
 );
+const detailSource = fs.readFileSync(
+  path.join(root, "app", "tutor-profiles", "[id]", "page.tsx"),
+  "utf8"
+);
 const globalCss = fs.readFileSync(path.join(root, "app", "globals.css"), "utf8");
 const captureSource = fs.readFileSync(
   path.join(root, "scripts", "capture-sitewide-visual.mjs"),
@@ -35,5 +39,13 @@ describe("approved tutor-profile marketplace visual contract", () => {
     expect(globalCss).toContain("grid-template-rows: 235px 630px");
     expect(captureSource).toContain("approved-tutor-visual-fixture");
     expect(captureSource).toContain('options.page === "tutor-profiles"');
+  });
+
+  it("does not render a dangling school/major separator or proof metadata", () => {
+    expect(pageSource).toContain("function isValidPublicSummary");
+    expect(pageSource).toContain("formatTutorIdentity(profile)");
+    expect(detailSource).toContain("证明材料暂不公开");
+    expect(detailSource).not.toContain("证明图片：{profile.proofImages.length}");
+    expect(detailSource).toContain("function isValidPublicSummary");
   });
 });

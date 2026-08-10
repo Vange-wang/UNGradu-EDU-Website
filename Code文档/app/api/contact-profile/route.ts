@@ -3,12 +3,13 @@ import {
 } from "@/server/contact-profiles";
 import { createContactProfileApiHandlers } from "@/server/contact-profile-api";
 import { createCloudBaseServerApp } from "@/server/cloudbase-server";
+import { createRuntimeEnvWithSessionRevocation } from "@/server/api-utils";
 
 function createHandlers() {
+  const database = createCloudBaseServerApp().database();
   return createContactProfileApiHandlers({
-    collection: createCloudBaseServerApp()
-      .database()
-      .collection(CONTACT_PROFILES_COLLECTION)
+    collection: database.collection(CONTACT_PROFILES_COLLECTION),
+    env: createRuntimeEnvWithSessionRevocation(database)
   });
 }
 

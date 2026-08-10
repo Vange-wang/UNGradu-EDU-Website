@@ -15,9 +15,14 @@ export type OriginVerificationResult = {
 };
 
 export function normalizeOriginVerificationMode(
-  value: string | undefined
+  value: string | undefined,
+  context: { appEnv?: string; nodeEnv?: string } = {}
 ): OriginVerificationMode {
   const normalized = value?.trim().toLowerCase();
+  if (context.nodeEnv === "production" || context.appEnv === "production") {
+    return "enforce";
+  }
+
   if (normalized === "observe" || normalized === "enforce") {
     return normalized;
   }

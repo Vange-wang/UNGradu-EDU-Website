@@ -55,13 +55,7 @@ function writeFiltersToUrl(filters: ServerParentNeedFilters) {
 }
 
 function formatNeedRegion(need: PublicServerParentNeed) {
-  return [
-    need.region.city,
-    need.region.district,
-    need.community
-  ]
-    .filter(Boolean)
-    .join(" / ");
+  return need.regionLabel;
 }
 
 export default function ParentNeedsPage() {
@@ -274,8 +268,8 @@ export default function ParentNeedsPage() {
                     <strong>{need.teacherGenderPreference}</strong>
                   </p>
                   <p>
-                    <span>简介：</span>
-                    <strong>{need.childIntro}</strong>
+                    <span>学习情况：</span>
+                    <strong>{need.childIntroSummary}</strong>
                   </p>
                   <p className="listing-note">先进入详情发起站内沟通，确认合适后再申请交换联系方式。</p>
                 </article>

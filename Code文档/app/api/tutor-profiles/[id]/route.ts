@@ -6,6 +6,7 @@ import {
   type TutorProfileLifecycleTransactionRunner
 } from "@/server/tutor-profiles";
 import { createTutorProfileManagementHandlers } from "../management-handlers";
+import { createRuntimeEnvWithSessionRevocation } from "@/server/api-utils";
 
 const database = createCloudBaseServerApp().database();
 type TransactionLike = {
@@ -13,6 +14,7 @@ type TransactionLike = {
 };
 
 const collection = database.collection(TUTOR_PROFILES_COLLECTION);
+const env = createRuntimeEnvWithSessionRevocation(database);
 const runTransaction: TutorProfileLifecycleTransactionRunner | undefined =
   typeof database.runTransaction === "function"
     ? (operation) =>
@@ -29,6 +31,7 @@ const runTransaction: TutorProfileLifecycleTransactionRunner | undefined =
     : undefined;
 const handlers = createTutorProfileManagementHandlers({
   collection,
+  env,
   runTransaction
 });
 

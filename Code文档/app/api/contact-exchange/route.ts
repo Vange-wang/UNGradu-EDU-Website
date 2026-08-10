@@ -5,15 +5,18 @@ import {
   CONVERSATIONS_COLLECTION
 } from "@/server/contact-exchange";
 import { createCloudBaseServerApp } from "@/server/cloudbase-server";
+import { createRuntimeEnvWithSessionRevocation } from "@/server/api-utils";
 
 const database = createCloudBaseServerApp().database();
+const env = createRuntimeEnvWithSessionRevocation(database);
 
 const handlers = createContactExchangeApiHandlers({
   contactProfilesCollection: database.collection(CONTACT_PROFILES_COLLECTION),
   conversationsCollection: database.collection(CONVERSATIONS_COLLECTION),
   parentNeedsCollection: database.collection("parent_needs"),
   requestsCollection: database.collection(CONTACT_EXCHANGE_REQUESTS_COLLECTION),
-  tutorProfilesCollection: database.collection("tutor_profiles")
+  tutorProfilesCollection: database.collection("tutor_profiles"),
+  env
 });
 
 export const GET = handlers.GET;

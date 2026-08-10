@@ -1,9 +1,11 @@
 import type { ParentNeedInput } from "@/features/parent-needs/parent-need";
 import {
   jsonResponse,
+  guardWriteRequest,
   readJsonBody,
-  readTemporaryAuthenticatedUserId,
+  readAuthenticatedUserIdWithRevocation,
   statusForResult,
+  createSecurityRuntimeEnv,
   type RuntimeEnv
 } from "@/server/api-utils";
 import {
@@ -22,17 +24,23 @@ type RouteContext = {
 
 export function createParentNeedApiHandlers({
   collection,
-  env = process.env
+  env = process.env,
+  sessionRevocationGuard
 }: {
   collection: ParentNeedCollection;
   env?: RuntimeEnv;
+  sessionRevocationGuard?: RuntimeEnv["sessionRevocationGuard"];
 }) {
+  const securedEnv: RuntimeEnv = createSecurityRuntimeEnv({
+    ...env,
+    sessionRevocationGuard: sessionRevocationGuard ?? env.sessionRevocationGuard
+  });
   return {
     async GET_COLLECTION(request: Request) {
       const url = new URL(request.url);
 
       if (url.searchParams.get("scope") === "mine") {
-        const auth = readTemporaryAuthenticatedUserId(request, env);
+        const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
         if (!auth.ok) {
           return auth.response;
@@ -62,13 +70,29 @@ export function createParentNeedApiHandlers({
     },
 
     async POST_COLLECTION(request: Request) {
-      const auth = readTemporaryAuthenticatedUserId(request, env);
+      const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
         return auth.response;
       }
 
-      const body = await readJsonBody<ParentNeedInput>(request);
+      const securityResponse = guardWriteRequest(request, securedEnv, auth.authenticatedUserId);
+      if (securityResponse) return securityResponse;
+
+      const body = await readJsonBody<ParentNeedInput>(request, {
+        allowedKeys: ["teacherGenderPreference", "subjects", "grade", "budgetMin", "budgetMax", "timeSlots", "region", "community", "childIntro"],
+        schema: {
+          teacherGenderPreference: { type: "string" },
+          subjects: { type: "array", items: { type: "string" } },
+          grade: { type: "string" },
+          budgetMin: { type: "string" },
+          budgetMax: { type: "string" },
+          timeSlots: { type: "array", items: { type: "string" } },
+          region: { object: { allowedKeys: ["province", "city", "district"], fields: { province: { type: "string" }, city: { type: "string" }, district: { type: "string" } } } },
+          community: { type: "string" },
+          childIntro: { type: "string" }
+        }
+      });
 
       if (!body.ok) {
         return body.response;
@@ -91,13 +115,29 @@ export function createParentNeedApiHandlers({
     },
 
     async PATCH_ITEM(request: Request, context: RouteContext) {
-      const auth = readTemporaryAuthenticatedUserId(request, env);
+      const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
         return auth.response;
       }
 
-      const body = await readJsonBody<ParentNeedInput>(request);
+      const securityResponse = guardWriteRequest(request, securedEnv, auth.authenticatedUserId);
+      if (securityResponse) return securityResponse;
+
+      const body = await readJsonBody<ParentNeedInput>(request, {
+        allowedKeys: ["teacherGenderPreference", "subjects", "grade", "budgetMin", "budgetMax", "timeSlots", "region", "community", "childIntro"],
+        schema: {
+          teacherGenderPreference: { type: "string" },
+          subjects: { type: "array", items: { type: "string" } },
+          grade: { type: "string" },
+          budgetMin: { type: "string" },
+          budgetMax: { type: "string" },
+          timeSlots: { type: "array", items: { type: "string" } },
+          region: { object: { allowedKeys: ["province", "city", "district"], fields: { province: { type: "string" }, city: { type: "string" }, district: { type: "string" } } } },
+          community: { type: "string" },
+          childIntro: { type: "string" }
+        }
+      });
 
       if (!body.ok) {
         return body.response;

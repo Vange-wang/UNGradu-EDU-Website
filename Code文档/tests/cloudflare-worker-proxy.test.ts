@@ -31,6 +31,37 @@ async function importWorker(workerPath: string) {
 }
 
 describe("Cloudflare Worker reverse proxy example", () => {
+  it.each([
+    ["TypeScript source", workerTsPath],
+    ["Dashboard JavaScript paste version", workerJsPath]
+  ])("does not publish an unsafe inline/eval CSP fallback: %s", (_, workerPath) => {
+    const source = readFileSync(workerPath, "utf8");
+    expect(source).not.toMatch(/script-src[^\n]*['"]unsafe-inline['"]/i);
+    expect(source).not.toMatch(/style-src[^\n]*['"]unsafe-inline['"]/i);
+    expect(source).not.toMatch(/script-src[^\n]*['"]unsafe-eval['"]/i);
+  });
+
+  it.each([
+    ["TypeScript source", workerTsPath],
+    ["Dashboard JavaScript paste version", workerJsPath]
+  ])("preserves an upstream per-request CSP nonce: %s", async (_, workerPath) => {
+    const worker = await importWorker(workerPath);
+    expect(worker).not.toBeNull();
+    const nonceCsp = "default-src 'self'; script-src 'self' 'nonce-test-only'; style-src 'self'";
+    const fetchMock = vi.fn<(request: Request) => Promise<Response>>(async () =>
+      new Response("ok", { headers: { "content-security-policy": nonceCsp } })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await worker!.default.fetch(
+      new Request("https://ungraduedu.eu.cc/rules"),
+      { UPSTREAM_ORIGIN: "https://upstream.example.test" }
+    );
+
+    expect(response.headers.get("content-security-policy")).toBe(nonceCsp);
+    vi.unstubAllGlobals();
+  });
+
   it("provides a Worker implementation under Code文档/cloudflare/worker.ts", () => {
     expect(existsSync(workerTsPath)).toBe(true);
   });

@@ -15,8 +15,8 @@ const defaultSecurityHeaders = new Headers({
     "form-action 'self'",
     "frame-ancestors 'none'",
     "object-src 'none'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-    "style-src 'self' 'unsafe-inline'",
+    "script-src 'self'",
+    "style-src 'self'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     "connect-src 'self' https: wss:",
@@ -122,6 +122,11 @@ function hardenResponse(response) {
     headers.delete(header);
   }
   for (const [key, value] of defaultSecurityHeaders) {
+    // Preserve the upstream per-request nonce CSP. The static fallback is only
+    // used when the upstream response does not provide a policy.
+    if (key.toLowerCase() === "content-security-policy" && headers.has(key)) {
+      continue;
+    }
     headers.set(key, value);
   }
 

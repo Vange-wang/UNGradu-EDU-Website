@@ -7,6 +7,7 @@ import {
   type ParentNeedLifecycleTransactionRunner
 } from "@/server/parent-needs";
 import { createParentNeedManagementHandlers } from "./management-handlers";
+import { createRuntimeEnvWithSessionRevocation } from "@/server/api-utils";
 
 const database = createCloudBaseServerApp().database();
 type TransactionLike = {
@@ -14,7 +15,8 @@ type TransactionLike = {
 };
 
 const collection = database.collection(PARENT_NEEDS_COLLECTION);
-const handlers = createParentNeedApiHandlers({ collection });
+const env = createRuntimeEnvWithSessionRevocation(database);
+const handlers = createParentNeedApiHandlers({ collection, env });
 const runTransaction: ParentNeedLifecycleTransactionRunner | undefined =
   typeof database.runTransaction === "function"
     ? (operation) =>
@@ -31,6 +33,7 @@ const runTransaction: ParentNeedLifecycleTransactionRunner | undefined =
     : undefined;
 const managementHandlers = createParentNeedManagementHandlers({
   collection,
+  env,
   runTransaction
 });
 

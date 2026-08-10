@@ -10,6 +10,19 @@ import { formatTutorFeeRange } from "@/features/tutor-profiles/tutor-profile";
 import { readPublicTutorProfileFromApi } from "@/features/tutor-profiles/tutor-profile-api-client";
 import type { PublicServerTutorProfile } from "@/server/tutor-profiles";
 
+function isValidPublicSummary(value: string) {
+  const normalized = value.trim();
+  return Boolean(normalized) && !/(?:暂未公开|暂不公开|未公开)/u.test(normalized);
+}
+
+function formatTutorIdentity(profile: PublicServerTutorProfile) {
+  const school = isValidPublicSummary(profile.schoolSummary) ? profile.schoolSummary.trim() : "";
+  const major = isValidPublicSummary(profile.majorSummary) ? profile.majorSummary.trim() : "";
+  if (school && major) return `${school} · ${major}`;
+  if (school || major) return school || major;
+  return "学校与专业信息暂未公开";
+}
+
 export default function TutorProfileDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -86,9 +99,7 @@ export default function TutorProfileDetailPage() {
           <article className="detail-main">
             <span className="eyebrow">老师资料</span>
             <span className="status-pill">公开资料 · 联系方式未公开</span>
-            <h2>
-              {profile.school} · {profile.major}
-            </h2>
+            <h2>{formatTutorIdentity(profile)}</h2>
 
             <div className="detail-facts">
               <div>
@@ -120,15 +131,12 @@ export default function TutorProfileDetailPage() {
 
             <section className="detail-card">
               <h3>能力说明</h3>
-              <p>{profile.abilityDescription}</p>
+              <p>{profile.abilityDescriptionSummary}</p>
             </section>
 
             <section className="detail-card">
-              <h3>证明图片</h3>
-              <p>
-                当前仅展示已记录的文件元信息数量（{profile.proofImages.length} 条），
-                不代表平台已完成正式图片上传、查看或审核。
-              </p>
+              <h3>证明材料</h3>
+              <p>证明材料暂不公开</p>
             </section>
           </article>
 

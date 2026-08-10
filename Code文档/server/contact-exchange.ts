@@ -1,5 +1,6 @@
 import type { ContactProfileInput } from "@/features/profile/contact-profile";
 import { readServerContactProfile } from "@/server/contact-profiles";
+import { evaluateScopedAccess } from "@/server/security/access-policy";
 
 export const CONTACT_EXCHANGE_REQUESTS_COLLECTION = "contact_exchange_requests";
 export const CONVERSATIONS_COLLECTION = "conversations";
@@ -32,6 +33,8 @@ type ConversationDocument = {
 };
 
 type SourceDocument = {
+  managementState?: "managed" | "legacy-readonly" | string;
+  ownerUserId?: string;
   status?: string;
   version?: number;
 };
@@ -168,7 +171,7 @@ async function isConversationSourceAvailable({
   const result = await collection.doc(conversation.sourceId).get();
   const source = firstDocument(result) as SourceDocument | undefined;
 
-  if (source?.status !== "published") {
+  if (source?.status !== "published" || source.managementState === "legacy-readonly") {
     return false;
   }
 
@@ -755,6 +758,28 @@ export async function readServerAuthorizedContactProfiles({
       value: null,
       errors: {}
     };
+  }
+
+  const sourceCollection = conversation.sourceType === "parent-need"
+    ? parentNeedsCollection
+    : tutorProfilesCollection;
+  const sourceSnapshot = firstDocument(
+    await sourceCollection.doc(conversation.sourceId ?? "").get()
+  ) as SourceDocument | undefined;
+  const access = evaluateScopedAccess({
+    actorId: currentUserId,
+    contactAuthorized: true,
+    conversationSourceVersion: conversation.sourceVersion,
+    ownerId: sourceSnapshot?.ownerUserId ?? "",
+    participantIds: conversation.participantUserIds,
+    requestState: approvedRequest.status,
+    sourceStatus: sourceSnapshot?.status === "published" && sourceSnapshot.managementState !== "legacy-readonly"
+      ? "published"
+      : "deleted",
+    sourceVersion: sourceSnapshot?.version
+  });
+  if (!access.ok || !access.contactVisible) {
+    return { ok: true, value: null, errors: {} };
   }
 
   const otherUserId = findOtherParticipant(conversation, currentUserId);

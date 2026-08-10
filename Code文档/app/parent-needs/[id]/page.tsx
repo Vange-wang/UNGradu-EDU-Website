@@ -92,10 +92,7 @@ export default function ParentNeedDetailPage() {
             <div className="detail-facts">
               <div>
                 <span>区域</span>
-                <strong>
-                  {need.region.province} / {need.region.city} / {need.region.district}
-                </strong>
-                <p>{need.community}</p>
+                <strong>{need.regionLabel}</strong>
               </div>
               <div>
                 <span>预算</span>
@@ -115,7 +112,7 @@ export default function ParentNeedDetailPage() {
 
             <section className="detail-card">
               <h3>孩子情况</h3>
-              <p>{need.childIntro}</p>
+              <p>{need.childIntroSummary}</p>
             </section>
           </article>
 

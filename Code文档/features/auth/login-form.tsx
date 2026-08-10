@@ -248,8 +248,7 @@ export function LoginForm() {
           <div className="auth-input-shell">
             <span
               aria-hidden="true"
-              className="auth-input-icon"
-              style={{ backgroundImage: 'url("/assets/sitewide-ui/login-email-icon.png")' }}
+              className="auth-input-icon auth-input-icon-email"
             />
             <input
               id="email"
@@ -271,8 +270,7 @@ export function LoginForm() {
             <div className="auth-input-shell">
               <span
                 aria-hidden="true"
-                className="auth-input-icon"
-                style={{ backgroundImage: 'url("/assets/sitewide-ui/login-code-icon.png")' }}
+                className="auth-input-icon auth-input-icon-code"
               />
               <input
                 id="code"

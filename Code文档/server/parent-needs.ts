@@ -3,7 +3,6 @@ import {
   type ParentNeedInput,
   validateParentNeedInput
 } from "@/features/parent-needs/parent-need";
-
 export const PARENT_NEEDS_COLLECTION = "parent_needs";
 
 export type ServerParentNeed = ParentNeed & {
@@ -18,15 +17,23 @@ export type ServerParentNeed = ParentNeed & {
   deletedByUserId: string | null;
 };
 
-export type PublicServerParentNeed = Omit<
+export type PublicServerParentNeed = Pick<
   ServerParentNeed,
-  | "deletedAt"
-  | "deletedByUserId"
-  | "managementState"
-  | "ownerUserId"
-  | "updatedAt"
-  | "version"
-> & { status: "published" };
+  | "budgetMax"
+  | "budgetMin"
+  | "createdAt"
+  | "grade"
+  | "id"
+  | "status"
+  | "subjects"
+  | "teacherGenderPreference"
+  | "timeSlots"
+> & {
+  childIntroSummary: string;
+  publicSafetyNote: string;
+  regionLabel: string;
+  status: "published";
+};
 
 export type ServerParentNeedFilters = {
   subject?: string;
@@ -577,6 +584,13 @@ export function restoreServerParentNeed(
 const RECENT_PUBLIC_QUERY_LIMIT = 100;
 const RECENT_PUBLIC_QUERY_MAX_PAGES = 10;
 
+function toPublicRegionLabel(region: ServerParentNeed["region"]) {
+  const city = region.city.trim();
+  const district = region.district.trim();
+  const label = city && district ? `${city} · ${district}` : city;
+  return Array.from(label || "区域信息暂未公开").slice(0, 24).join("");
+}
+
 function toPublicParentNeed(need: ServerParentNeed): PublicServerParentNeed {
   return {
     id: need.id,
@@ -586,9 +600,9 @@ function toPublicParentNeed(need: ServerParentNeed): PublicServerParentNeed {
     budgetMin: need.budgetMin,
     budgetMax: need.budgetMax,
     timeSlots: need.timeSlots,
-    region: need.region,
-    community: need.community,
-    childIntro: need.childIntro,
+    regionLabel: toPublicRegionLabel(need.region),
+    childIntroSummary: "孩子情况暂未公开",
+    publicSafetyNote: "联系方式未公开，先通过站内沟通",
     status: "published",
     createdAt: need.createdAt
   };

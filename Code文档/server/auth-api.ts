@@ -1,14 +1,16 @@
 import { validateTestLoginInput } from "@/features/auth/test-auth";
-import { apiError, jsonResponse, readJsonBody, type RuntimeEnv } from "@/server/api-utils";
+import { apiError, createSecurityRuntimeEnv, guardWriteRequest, jsonResponse, readJsonBody, type RuntimeEnv } from "@/server/api-utils";
 import {
   clearAuthSessionCookie,
   createAuthSessionCookie,
-  readAuthSessionFromRequest
+  readAuthSessionFromRequestWithRevocation,
+  type AuthSessionRevocationGuard
 } from "@/server/auth-session";
 import { isTestLoginAllowed } from "@/features/auth/test-auth";
 
 type AuthApiDependencies = {
   env?: RuntimeEnv & { AUTH_SESSION_SECRET?: string };
+  sessionRevocationGuard?: AuthSessionRevocationGuard;
 };
 
 function jsonWithCookie(body: unknown, cookie: string) {
@@ -18,22 +20,34 @@ function jsonWithCookie(body: unknown, cookie: string) {
   });
 }
 
-export function createAuthApiHandlers({ env = process.env }: AuthApiDependencies = {}) {
+export function createAuthApiHandlers({ env = process.env, sessionRevocationGuard }: AuthApiDependencies = {}) {
+  const securedEnv: RuntimeEnv = createSecurityRuntimeEnv({
+    ...env,
+    sessionRevocationGuard: sessionRevocationGuard ?? env.sessionRevocationGuard
+  });
   return {
     async GET_SESSION(request: Request) {
-      const session = readAuthSessionFromRequest(request, env);
+      const result = await readAuthSessionFromRequestWithRevocation(
+        request,
+        securedEnv,
+        securedEnv.sessionRevocationGuard
+      );
 
-      if (!session) {
+      if (!result.ok) {
         return jsonResponse({
           ok: false,
           value: null,
-          errors: { request: "Login is required for this API." }
-        }, 401);
+          errors: {
+            request: result.reason === "unavailable"
+              ? "Session security is temporarily unavailable."
+              : "Login is required for this API."
+          }
+        }, result.reason === "unavailable" ? 503 : 401);
       }
 
       return jsonResponse({
         ok: true,
-        value: session,
+        value: result.session,
         errors: {}
       });
     },
@@ -53,11 +67,20 @@ export function createAuthApiHandlers({ env = process.env }: AuthApiDependencies
         );
       }
 
-      const body = await readJsonBody<{ code?: string; phone?: string }>(request);
+      const body = await readJsonBody<{ code?: string; phone?: string }>(request, {
+        allowedKeys: ["code", "phone"],
+        schema: {
+          code: { type: "string" },
+          phone: { type: "string" }
+        }
+      });
 
       if (!body.ok) {
         return body.response;
       }
+
+      const securityResponse = guardWriteRequest(request, securedEnv, body.value.phone?.trim());
+      if (securityResponse) return securityResponse;
 
       const result = validateTestLoginInput({
         code: body.value.code ?? "",
@@ -69,7 +92,7 @@ export function createAuthApiHandlers({ env = process.env }: AuthApiDependencies
       }
 
       const cookie = createAuthSessionCookie({
-        env,
+        env: securedEnv,
         phone: result.value.phone
       });
 
@@ -90,14 +113,39 @@ export function createAuthApiHandlers({ env = process.env }: AuthApiDependencies
       );
     },
 
-    async POST_LOGOUT() {
+    async POST_LOGOUT(request: Request) {
+      const result = await readAuthSessionFromRequestWithRevocation(
+        request,
+        securedEnv,
+        securedEnv.sessionRevocationGuard
+      );
+
+      if (!result.ok && result.reason === "unavailable") {
+        return apiError(503, "Session security is temporarily unavailable.");
+      }
+
+      const securityResponse = guardWriteRequest(
+        request,
+        securedEnv,
+        result.ok ? result.session.userId ?? result.session.phone : undefined
+      );
+      if (securityResponse) return securityResponse;
+
+      if (result.ok && securedEnv.sessionRevocationGuard) {
+        try {
+          await securedEnv.sessionRevocationGuard.revoke(result.session.userId ?? result.session.phone ?? "");
+        } catch {
+          return apiError(503, "Session security is temporarily unavailable.");
+        }
+      }
+
       return jsonWithCookie(
         {
           ok: true,
           value: null,
           errors: {}
         },
-        clearAuthSessionCookie()
+        clearAuthSessionCookie(securedEnv)
       );
     }
   };

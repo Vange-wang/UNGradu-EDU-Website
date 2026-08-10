@@ -1,9 +1,11 @@
 import {
   apiError,
+  guardWriteRequest,
   jsonResponse,
   readJsonBody,
-  readTemporaryAuthenticatedUserId,
+  readAuthenticatedUserIdWithRevocation,
   statusForResult,
+  createSecurityRuntimeEnv,
   type RuntimeEnv
 } from "@/server/api-utils";
 import {
@@ -22,6 +24,7 @@ type ContactExchangeApiDependencies = Omit<
   "authenticatedUserId" | "conversationId"
 > & {
   env?: RuntimeEnv;
+  sessionRevocationGuard?: RuntimeEnv["sessionRevocationGuard"];
 };
 
 type ContactExchangeActionBody =
@@ -48,8 +51,13 @@ export function createContactExchangeApiHandlers({
   env = process.env,
   parentNeedsCollection,
   requestsCollection,
-  tutorProfilesCollection
+  tutorProfilesCollection,
+  sessionRevocationGuard
 }: ContactExchangeApiDependencies) {
+  const securedEnv: RuntimeEnv = createSecurityRuntimeEnv({
+    ...env,
+    sessionRevocationGuard: sessionRevocationGuard ?? env.sessionRevocationGuard
+  });
   const dependencies = {
     contactProfilesCollection,
     conversationsCollection,
@@ -60,7 +68,7 @@ export function createContactExchangeApiHandlers({
 
   return {
     async GET(request: Request) {
-      const auth = readTemporaryAuthenticatedUserId(request, env);
+      const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
         return auth.response;
@@ -93,13 +101,25 @@ export function createContactExchangeApiHandlers({
     },
 
     async POST(request: Request) {
-      const auth = readTemporaryAuthenticatedUserId(request, env);
+      const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
         return auth.response;
       }
 
-      const body = await readJsonBody<Partial<ContactExchangeActionBody>>(request);
+      const securityResponse = guardWriteRequest(request, securedEnv, auth.authenticatedUserId);
+      if (securityResponse) return securityResponse;
+
+      const body = await readJsonBody<Partial<ContactExchangeActionBody>>(request, {
+        allowedKeys: ["action", "conversationId", "now", "requestId", "secondConfirmation"],
+        schema: {
+          action: { type: "string" },
+          conversationId: { type: "string" },
+          now: { type: "string" },
+          requestId: { type: "string" },
+          secondConfirmation: { type: "boolean" }
+        }
+      });
 
       if (!body.ok) {
         return body.response;

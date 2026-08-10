@@ -1,9 +1,11 @@
 import {
   apiError,
+  guardWriteRequest,
   jsonResponse,
   readJsonBody,
-  readTemporaryAuthenticatedUserId,
+  readAuthenticatedUserIdWithRevocation,
   statusForResult,
+  createSecurityRuntimeEnv,
   type RuntimeEnv
 } from "@/server/api-utils";
 import {
@@ -23,6 +25,7 @@ type ConversationApiDependencies = Omit<
   "authenticatedUserId" | "sourceId" | "sourceType"
 > & {
   env?: RuntimeEnv;
+  sessionRevocationGuard?: RuntimeEnv["sessionRevocationGuard"];
 };
 
 type RouteContext = {
@@ -38,8 +41,13 @@ export function createConversationApiHandlers({
   env = process.env,
   messagesCollection,
   parentNeedsCollection,
-  tutorProfilesCollection
+  tutorProfilesCollection,
+  sessionRevocationGuard
 }: ConversationApiDependencies) {
+  const securedEnv: RuntimeEnv = createSecurityRuntimeEnv({
+    ...env,
+    sessionRevocationGuard: sessionRevocationGuard ?? env.sessionRevocationGuard
+  });
   const dependencies = {
     conversationsCollection,
     messagesCollection,
@@ -49,7 +57,7 @@ export function createConversationApiHandlers({
 
   return {
     async GET_COLLECTION(request: Request) {
-      const auth = readTemporaryAuthenticatedUserId(request, env);
+      const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
         return auth.response;
@@ -64,17 +72,27 @@ export function createConversationApiHandlers({
     },
 
     async POST_COLLECTION(request: Request) {
-      const auth = readTemporaryAuthenticatedUserId(request, env);
+      const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
         return auth.response;
       }
 
+      const securityResponse = guardWriteRequest(request, securedEnv, auth.authenticatedUserId);
+      if (securityResponse) return securityResponse;
+
       const body = await readJsonBody<{
         now?: string;
         sourceId?: string;
         sourceType?: unknown;
-      }>(request);
+      }>(request, {
+        allowedKeys: ["now", "sourceId", "sourceType"],
+        schema: {
+          now: { type: "string" },
+          sourceId: { type: "string" },
+          sourceType: { enum: ["parent-need", "tutor-profile"] }
+        }
+      });
 
       if (!body.ok) {
         return body.response;
@@ -96,7 +114,7 @@ export function createConversationApiHandlers({
     },
 
     async GET_ITEM(request: Request, context: RouteContext) {
-      const auth = readTemporaryAuthenticatedUserId(request, env);
+      const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
         return auth.response;
@@ -113,7 +131,7 @@ export function createConversationApiHandlers({
     },
 
     async GET_MESSAGES(request: Request, context: RouteContext) {
-      const auth = readTemporaryAuthenticatedUserId(request, env);
+      const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
         return auth.response;
@@ -130,14 +148,23 @@ export function createConversationApiHandlers({
     },
 
     async POST_MESSAGES(request: Request, context: RouteContext) {
-      const auth = readTemporaryAuthenticatedUserId(request, env);
+      const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
         return auth.response;
       }
 
       const { id } = await context.params;
-      const body = await readJsonBody<{ now?: string; text?: string }>(request);
+      const securityResponse = guardWriteRequest(request, securedEnv, auth.authenticatedUserId);
+      if (securityResponse) return securityResponse;
+
+      const body = await readJsonBody<{ now?: string; text?: string }>(request, {
+        allowedKeys: ["now", "text"],
+        schema: {
+          now: { type: "string" },
+          text: { type: "string" }
+        }
+      });
 
       if (!body.ok) {
         return body.response;

@@ -22,6 +22,7 @@ export type ServerConversationMessageView = {
 
 type SourceDocument = {
   id?: string;
+  managementState?: "managed" | "legacy-readonly" | string;
   ownerUserId?: string;
   status?: string;
   version?: number;
@@ -323,7 +324,7 @@ async function toConversationViewWithSource(
   const versionMatches = !Number.isInteger(conversation.sourceVersion) ||
     !Number.isInteger(source?.version) ||
     conversation.sourceVersion === source?.version;
-  const sourceStatus = source?.status === "published" && versionMatches
+  const sourceStatus = source?.status === "published" && source.managementState !== "legacy-readonly" && versionMatches
     ? "published"
     : "deleted";
 
@@ -695,7 +696,7 @@ export async function sendServerConversationMessage({
     !Number.isInteger(source?.version) ||
     conversation.sourceVersion === source?.version;
 
-  if (source?.status !== "published" || !sourceVersionMatches) {
+  if (source?.status !== "published" || source.managementState === "legacy-readonly" || !sourceVersionMatches) {
     return createFailure("关联发布已删除，会话当前只读");
   }
 

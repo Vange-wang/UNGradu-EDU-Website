@@ -1,13 +1,15 @@
-import { isTestLoginAllowed } from "@/features/auth/test-auth";
 import type { RiskFeedbackInput } from "@/features/feedback/risk-feedback";
 import {
+  guardWriteRequest,
   apiError,
   jsonResponse,
   readJsonBody,
+  readAuthenticatedUserIdWithRevocation,
+  readOptionalAuthenticatedUserIdWithRevocation,
   statusForResult,
+  createSecurityRuntimeEnv,
   type RuntimeEnv
 } from "@/server/api-utils";
-import { readAuthSessionFromRequest } from "@/server/auth-session";
 import {
   listServerRiskFeedbackForOwner,
   saveServerRiskFeedback
@@ -17,48 +19,6 @@ type RiskFeedbackCollection =
   Parameters<typeof saveServerRiskFeedback>[0]["collection"] &
   Parameters<typeof listServerRiskFeedbackForOwner>[0]["collection"];
 
-function readOptionalAuthenticatedUserId(request: Request, env: RuntimeEnv) {
-  const session = readAuthSessionFromRequest(request, env);
-
-  if (session) {
-    return {
-      ok: true as const,
-      authenticatedUserId: session.userId ?? session.phone ?? null
-    };
-  }
-
-  const testUserPhone = request.headers.get("x-ungradu-test-user-phone")?.trim();
-
-  if (!testUserPhone) {
-    return {
-      ok: true as const,
-      authenticatedUserId: null
-    };
-  }
-
-  if (
-    !isTestLoginAllowed({
-      allowTestLogin: env.NEXT_PUBLIC_ALLOW_TEST_LOGIN,
-      allowHostedTestLogin: env.M5_ENABLE_HOSTED_TEST_LOGIN,
-      appEnv: env.APP_ENV,
-      nodeEnv: env.NODE_ENV
-    })
-  ) {
-    return {
-      ok: false as const,
-      response: apiError(
-        401,
-        "Production does not accept temporary test login identity."
-      )
-    };
-  }
-
-  return {
-    ok: true as const,
-    authenticatedUserId: testUserPhone
-  };
-}
-
 export function createRiskFeedbackApiHandlers({
   collection,
   env = process.env
@@ -66,16 +26,20 @@ export function createRiskFeedbackApiHandlers({
   collection: RiskFeedbackCollection;
   env?: RuntimeEnv;
 }) {
+  const securedEnv = createSecurityRuntimeEnv(env);
   return {
     async GET(request: Request) {
-      const auth = readOptionalAuthenticatedUserId(request, env);
+      // Listing is never anonymous: use the same revocation-aware guard as
+      // other authenticated reads and scope the query to that subject only.
+      const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
+        // Keep the feedback product contract's explicit copy for anonymous
+        // reads while preserving the shared 503 revocation-unavailable path.
+        if (auth.response.status === 401) {
+          return apiError(401, "登录后才能查看自己的反馈记录。");
+        }
         return auth.response;
-      }
-
-      if (!auth.authenticatedUserId) {
-        return apiError(401, "登录后才能查看自己的反馈记录。");
       }
 
       const result = await listServerRiskFeedbackForOwner({
@@ -91,13 +55,30 @@ export function createRiskFeedbackApiHandlers({
     },
 
     async POST(request: Request) {
-      const auth = readOptionalAuthenticatedUserId(request, env);
+      const auth = await readOptionalAuthenticatedUserIdWithRevocation(request, securedEnv);
 
       if (!auth.ok) {
         return auth.response;
       }
 
-      const body = await readJsonBody<RiskFeedbackInput>(request);
+      const securityResponse = guardWriteRequest(request, securedEnv, auth.authenticatedUserId, {
+        allowAnonymous: true
+      });
+      if (securityResponse) return securityResponse;
+
+      const body = await readJsonBody<RiskFeedbackInput>(request, {
+        allowedKeys: ["category", "targetType", "targetReference", "description", "evidenceNote", "contactMethod", "sourcePage"],
+        maxStringLength: 2000,
+        schema: {
+          category: { type: "string" },
+          targetType: { type: "string" },
+          targetReference: { type: "string" },
+          description: { type: "string" },
+          evidenceNote: { type: "string" },
+          contactMethod: { type: "string" },
+          sourcePage: { type: "string" }
+        }
+      });
 
       if (!body.ok) {
         return body.response;

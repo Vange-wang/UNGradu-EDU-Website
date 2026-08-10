@@ -23,8 +23,8 @@ describe("approved login visual contract", () => {
 
   it("shows the approved verification-code state without removing password/reset access", () => {
     expect(loginForm).toContain("邮箱验证码登录 / 注册");
-    expect(loginForm).toContain("/assets/sitewide-ui/login-email-icon.png");
-    expect(loginForm).toContain("/assets/sitewide-ui/login-code-icon.png");
+    expect(globalCss).toContain("/assets/sitewide-ui/login-email-icon.png");
+    expect(globalCss).toContain("/assets/sitewide-ui/login-code-icon.png");
     expect(loginForm).toContain("auth-mode-link");
     expect(loginForm).toContain('setMode("password")');
     expect(loginForm).toContain('setMode("reset")');

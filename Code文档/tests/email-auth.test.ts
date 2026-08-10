@@ -4,6 +4,8 @@ import { createAuthSessionCookie, readAuthSessionFromRequest } from "@/server/au
 import { createContactProfileApiHandlers } from "@/server/contact-profile-api";
 import { createEmailAuthApiHandlers } from "@/server/email-auth-api";
 import { hashEmail } from "@/server/email-auth";
+import { createLayeredRateLimiter } from "@/server/security/rate-limit";
+import { createCsrfProof } from "@/server/security/request-guard";
 
 type StoredDocument = Record<string, unknown>;
 
@@ -57,10 +59,10 @@ function createHandlers(options: {
       }
     },
     env: {
-      APP_ENV: "production",
+      APP_ENV: "test",
       AUTH_SESSION_SECRET: "email-auth-test-secret",
       EMAIL_CODE_SECRET: "email-code-test-secret",
-      NODE_ENV: "production"
+      NODE_ENV: "test"
     },
     now: () => options.now ?? new Date("2026-06-27T10:00:00.000Z"),
     userCollection: createFakeCollection()
@@ -74,7 +76,16 @@ async function sendCode(
   return handlers.POST_SEND_CODE(
     new Request("http://localhost/api/auth/email/send-code", {
       body: JSON.stringify({ email }),
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        origin: "https://ungraduedu.eu.cc",
+        "x-ungrade-csrf": createCsrfProof({
+          method: "POST",
+          origin: "https://ungraduedu.eu.cc",
+          secret: "email-csrf-test-secret",
+          subjectId: email
+        })
+      },
       method: "POST"
     })
   );
@@ -88,7 +99,16 @@ async function login(
   return handlers.POST_LOGIN(
     new Request("http://localhost/api/auth/email/login", {
       body: JSON.stringify({ code, email }),
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        origin: "https://ungraduedu.eu.cc",
+        "x-ungrade-csrf": createCsrfProof({
+          method: "POST",
+          origin: "https://ungraduedu.eu.cc",
+          secret: "email-csrf-test-secret",
+          subjectId: email
+        })
+      },
       method: "POST"
     })
   );
@@ -225,10 +245,10 @@ describe("email auth API handlers", () => {
         }
       },
       env: {
-        APP_ENV: "production",
+        APP_ENV: "test",
         AUTH_SESSION_SECRET: "email-auth-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "test"
       },
       now: () => new Date("2026-06-27T10:00:00.000Z")
     });
@@ -241,10 +261,10 @@ describe("email auth API handlers", () => {
         }
       },
       env: {
-        APP_ENV: "production",
+        APP_ENV: "test",
         AUTH_SESSION_SECRET: "email-auth-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "test"
       },
       now: () => new Date("2026-06-27T10:06:00.000Z")
     });
@@ -273,10 +293,10 @@ describe("email auth API handlers", () => {
         }
       },
       env: {
-        APP_ENV: "production",
+        APP_ENV: "test",
         AUTH_SESSION_SECRET: "email-auth-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "test"
       },
       now: () => new Date("2026-06-27T10:00:00.000Z")
     });
@@ -307,10 +327,10 @@ describe("email auth API handlers", () => {
         }
       },
       env: {
-        APP_ENV: "production",
+        APP_ENV: "test",
         AUTH_SESSION_SECRET: "email-auth-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "test"
       },
       now: () => new Date("2026-06-27T10:02:00.000Z")
     });
@@ -337,14 +357,21 @@ describe("email auth API handlers", () => {
           return { ok: true as const };
         }
       },
+      rateLimiter: createLayeredRateLimiter(),
       now: () => new Date("2026-06-27T10:00:00.000Z")
     };
     const email = "student@example.com";
     const emailHash = hashEmail(email);
     const misconfiguredHandlers = createEmailAuthApiHandlers({
       ...baseOptions,
+      rateLimiter: createLayeredRateLimiter({
+        mode: "production",
+        external: { check: () => ({ ok: true as const }) }
+      }),
       env: {
         APP_ENV: "production",
+        ALLOWED_ORIGINS: "https://ungraduedu.eu.cc",
+        CSRF_SECRET: "email-csrf-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
         NODE_ENV: "production"
       }
@@ -357,17 +384,17 @@ describe("email auth API handlers", () => {
     expect(failedLogin.status).toBe(503);
     await expect(failedLogin.json()).resolves.toMatchObject({
       ok: false,
-      errors: { request: "登录服务暂时不可用，请稍后重试" }
+      errors: { request: "验证码原子消费暂不可用，请稍后再试" }
     });
     expect(codeAfterFailure?.usedAt).toBeUndefined();
 
     const recoveredHandlers = createEmailAuthApiHandlers({
       ...baseOptions,
       env: {
-        APP_ENV: "production",
+        APP_ENV: "test",
         AUTH_SESSION_SECRET: "email-auth-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "test"
       }
     });
     const recoveredLogin = await login(recoveredHandlers, "123456", email);
@@ -392,10 +419,10 @@ describe("email auth API handlers", () => {
         }
       },
       env: {
-        APP_ENV: "production",
+        APP_ENV: "test",
         AUTH_SESSION_SECRET: "email-auth-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "test"
       },
       now: () => new Date("2026-06-27T10:00:00.000Z")
     });
@@ -437,10 +464,10 @@ describe("email auth API handlers", () => {
         }
       },
       env: {
-        APP_ENV: "production",
+        APP_ENV: "test",
         AUTH_SESSION_SECRET: "email-auth-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "test"
       },
       now: () => new Date("2026-06-27T10:00:00.000Z")
     });
@@ -507,10 +534,10 @@ describe("email auth API handlers", () => {
         }
       },
       env: {
-        APP_ENV: "production",
+        APP_ENV: "test",
         AUTH_SESSION_SECRET: "email-auth-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "test"
       },
       userCollection: createFakeCollection()
     });
@@ -538,10 +565,10 @@ describe("email auth API handlers", () => {
         }
       },
       env: {
-        APP_ENV: "production",
+        APP_ENV: "test",
         AUTH_SESSION_SECRET: "email-auth-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "test"
       },
       now: () => new Date("2026-06-27T10:00:00.000Z")
     });
@@ -583,10 +610,10 @@ describe("email auth API handlers", () => {
         }
       },
       env: {
-        APP_ENV: "production",
+        APP_ENV: "test",
         AUTH_SESSION_SECRET: "email-auth-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "test"
       },
       now: () => new Date("2026-06-27T10:00:00.000Z")
     });
@@ -620,10 +647,10 @@ describe("email auth API handlers", () => {
         }
       },
       env: {
-        APP_ENV: "production",
+        APP_ENV: "test",
         AUTH_SESSION_SECRET: "email-auth-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "test"
       }
     });
     await sendCode(handlers);
@@ -673,10 +700,10 @@ describe("email auth API handlers", () => {
         }
       },
       env: {
-        APP_ENV: "production",
+        APP_ENV: "test",
         AUTH_SESSION_SECRET: "email-auth-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "test"
       },
       now: () => new Date("2026-06-27T10:00:00.000Z")
     });
@@ -696,10 +723,10 @@ describe("email auth API handlers", () => {
         }
       },
       env: {
-        APP_ENV: "production",
+        APP_ENV: "test",
         AUTH_SESSION_SECRET: "email-auth-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "test"
       },
       now: () => new Date("2026-06-27T10:05:00.000Z")
     });
@@ -742,10 +769,10 @@ describe("email auth API handlers", () => {
         }
       },
       env: {
-        APP_ENV: "production",
+        APP_ENV: "test",
         AUTH_SESSION_SECRET: "email-auth-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "test"
       }
     };
     const handlers = createEmailAuthApiHandlers({

@@ -64,4 +64,66 @@ describe("origin verification middleware", () => {
     expect(await response.text()).toBe("Forbidden.");
     expect(response.headers.get("x-ungrade-origin-verify")).toBeNull();
   });
+
+  it("rejects an enforced write with no Origin even when the legacy verification header is valid", async () => {
+    vi.stubEnv("ORIGIN_VERIFY_MODE", "enforce");
+    vi.stubEnv("ORIGIN_VERIFY_SECRET", "expected-test-secret");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const middlewareModule = await loadMiddleware();
+    if (!middlewareModule) return;
+
+    const response = await middlewareModule.middleware(
+      new NextRequest("https://origin.example.com/api/feedback", {
+        method: "POST",
+        headers: { "x-ungrade-origin-verify": "expected-test-secret" }
+      })
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("x-correlation-id")).toBeTruthy();
+  });
+
+  it("adds a correlation id to an allowed enforced write", async () => {
+    vi.stubEnv("ORIGIN_VERIFY_MODE", "enforce");
+    vi.stubEnv("ORIGIN_VERIFY_SECRET", "expected-test-secret");
+    vi.stubEnv("CSRF_SECRET", "expected-csrf-secret");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const middlewareModule = await loadMiddleware();
+    if (!middlewareModule) return;
+
+    const response = await middlewareModule.middleware(
+      new NextRequest("https://origin.example.com/api/feedback", {
+        headers: {
+          origin: "https://origin.example.com",
+          "x-ungrade-csrf": "expected-csrf-secret",
+          "x-ungrade-origin-verify": "expected-test-secret"
+        },
+        method: "POST"
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-correlation-id")).toBeTruthy();
+  });
+
+  it("fails closed when an enforced write has no configured CSRF secret", async () => {
+    vi.stubEnv("ORIGIN_VERIFY_MODE", "enforce");
+    vi.stubEnv("ORIGIN_VERIFY_SECRET", "expected-test-secret");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const middlewareModule = await loadMiddleware();
+    if (!middlewareModule) return;
+
+    const response = await middlewareModule.middleware(
+      new NextRequest("https://origin.example.com/api/feedback", {
+        headers: {
+          origin: "https://origin.example.com",
+          "x-ungrade-origin-verify": "expected-test-secret"
+        },
+        method: "POST"
+      })
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("x-correlation-id")).toBeTruthy();
+  });
 });

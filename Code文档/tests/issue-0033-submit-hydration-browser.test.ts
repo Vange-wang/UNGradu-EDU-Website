@@ -1,5 +1,5 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { existsSync } from "node:fs";
+import { appendFileSync, existsSync, writeFileSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
@@ -15,6 +15,22 @@ const browserPath = [
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
 ].find((candidate): candidate is string => Boolean(candidate && existsSync(candidate)));
 const describeWithBrowser = browserPath ? describe : describe.skip;
+
+function attachDiagnosticNextLogs(nextProcess: ChildProcess, label: string) {
+  const directory = process.env.ISSUE_0034_DIAGNOSTIC_LOG_DIR;
+  if (!directory) return;
+
+  const stdoutPath = path.join(directory, `${label}.next.stdout.log`);
+  const stderrPath = path.join(directory, `${label}.next.stderr.log`);
+  try {
+    writeFileSync(stdoutPath, "", { encoding: "utf8" });
+    writeFileSync(stderrPath, "", { encoding: "utf8" });
+    nextProcess.stdout?.on("data", (chunk) => appendFileSync(stdoutPath, chunk));
+    nextProcess.stderr?.on("data", (chunk) => appendFileSync(stderrPath, chunk));
+  } catch {
+    // The diagnostic harness records the failure separately if the directory is unavailable.
+  }
+}
 const require = createRequire(import.meta.url);
 
 type WebSocketClient = {
@@ -306,10 +322,13 @@ describeWithBrowser("ISSUE-0033 publishing submit browser contract", () => {
       {
         cwd: process.cwd(),
         env: { ...process.env, APP_ENV: "test" },
-        stdio: "ignore",
+        stdio: process.env.ISSUE_0034_DIAGNOSTIC_LOG_DIR
+          ? ["ignore", "pipe", "pipe"]
+          : "ignore",
         windowsHide: true
       }
     );
+    attachDiagnosticNextLogs(nextProcess, "submit-hydration");
     for (let attempt = 0; attempt < 400; attempt += 1) {
       try {
         if ((await fetch(baseUrl)).ok) break;

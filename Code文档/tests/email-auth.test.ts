@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createAuthSessionCookie, readAuthSessionFromRequest } from "@/server/auth-session";
 import { createContactProfileApiHandlers } from "@/server/contact-profile-api";
 import { createEmailAuthApiHandlers } from "@/server/email-auth-api";
-import { hashEmail } from "@/server/email-auth";
+import { hashEmail, verifyEmailLoginCode } from "@/server/email-auth";
 import { createLayeredRateLimiter } from "@/server/security/rate-limit";
 import { createCsrfProof } from "@/server/security/request-guard";
 
@@ -161,6 +161,91 @@ async function resetPassword(
 }
 
 describe("email auth API handlers", () => {
+  it("requires a dedicated email-code secret in production instead of falling back to the session secret", async () => {
+    const handlers = createEmailAuthApiHandlers({
+      emailCodeCollection: createFakeCollection(),
+      emailDelivery: { async send() { return { ok: true as const }; } },
+      env: {
+        ALLOWED_ORIGINS: "https://ungraduedu.eu.cc",
+        APP_ENV: "production",
+        AUTH_SESSION_SECRET: "session-secret-placeholder",
+        CSRF_SECRET: "email-csrf-test-secret",
+        NODE_ENV: "test"
+      },
+      rateLimiter: createLayeredRateLimiter({
+        mode: "production",
+        external: { check: () => ({ ok: true }) }
+      }),
+      userCollection: createFakeCollection()
+    });
+
+    const response = await sendCode(handlers);
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      errors: { request: "邮箱验证码密钥未配置" },
+      ok: false
+    });
+  });
+
+  it("keeps the session-secret fallback explicitly limited to non-production", async () => {
+    const handlers = createEmailAuthApiHandlers({
+      emailCodeCollection: createFakeCollection(),
+      emailDelivery: { async send() { return { ok: true }; } },
+      env: {
+        APP_ENV: "test",
+        AUTH_SESSION_SECRET: "local-session-secret-placeholder",
+        NODE_ENV: "test"
+      },
+      userCollection: createFakeCollection()
+    });
+
+    const response = await sendCode(handlers);
+
+    expect(response.status).toBe(200);
+  });
+
+  it("invalidates an issued code when the production email-code secret rotates", async () => {
+    const collections = {
+      emailCodeCollection: createFakeCollection(),
+      userCollection: createFakeCollection()
+    };
+    const base = {
+      ...collections,
+      codeGenerator: () => "123456",
+      emailDelivery: { async send() { return { ok: true as const }; } },
+      now: () => new Date("2026-06-27T10:00:00.000Z")
+    };
+    const oldSecretHandlers = createEmailAuthApiHandlers({
+      ...base,
+      env: {
+        APP_ENV: "test",
+        EMAIL_CODE_SECRET: "old-email-code-secret",
+        NODE_ENV: "test"
+      }
+    });
+    await sendCode(oldSecretHandlers);
+
+    const result = await verifyEmailLoginCode({
+      code: "123456",
+      email: "student@example.com",
+      emailCodeCollection: collections.emailCodeCollection,
+      env: {
+        APP_ENV: "production",
+        EMAIL_CODE_SECRET: "new-email-code-secret",
+        NODE_ENV: "test"
+      },
+      now: new Date("2026-06-27T10:00:00.000Z"),
+      runTransaction: async (operation) => operation({
+        collection: () => collections.emailCodeCollection
+      }),
+      userCollection: collections.userCollection,
+      consumeCode: true
+    });
+
+    expect(result).toMatchObject({ ok: false, errors: { code: "验证码不正确" } });
+  });
+
   it("rejects invalid email addresses before sending a login code", async () => {
     const handlers = createHandlers();
     const response = await sendCode(handlers, "not-email");

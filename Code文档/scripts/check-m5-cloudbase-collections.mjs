@@ -68,7 +68,7 @@ async function main() {
 
   console.log("M5 CloudBase collection check");
   console.log(`Env: ${env}`);
-  console.log(`SecretId: ${secretId.slice(0, 4)}***`);
+  console.log("SecretId: [configured]");
 
   for (const collectionName of collections) {
     let result;

@@ -101,14 +101,17 @@ export function hashEmail(email: string) {
 }
 
 function readCodeSecret(env: RuntimeEnv) {
-  const secret = env.EMAIL_CODE_SECRET?.trim() || env.AUTH_SESSION_SECRET?.trim();
+  const dedicatedSecret = env.EMAIL_CODE_SECRET?.trim();
+  const isProduction = env.APP_ENV === "production" || env.NODE_ENV === "production";
+
+  if (isProduction) {
+    return dedicatedSecret || null;
+  }
+
+  const secret = dedicatedSecret || env.AUTH_SESSION_SECRET?.trim();
 
   if (secret) {
     return secret;
-  }
-
-  if (env.APP_ENV === "production" || env.NODE_ENV === "production") {
-    return null;
   }
 
   return "ungradu-dev-only-email-code-secret";

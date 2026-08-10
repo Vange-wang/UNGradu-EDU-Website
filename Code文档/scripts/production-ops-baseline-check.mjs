@@ -5,8 +5,12 @@ import { fileURLToPath } from "node:url";
 
 const REQUIRED_PRODUCTION_VARIABLES = [
   "APP_ENV",
+  "ALLOWED_ORIGINS",
+  "AUTH_SESSION_KEY_VERSION",
+  "AUTH_SESSION_REVOCATION_REQUIRED",
   "AUTH_SESSION_SECRET",
   "CLOUDBASE_ENV_ID",
+  "CSRF_SECRET",
   "EMAIL_CODE_SECRET",
   "EMAIL_FROM",
   "EMAIL_PROVIDER",
@@ -15,6 +19,10 @@ const REQUIRED_PRODUCTION_VARIABLES = [
   "SMTP_PORT",
   "SMTP_SECURE",
   "SMTP_USER",
+  "ORIGIN_OLD_SECRET_EXPOSURE",
+  "ORIGIN_ROTATION_STRATEGY",
+  "ORIGIN_VERIFY_MODE",
+  "ORIGIN_VERIFY_SECRET",
   "TENCENTCLOUD_SECRETID",
   "TENCENTCLOUD_SECRETKEY"
 ];
@@ -51,6 +59,43 @@ function isTruthy(value) {
   return String(value ?? "").trim().toLowerCase() === "true";
 }
 
+function validateProductionSecuritySettings(env, failures) {
+  const isProduction = env.APP_ENV === "production" || env.NODE_ENV === "production";
+  if (!isProduction) return;
+
+  if (String(env.ORIGIN_VERIFY_MODE ?? "").trim().toLowerCase() !== "enforce") {
+    failures.push("ORIGIN_VERIFY_MODE must be enforce in production operations baseline.");
+  }
+  if (String(env.AUTH_SESSION_REVOCATION_REQUIRED ?? "").trim().toLowerCase() !== "true") {
+    failures.push("AUTH_SESSION_REVOCATION_REQUIRED must be true in production operations baseline.");
+  }
+  const exposure = String(env.ORIGIN_OLD_SECRET_EXPOSURE ?? "").trim().toLowerCase();
+  const strategy = String(env.ORIGIN_ROTATION_STRATEGY ?? "").trim().toLowerCase();
+  if (exposure !== "exposed" && exposure !== "not-exposed") {
+    failures.push("ORIGIN_OLD_SECRET_EXPOSURE must be exposed or not-exposed.");
+  }
+  if (strategy !== "hard-cut" && strategy !== "overlap") {
+    failures.push("ORIGIN_ROTATION_STRATEGY must be hard-cut or overlap.");
+  }
+  if (exposure === "exposed" && strategy !== "hard-cut") {
+    failures.push("An exposed old origin secret requires the hard-cut rotation strategy.");
+  }
+  if (exposure === "not-exposed" && strategy !== "overlap") {
+    failures.push("A not-exposed old origin secret requires the overlap rotation strategy.");
+  }
+  if (String(env.ORIGIN_VERIFY_SECRET_PREVIOUS ?? "").trim()) {
+    failures.push("ORIGIN_VERIFY_SECRET_PREVIOUS must be removed from final production configuration.");
+  }
+
+  const revokedAt = String(env.AUTH_SESSION_REVOKED_AT ?? "").trim();
+  if (revokedAt) {
+    const parsed = new Date(revokedAt);
+    if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== revokedAt || parsed.getTime() > Date.now()) {
+      failures.push("AUTH_SESSION_REVOKED_AT must be a canonical ISO timestamp when supplied.");
+    }
+  }
+}
+
 function readTextIfExists(root, relativePath) {
   const absolutePath = path.resolve(root, relativePath);
 
@@ -65,6 +110,8 @@ function assertProductionOpsBaseline({ cwd = process.cwd(), env = process.env } 
   const failures = [];
   const warnings = [];
   const repositoryRoot = path.resolve(cwd, "..");
+
+  validateProductionSecuritySettings(env, failures);
 
   for (const relativePath of REQUIRED_S2_DOCS) {
     if (!fs.existsSync(path.resolve(cwd, relativePath))) {

@@ -31,6 +31,10 @@ export type AuthSession = {
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 const MAX_AGE_MILLISECONDS = MAX_AGE_SECONDS * 1000;
 
+function isProductionRuntime(env: AuthSessionEnv) {
+  return env.APP_ENV === "production" || env.NODE_ENV === "production";
+}
+
 function base64UrlEncode(value: string) {
   return Buffer.from(value, "utf8").toString("base64url");
 }
@@ -46,7 +50,7 @@ function readSessionSecret(env: AuthSessionEnv) {
     return secret;
   }
 
-  if (env.NODE_ENV === "production") {
+  if (isProductionRuntime(env)) {
     return null;
   }
 
@@ -124,13 +128,13 @@ export function createAuthSessionCookie({
 
   const payload = base64UrlEncode(JSON.stringify(session));
   const signature = signPayload(payload, secret);
-  const secure = env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = isProductionRuntime(env) ? "; Secure" : "";
 
   return `${AUTH_SESSION_COOKIE_NAME}=${payload}.${signature}; Path=/; Max-Age=${MAX_AGE_SECONDS}; HttpOnly; SameSite=Lax${secure}`;
 }
 
 export function clearAuthSessionCookie(env: AuthSessionEnv = process.env) {
-  const secure = env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = isProductionRuntime(env) ? "; Secure" : "";
   return `${AUTH_SESSION_COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secure}`;
 }
 

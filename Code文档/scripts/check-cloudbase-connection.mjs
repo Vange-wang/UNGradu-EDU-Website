@@ -60,7 +60,7 @@ async function main() {
 
   console.log("CloudBase 连接检查通过");
   console.log(`环境 ID: ${env}`);
-  console.log(`SecretId: ${secretId.slice(0, 4)}***`);
+  console.log("SecretId: [configured]");
   console.log(`集合: ${collectionName}`);
   console.log(`读取条数: ${Array.isArray(result.data) ? result.data.length : 0}`);
 }

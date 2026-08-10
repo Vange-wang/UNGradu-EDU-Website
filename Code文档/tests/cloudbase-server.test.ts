@@ -52,11 +52,12 @@ describe("CloudBase server configuration", () => {
 
     expect(redacted).toEqual({
       env: "ungradu-edu-test-d0ed1mqeceb0ae1",
-      secretId: "AKID***",
-      secretKey: "***",
+      secretId: "[configured]",
+      secretKey: "[configured]",
       appEnv: "test"
     });
     expect(JSON.stringify(redacted)).not.toContain("secret-example");
+    expect(JSON.stringify(redacted)).not.toContain("AKID");
   });
 
   it("creates a CloudBase app through the SDK initializer", () => {

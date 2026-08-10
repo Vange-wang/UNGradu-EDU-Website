@@ -76,9 +76,9 @@ This repository change is configuration preparation only. Do not deploy it while
 
 ## Origin isolation rollout
 
-The CloudBase application supports `off`, `observe`, and `enforce` modes. `observe` records only method, pathname, mode, status, and reject decision; it does not log the provided or expected secret, cookies, query strings, request bodies, or IP addresses.
+The CloudBase application supports `off`, `observe`, and `enforce` modes. `observe` records only method, pathname, mode, status, and reject decision; it does not log the provided or expected secret, cookies, query strings, request bodies, or IP addresses. It is not a routine production rotation or rollback mode.
 
-Follow [`origin-isolation-runbook.md`](./origin-isolation-runbook.md). Do not deploy observation mode outside the approved Beijing time 00:00-01:00 window, and do not enable `enforce` before the 24-hour observation and 30-minute Worker gray period pass.
+Follow [`origin-isolation-runbook.md`](./origin-isolation-runbook.md). The release checklist must explicitly set `ORIGIN_OLD_SECRET_EXPOSURE` and `ORIGIN_ROTATION_STRATEGY`: the current console exposure is `exposed` and therefore uses coordinated `hard-cut` (CloudBase new primary, then Worker new primary, with a bounded temporary 403), never a previous slot. Only a verified `not-exposed` case may use the overlap transition. The transition preflight is separate from final readiness; final readiness always requires no previous value. During the current zero-user phase, deployment and controlled testing may happen at any time, but CloudBase health, rollback pair, masked-only secret presence, synthetic data, monitoring, and stop conditions remain mandatory. Freeze a new release window before real users or formal public promotion.
 
 ## Limits
 

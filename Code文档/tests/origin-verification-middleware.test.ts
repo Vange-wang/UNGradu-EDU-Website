@@ -65,6 +65,49 @@ describe("origin verification middleware", () => {
     expect(response.headers.get("x-ungrade-origin-verify")).toBeNull();
   });
 
+  it("accepts the previous origin secret during a server-side rotation", async () => {
+    vi.stubEnv("APP_ENV", "production");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ORIGIN_VERIFY_MODE", "enforce");
+    vi.stubEnv("ORIGIN_VERIFY_SECRET", "new-primary-secret");
+    vi.stubEnv("ORIGIN_VERIFY_SECRET_PREVIOUS", "old-primary-secret");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const middlewareModule = await loadMiddleware();
+    if (!middlewareModule) return;
+
+    const response = await middlewareModule.middleware(
+      new NextRequest("https://origin.example.com/feedback", {
+        headers: { "x-ungrade-origin-verify": "old-primary-secret" }
+      })
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it("accepts the primary and rejects the old value immediately after previous is removed in production", async () => {
+    vi.stubEnv("APP_ENV", "production");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ORIGIN_VERIFY_MODE", "enforce");
+    vi.stubEnv("ORIGIN_VERIFY_SECRET", "new-primary-secret");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const middlewareModule = await loadMiddleware();
+    if (!middlewareModule) return;
+
+    const primaryResponse = await middlewareModule.middleware(
+      new NextRequest("https://origin.example.com/feedback", {
+        headers: { "x-ungrade-origin-verify": "new-primary-secret" }
+      })
+    );
+    const oldResponse = await middlewareModule.middleware(
+      new NextRequest("https://origin.example.com/feedback", {
+        headers: { "x-ungrade-origin-verify": "old-primary-secret" }
+      })
+    );
+
+    expect(primaryResponse.status).toBe(200);
+    expect(oldResponse.status).toBe(403);
+  });
+
   it("rejects an enforced write with no Origin even when the legacy verification header is valid", async () => {
     vi.stubEnv("ORIGIN_VERIFY_MODE", "enforce");
     vi.stubEnv("ORIGIN_VERIFY_SECRET", "expected-test-secret");

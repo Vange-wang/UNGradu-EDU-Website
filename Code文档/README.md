@@ -131,6 +131,7 @@
 ## CloudBase 本地连接
 
 M5 阶段已开始接入 CloudBase 服务端 SDK。真实密钥只放在本地 `.env.local`，不要提交到 Git。
+`TENCENTCLOUD_SESSIONTOKEN` 仅作为受控工具子进程的临时可选凭据注入，不写入仓库、命令参数、日志或业务运行时配置。
 
 本地配置步骤：
 
@@ -141,7 +142,7 @@ M5 阶段已开始接入 CloudBase 服务端 SDK。真实密钥只放在本地 `
 5. M5 后端签名会话需要配置 `AUTH_SESSION_SECRET`。本地测试可使用占位随机串，生产必须使用足够长的服务端私密随机值。
 6. `M5_ENABLE_HOSTED_TEST_LOGIN` 默认保持 `false`。只有部署到隔离的 M5 测试托管环境，且 `APP_ENV=test` 时，才可临时设为 `true` 用于跑 HTTP 验收脚本。
 
-连接检查脚本只输出脱敏后的 `SecretId` 前缀，不输出 `SecretKey`。
+连接检查脚本只输出 SecretId/SecretKey 的存在状态或固定掩码，不保留 SecretId 前缀，也不输出 SecretKey。
 
 M5 发布前验证命令：
 
@@ -177,6 +178,10 @@ S2 生产运行运维基线检查命令：
 - `SMTP_USER`：SMTP 登录账号。
 - `SMTP_PASS`：SMTP 登录密码或应用专用令牌。
 - `EMAIL_FROM`：验证码邮件发件人地址。
+
+生产安全轮换还要求服务端配置 `CSRF_SECRET`、`ALLOWED_ORIGINS`、`AUTH_SESSION_KEY_VERSION`、`AUTH_SESSION_REVOCATION_REQUIRED=true`、`ORIGIN_VERIFY_MODE=enforce` 与 `ORIGIN_VERIFY_SECRET`。发布清单必须另外提供不含 Secret 的 `ORIGIN_OLD_SECRET_EXPOSURE=exposed|not-exposed` 和 `ORIGIN_ROTATION_STRATEGY=hard-cut|overlap`：本次控制台展示已归类为 `exposed`，只能协调硬切；只有确认未暴露时才允许过渡阶段双值 overlap。`ORIGIN_VERIFY_SECRET_PREVIOUS` 只可在未暴露的 transition preflight 中临时存在，最终 readiness 一律要求移除；缺失/未知分类直接 fail closed。可选的 `AUTH_SESSION_REVOKED_AT` 若设置必须是规范、非未来 ISO 时间戳。应用写请求的 Origin/CSRF `mode` 与 Cloudflare Worker→CloudBase 的 origin header secret 校验是两条独立链路，不能互相替代。
+
+生产验证码必须使用独立的 `EMAIL_CODE_SECRET`；只有非生产本地兼容路径允许在缺少该值时回退到 `AUTH_SESSION_SECRET`。项目当前没有 Dify API Key 消费端，客服集成只接受公开 WebApp URL（`NEXT_PUBLIC_DIFY_CUSTOMER_SERVICE_URL`），不得新增或配置 Dify Key 环境变量。
 
 正式邮件服务账号、发件人、SMTP 密钥、额度、退信告警和试运行邮箱范围由项目总控制人配置到部署环境。仓库内测试使用 fake 邮件发送器，不发送真实邮件，不记录验证码明文。
 

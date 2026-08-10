@@ -1,9 +1,38 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 const codeRoot = join(__dirname, "..");
+
+function productionEnv(overrides: Record<string, string | undefined> = {}) {
+  return {
+    ALLOWED_ORIGINS: "https://ungraduedu.eu.cc",
+    APP_ENV: "production",
+    AUTH_SESSION_KEY_VERSION: "v1",
+    AUTH_SESSION_REVOCATION_REQUIRED: "true",
+    AUTH_SESSION_SECRET: "production-session-placeholder",
+    CLOUDBASE_ENV_ID: "prod-env-id",
+    CSRF_SECRET: "csrf-secret-placeholder",
+    EMAIL_CODE_SECRET: "email-secret-placeholder",
+    EMAIL_FROM: "noreply@example.com",
+    EMAIL_PROVIDER: "smtp",
+    NODE_ENV: "production",
+    ORIGIN_OLD_SECRET_EXPOSURE: "exposed",
+    ORIGIN_ROTATION_STRATEGY: "hard-cut",
+    ORIGIN_VERIFY_MODE: "enforce",
+    ORIGIN_VERIFY_SECRET: "origin-secret-placeholder",
+    SMTP_HOST: "smtp.example.com",
+    SMTP_PASS: "smtp-pass-placeholder",
+    SMTP_PORT: "465",
+    SMTP_SECURE: "true",
+    SMTP_USER: "smtp-user-placeholder",
+    TENCENTCLOUD_SECRETID: "secret-id-placeholder",
+    TENCENTCLOUD_SECRETKEY: "secret-key-placeholder",
+    ...overrides
+  };
+}
 
 function runOpsBaseline(env: Record<string, string | undefined> = {}) {
   return execFileSync(
@@ -45,5 +74,40 @@ describe("production operations baseline script", () => {
         M5_ENABLE_HOSTED_TEST_LOGIN: "true"
       })
     ).toThrow();
+  });
+
+  it("fails final production baseline while a previous origin secret remains", () => {
+    expect(() => runOpsBaseline(productionEnv({
+      ORIGIN_VERIFY_SECRET_PREVIOUS: "old-secret-placeholder"
+    }))).toThrow();
+  });
+
+  it("rejects an exposed origin using overlap and rejects future revocation timestamps", () => {
+    expect(() => runOpsBaseline(productionEnv({
+      ORIGIN_ROTATION_STRATEGY: "overlap"
+    }))).toThrow();
+    expect(() => runOpsBaseline(productionEnv({
+      AUTH_SESSION_REVOKED_AT: new Date(Date.now() + 60_000).toISOString()
+    }))).toThrow();
+  });
+
+  it("does not bake secret-shaped ARG or ENV declarations into the Docker image", () => {
+    const dockerfile = readFileSync(join(codeRoot, "Dockerfile"), "utf8");
+
+    expect(dockerfile).not.toMatch(/^\s*(?:ARG|ENV)\s+(?:AUTH_SESSION_SECRET|EMAIL_CODE_SECRET|TENCENTCLOUD_SECRETID|TENCENTCLOUD_SECRETKEY|ORIGIN_VERIFY_SECRET)\b/im);
+    expect(dockerfile).toContain("build-only-placeholder");
+    expect(dockerfile).toContain("Runtime credentials are injected");
+  });
+
+  it("uses fixed presence masking for CloudBase SecretId output", () => {
+    for (const scriptName of [
+      "check-cloudbase-connection.mjs",
+      "check-m5-cloudbase-collections.mjs",
+      "backfill-conversation-indexes.mjs"
+    ]) {
+      const script = readFileSync(join(codeRoot, "scripts", scriptName), "utf8");
+      expect(script).not.toContain("slice(0, 4)");
+      expect(script).toContain('SecretId: [configured]');
+    }
   });
 });

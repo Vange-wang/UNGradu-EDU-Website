@@ -80,8 +80,8 @@ export function parseCloudBaseServerEnv(
 export function redactCloudBaseServerConfig(config: CloudBaseServerConfig) {
   return {
     env: config.env,
-    secretId: `${config.secretId.slice(0, 4)}***`,
-    secretKey: "***",
+    secretId: "[configured]",
+    secretKey: "[configured]",
     appEnv: config.appEnv
   };
 }

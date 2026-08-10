@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createAuthApiHandlers } from "@/server/auth-api";
 import {
+  clearAuthSessionCookie,
   createAuthSessionCookie,
   readAuthSessionFromRequest
 } from "@/server/auth-session";
@@ -115,6 +116,27 @@ describe("backend trusted auth session API", () => {
 
     expect(response.status).toBe(401);
     expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
+  it("does not use the development session secret when APP_ENV alone is production", () => {
+    const env = { APP_ENV: "production", NODE_ENV: "test" };
+
+    expect(
+      createAuthSessionCookie({ env, phone: "13800138000" })
+    ).toBeNull();
+  });
+
+  it("marks the session cookie Secure when APP_ENV alone is production", () => {
+    const env = {
+      APP_ENV: "production",
+      AUTH_SESSION_SECRET: "production-session-secret-placeholder",
+      NODE_ENV: "test"
+    };
+
+    expect(
+      createAuthSessionCookie({ env, phone: "13800138000" })
+    ).toContain("; Secure");
+    expect(clearAuthSessionCookie(env)).toContain("; Secure");
   });
 
   it("allows temporary test login in isolated hosted M5 test environment", async () => {

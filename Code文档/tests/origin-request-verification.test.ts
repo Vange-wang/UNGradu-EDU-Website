@@ -13,6 +13,7 @@ type VerificationModule = {
   evaluateOriginRequest(input: {
     mode: "off" | "observe" | "enforce";
     expectedSecret: string | undefined;
+    previousSecret?: string;
     providedSecret: string | null;
   }): {
     mode: "off" | "observe" | "enforce";
@@ -94,6 +95,36 @@ describe("origin request verification", () => {
         mode: "enforce",
         expectedSecret: undefined,
         providedSecret: null
+      })
+    ).toEqual({ mode: "enforce", status: "misconfigured", shouldReject: true });
+  });
+
+  it("accepts the previous secret only during a controlled rotation", async () => {
+    const verification = await loadVerificationModule();
+    if (!verification) return;
+
+    expect(
+      verification.evaluateOriginRequest({
+        mode: "enforce",
+        expectedSecret: "new-primary-secret",
+        previousSecret: "old-primary-secret",
+        providedSecret: "old-primary-secret"
+      })
+    ).toEqual({ mode: "enforce", status: "valid", shouldReject: false });
+    expect(
+      verification.evaluateOriginRequest({
+        mode: "enforce",
+        expectedSecret: "new-primary-secret",
+        previousSecret: "old-primary-secret",
+        providedSecret: "unrelated-secret"
+      })
+    ).toEqual({ mode: "enforce", status: "invalid", shouldReject: true });
+    expect(
+      verification.evaluateOriginRequest({
+        mode: "enforce",
+        expectedSecret: undefined,
+        previousSecret: "old-primary-secret",
+        providedSecret: "old-primary-secret"
       })
     ).toEqual({ mode: "enforce", status: "misconfigured", shouldReject: true });
   });

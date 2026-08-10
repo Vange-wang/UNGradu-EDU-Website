@@ -47,6 +47,7 @@ function secretsMatch(providedSecret: string, expectedSecret: string) {
 export function evaluateOriginRequest(input: {
   mode: OriginVerificationMode;
   expectedSecret: string | undefined;
+  previousSecret?: string;
   providedSecret: string | null;
 }): OriginVerificationResult {
   if (input.mode === "off") {
@@ -69,7 +70,11 @@ export function evaluateOriginRequest(input: {
     };
   }
 
-  const status = secretsMatch(input.providedSecret, input.expectedSecret)
+  const primaryMatches = secretsMatch(input.providedSecret, input.expectedSecret);
+  const previousMatches = input.previousSecret
+    ? secretsMatch(input.providedSecret, input.previousSecret)
+    : false;
+  const status = primaryMatches || previousMatches
     ? "valid"
     : "invalid";
 

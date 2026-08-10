@@ -13,13 +13,16 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV APP_ENV=test
-ENV CLOUDBASE_ENV_ID=ungradu-edu-test-d0ed1mqeceb0ae1
-ENV TENCENTCLOUD_SECRETID=AKIDBUILDPLACEHOLDER
-ENV TENCENTCLOUD_SECRETKEY=build-key-placeholder
-ENV AUTH_SESSION_SECRET=build-session-placeholder-for-next-standalone-output
 RUN mkdir -p public
-RUN npm run build
+# Build-only synthetic inputs are scoped to this layer and are never runtime
+# environment variables or production secrets. Runtime credentials are injected
+# by the deployment platform after the image is built.
+RUN APP_ENV=test \
+  CLOUDBASE_ENV_ID=ungradu-edu-test-d0ed1mqeceb0ae1 \
+  TENCENTCLOUD_SECRETID=build-only-placeholder \
+  TENCENTCLOUD_SECRETKEY=build-only-placeholder \
+  AUTH_SESSION_SECRET=build-only-placeholder \
+  npm run build
 
 FROM node:22-alpine AS runner
 

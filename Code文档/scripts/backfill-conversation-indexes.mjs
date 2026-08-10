@@ -111,7 +111,7 @@ async function main() {
 
   console.log("M5 conversation index backfill");
   console.log(`Env: ${env}`);
-  console.log(`SecretId: ${secretId.slice(0, 4)}***`);
+  console.log("SecretId: [configured]");
 
   while (true) {
     const result = await collection.skip(offset).limit(batchSize).get();

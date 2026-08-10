@@ -44,6 +44,7 @@ export function middleware(request: NextRequest) {
   const result = evaluateOriginRequest({
     mode,
     expectedSecret: process.env.ORIGIN_VERIFY_SECRET,
+    previousSecret: process.env.ORIGIN_VERIFY_SECRET_PREVIOUS,
     providedSecret: request.headers.get(ORIGIN_VERIFY_HEADER)
   });
 

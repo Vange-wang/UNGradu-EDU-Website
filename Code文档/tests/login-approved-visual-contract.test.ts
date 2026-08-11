@@ -30,6 +30,15 @@ describe("approved login visual contract", () => {
     expect(loginForm).toContain('setMode("reset")');
   });
 
+  it("keeps the password-login switch exact and underlined at rest", () => {
+    expect(loginForm).toContain('className="auth-mode-link auth-mode-link-password"');
+    expect(loginForm).toContain("账号密码登录");
+    expect(loginForm).not.toContain("设置密码后，也可以使用邮箱和密码登录");
+    expect(globalCss).toMatch(
+      /\.auth-mode-link-password\s*\{[^}]*text-decoration:\s*underline;/s
+    );
+  });
+
   it("keeps the approved default form visual while revealing live controls for interaction", () => {
     expect(globalCss).toContain("login-static-form.png");
     expect(globalCss).toContain(".auth-card:hover > .auth-form-shell");

@@ -5216,6 +5216,11 @@ body:has(.customer-service-shell) {
   transform: translateY(-7px);
 }
 
+.auth-mode-link-password {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .auth-mode-link:hover,
 .auth-mode-link:focus-visible {
   color: var(--dplus-ink);

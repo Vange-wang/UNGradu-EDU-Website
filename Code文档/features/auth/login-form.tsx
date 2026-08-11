@@ -303,7 +303,7 @@ export function LoginForm() {
           {isLoggingIn ? "登录中..." : "登录 / 注册"}
         </button>
         <button
-          className="auth-mode-link"
+          className="auth-mode-link auth-mode-link-password"
           onClick={() => {
             setMode("password");
             setFormMessage("");
@@ -311,7 +311,7 @@ export function LoginForm() {
           }}
           type="button"
         >
-          设置密码后，也可以使用邮箱和密码登录
+          账号密码登录
         </button>
       </form> : null}
 

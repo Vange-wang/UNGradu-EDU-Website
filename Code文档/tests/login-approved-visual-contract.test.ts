@@ -10,6 +10,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { completePasswordLogin } from "@/features/auth/login-form";
+import { readRuntimeTurnstileSiteKey } from "@/server/runtime-public-config";
 
 const root = process.cwd();
 const loginPage = fs.readFileSync(path.join(root, "app", "login", "page.tsx"), "utf8");
@@ -175,6 +176,17 @@ async function stopProcessTree(child: ChildProcess | undefined) {
 }
 
 describe("approved login visual contract", () => {
+  it("reads only the public Turnstile site key from each server runtime environment", () => {
+    expect(readRuntimeTurnstileSiteKey({
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: " runtime-site-key-a ",
+      TURNSTILE_SECRET_KEY: "must-not-be-returned"
+    })).toBe("runtime-site-key-a");
+    expect(readRuntimeTurnstileSiteKey({
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: "runtime-site-key-b"
+    })).toBe("runtime-site-key-b");
+    expect(readRuntimeTurnstileSiteKey({})).toBe("");
+  });
+
   it("uses the approved people, decoration, and note icon assets", () => {
     expect(loginPage).toContain('from "next/image"');
     expect(loginPage).toContain("/assets/sitewide-ui/login-boy.png");

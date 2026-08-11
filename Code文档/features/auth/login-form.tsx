@@ -26,8 +26,6 @@ type PasswordActionResult = ApiResult<{
 
 type LoginMode = "code" | "password" | "reset";
 
-const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "";
-
 export function completePasswordLogin({
   invalidateTurnstile,
   navigate,
@@ -45,7 +43,11 @@ export function completePasswordLogin({
   refresh();
 }
 
-export function LoginForm() {
+export function LoginForm({
+  turnstileSiteKey
+}: {
+  turnstileSiteKey: string;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<LoginMode>("code");
@@ -393,7 +395,7 @@ export function LoginForm() {
           <TurnstileWidget
             key={turnstileAttempt}
             onTokenChange={setTurnstileToken}
-            siteKey={TURNSTILE_SITE_KEY}
+            siteKey={turnstileSiteKey}
           />
           <button
             className="button primary"

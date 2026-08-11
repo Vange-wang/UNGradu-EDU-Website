@@ -1,8 +1,13 @@
 import Image from "next/image";
 
 import { LoginPageContent } from "@/features/auth/login-page-content";
+import { readRuntimeTurnstileSiteKey } from "@/server/runtime-public-config";
+
+export const dynamic = "force-dynamic";
 
 export default function LoginPage() {
+  const turnstileSiteKey = readRuntimeTurnstileSiteKey();
+
   return (
     <div className="page auth-page sitewide-refresh-page">
       <section className="auth-shell sitewide-auth-shell">
@@ -56,7 +61,7 @@ export default function LoginPage() {
         </div>
 
         <div className="auth-card">
-          <LoginPageContent />
+          <LoginPageContent turnstileSiteKey={turnstileSiteKey} />
         </div>
       </section>
     </div>

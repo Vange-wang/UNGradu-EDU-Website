@@ -7,7 +7,11 @@ import { LoginForm } from "@/features/auth/login-form";
 import { LogoutButton } from "@/features/auth/logout-button";
 import { useTestSession } from "@/features/auth/use-test-session";
 
-export function LoginPageContent() {
+export function LoginPageContent({
+  turnstileSiteKey
+}: {
+  turnstileSiteKey: string;
+}) {
   const { loaded, session } = useTestSession();
 
   if (!loaded) {
@@ -33,7 +37,7 @@ export function LoginPageContent() {
 
   return (
     <Suspense fallback={<p className="auth-loading">正在准备登录表单...</p>}>
-      <LoginForm />
+      <LoginForm turnstileSiteKey={turnstileSiteKey} />
     </Suspense>
   );
 }

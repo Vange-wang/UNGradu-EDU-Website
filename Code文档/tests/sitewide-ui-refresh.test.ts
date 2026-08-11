@@ -54,7 +54,7 @@ describe("sitewide D+ refresh structure", () => {
 
   it("keeps login behavior while exposing the approved two-column shell", () => {
     expect(loginSource).toContain('className="auth-shell sitewide-auth-shell"');
-    expect(loginSource).toContain("<LoginPageContent />");
+    expect(loginSource).toContain("<LoginPageContent");
     expect(read("features/auth/login-form.tsx")).toContain(
       'fetch("/api/auth/email/login"'
     );

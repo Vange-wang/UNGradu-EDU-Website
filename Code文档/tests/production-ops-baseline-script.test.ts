@@ -99,6 +99,38 @@ describe("production operations baseline script", () => {
     expect(dockerfile).toContain("Runtime credentials are injected");
   });
 
+  it("delivers the public Turnstile site key from server runtime instead of the Docker build", () => {
+    const dockerfile = readFileSync(join(codeRoot, "Dockerfile"), "utf8");
+    const loginPage = readFileSync(
+      join(codeRoot, "app", "login", "page.tsx"),
+      "utf8",
+    );
+    const loginPageContent = readFileSync(
+      join(codeRoot, "features", "auth", "login-page-content.tsx"),
+      "utf8",
+    );
+    const loginForm = readFileSync(
+      join(codeRoot, "features", "auth", "login-form.tsx"),
+      "utf8",
+    );
+
+    expect(loginPage).toContain('export const dynamic = "force-dynamic"');
+    expect(loginPage).toContain("readRuntimeTurnstileSiteKey()");
+    expect(loginPage).toContain("turnstileSiteKey={turnstileSiteKey}");
+    expect(loginPageContent).toContain(
+      "<LoginForm turnstileSiteKey={turnstileSiteKey} />",
+    );
+    expect(loginForm).toContain("siteKey={turnstileSiteKey}");
+    expect(loginForm).not.toContain(
+      "process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY",
+    );
+    expect(dockerfile).not.toContain("ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY");
+    expect(dockerfile).not.toContain("ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY");
+    expect(dockerfile).not.toMatch(
+      /^\s*(?:ARG|ENV)\s+\w*(?:SECRET|TOKEN|PASSWORD|PRIVATE_KEY)\w*\b/im,
+    );
+  });
+
   it("uses fixed presence masking for CloudBase SecretId output", () => {
     for (const scriptName of [
       "check-cloudbase-connection.mjs",

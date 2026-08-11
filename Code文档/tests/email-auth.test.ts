@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
+import { parseApiResponse } from "@/features/api/api-client";
 import { createAuthSessionCookie, readAuthSessionFromRequest } from "@/server/auth-session";
 import { createContactProfileApiHandlers } from "@/server/contact-profile-api";
 import { createEmailAuthApiHandlers } from "@/server/email-auth-api";
@@ -161,6 +162,142 @@ async function resetPassword(
 }
 
 describe("email auth API handlers", () => {
+  it("returns explicit JSON when a production browser password login has no pre-auth challenge", async () => {
+    const userCollection = {
+      doc: vi.fn(() => ({
+        get: vi.fn(async () => ({ data: [] })),
+        set: vi.fn(async () => ({ updated: 1 }))
+      }))
+    };
+    const handlers = createEmailAuthApiHandlers({
+      challengeVerifier: {
+        async verify() {
+          return { ok: false as const, reason: "missing" as const };
+        }
+      },
+      emailCodeCollection: createFakeCollection(),
+      emailDelivery: { async send() { return { ok: true as const }; } },
+      env: {
+        ALLOWED_ORIGINS: "https://ungraduedu.eu.cc",
+        APP_ENV: "production",
+        AUTH_SESSION_SECRET: "synthetic-session-secret",
+        CSRF_SECRET: "synthetic-csrf-secret",
+        NODE_ENV: "production",
+        securityAlertSink: { available: true, emit() {} }
+      },
+      rateLimiter: createLayeredRateLimiter({
+        mode: "production",
+        external: { check: () => ({ ok: true as const }) }
+      }),
+      requireChallenge: true,
+      userCollection
+    });
+
+    const response = await handlers.POST_PASSWORD_LOGIN(
+      new Request("https://ungraduedu.eu.cc/api/auth/password/login", {
+        body: JSON.stringify({
+          email: "student@example.com",
+          password: "Tutor12345"
+        }),
+        headers: {
+          "content-type": "application/json",
+          origin: "https://ungraduedu.eu.cc"
+        },
+        method: "POST"
+      })
+    );
+    const rawBody = await response.clone().text();
+    const parsed = await parseApiResponse(response);
+
+    expect({
+      contentType: response.headers.get("content-type"),
+      rawBody,
+      requestError: parsed.ok ? null : parsed.errors.request,
+      status: response.status,
+      userCollectionCalls: userCollection.doc.mock.calls.length
+    }).toEqual({
+      contentType: "application/json",
+      rawBody:
+        '{"errors":{"request":"人机验证未通过，请稍后重试"},"ok":false,"value":null}',
+      requestError: "人机验证未通过，请稍后重试",
+      status: 403,
+      userCollectionCalls: 0
+    });
+  });
+
+  it("returns JSON and never accesses accounts for password-login precondition failures", async () => {
+    const userGet = vi.fn(async () => ({ data: [] }));
+    const userSet = vi.fn(async () => ({ updated: 1 }));
+    const userCollection = {
+      doc: vi.fn(() => ({ get: userGet, set: userSet }))
+    };
+    const handlers = createEmailAuthApiHandlers({
+      challengeVerifier: {
+        async verify() {
+          return { ok: false as const, reason: "missing" as const };
+        }
+      },
+      emailCodeCollection: createFakeCollection(),
+      emailDelivery: { async send() { return { ok: true as const }; } },
+      env: {
+        ALLOWED_ORIGINS: "https://ungraduedu.eu.cc",
+        APP_ENV: "production",
+        AUTH_SESSION_SECRET: "synthetic-session-secret",
+        CSRF_SECRET: "synthetic-csrf-secret",
+        NODE_ENV: "production",
+        securityAlertSink: { available: true, emit() {} }
+      },
+      rateLimiter: createLayeredRateLimiter({
+        mode: "production",
+        external: { check: () => ({ ok: true as const }) }
+      }),
+      requireChallenge: true,
+      userCollection
+    });
+    const request = (origin?: string, challengeToken?: string) =>
+      new Request("https://ungraduedu.eu.cc/api/auth/password/login", {
+        body: JSON.stringify({
+          challengeToken,
+          email: "student@example.com",
+          password: "Tutor12345"
+        }),
+        headers: {
+          "content-type": "application/json",
+          ...(origin ? { origin } : {})
+        },
+        method: "POST"
+      });
+
+    const missingOrigin = await handlers.POST_PASSWORD_LOGIN(request());
+    const wrongOrigin = await handlers.POST_PASSWORD_LOGIN(
+      request("https://attacker.example", "synthetic-challenge")
+    );
+    const missingChallenge = await handlers.POST_PASSWORD_LOGIN(
+      request("https://ungraduedu.eu.cc")
+    );
+
+    for (const response of [missingOrigin, wrongOrigin, missingChallenge]) {
+      expect(response.status).toBe(403);
+      expect(response.headers.get("content-type")).toContain("application/json");
+      await expect(response.clone().json()).resolves.toMatchObject({
+        ok: false,
+        value: null
+      });
+    }
+    await expect(missingOrigin.json()).resolves.toMatchObject({
+      errors: { request: "请求来源校验失败，请重试" }
+    });
+    await expect(wrongOrigin.json()).resolves.toMatchObject({
+      errors: { request: "请求来源校验失败，请重试" }
+    });
+    await expect(missingChallenge.json()).resolves.toMatchObject({
+      errors: { request: "人机验证未通过，请稍后重试" }
+    });
+    expect(userCollection.doc).not.toHaveBeenCalled();
+    expect(userGet).not.toHaveBeenCalled();
+    expect(userSet).not.toHaveBeenCalled();
+  });
+
   it("requires a dedicated email-code secret in production instead of falling back to the session secret", async () => {
     const handlers = createEmailAuthApiHandlers({
       emailCodeCollection: createFakeCollection(),
@@ -823,6 +960,128 @@ describe("email auth API handlers", () => {
     expect(collections.userCollection.documents.get(emailHash)?.lastLoginAt).toBe(
       "2026-06-27T10:05:00.000Z"
     );
+  });
+
+  it("fails password login with explicit JSON and no cookie when session creation lacks required inputs", async () => {
+    const email = "student@example.com";
+    const emailHash = hashEmail(email);
+    const collections = {
+      emailCodeCollection: createFakeCollection(),
+      userCollection: createFakeCollection()
+    };
+    const setupHandlers = createEmailAuthApiHandlers({
+      ...collections,
+      codeGenerator: () => "123456",
+      emailDelivery: { async send() { return { ok: true as const }; } },
+      env: {
+        APP_ENV: "test",
+        AUTH_SESSION_SECRET: "email-auth-test-secret",
+        EMAIL_CODE_SECRET: "email-code-test-secret",
+        NODE_ENV: "test"
+      }
+    });
+    await sendCode(setupHandlers, email);
+    const loggedIn = await login(setupHandlers, "123456", email);
+    await setPassword(
+      setupHandlers,
+      loggedIn.headers.get("set-cookie") ?? "",
+      "Tutor12345"
+    );
+
+    const accountReads = vi.fn(async (documentId: string) =>
+      collections.userCollection.doc(documentId).get()
+    );
+    const accountWrites = vi.fn(async (
+      documentId: string,
+      value: Record<string, unknown>
+    ) => collections.userCollection.doc(documentId).set(value));
+    const observedUserCollection = {
+      doc: vi.fn((documentId: string) => ({
+        get: () => accountReads(documentId),
+        set: (value: Record<string, unknown>) => accountWrites(documentId, value)
+      }))
+    };
+
+    const createProtectedHandlers = (sessionSecret: string) =>
+      createEmailAuthApiHandlers({
+        ...collections,
+        challengeReplayGuard: {
+          async consume() {
+            return { ok: true as const };
+          }
+        },
+        challengeVerifier: {
+          expectedHostnames: ["ungraduedu.eu.cc"],
+          async verify() {
+            return {
+              action: "password_login",
+              hostname: "ungraduedu.eu.cc",
+              issuedAt: "2026-06-27T10:04:00.000Z",
+              ok: true as const,
+              providerEnforcesSingleUse: true
+            };
+          }
+        },
+        emailDelivery: { async send() { return { ok: true as const }; } },
+        env: {
+          ALLOWED_ORIGINS: "https://ungraduedu.eu.cc",
+          APP_ENV: "production",
+          AUTH_SESSION_SECRET: sessionSecret,
+          CSRF_SECRET: "synthetic-csrf-secret",
+          NODE_ENV: "production",
+          securityAlertSink: { available: true, emit() {} }
+        },
+        now: () => new Date("2026-06-27T10:05:00.000Z"),
+        rateLimiter: createLayeredRateLimiter({
+          mode: "production",
+          external: { check: () => ({ ok: true as const }) }
+        }),
+        requireChallenge: true,
+        userCollection: observedUserCollection
+      });
+    const createRequest = () =>
+      new Request("https://ungraduedu.eu.cc/api/auth/password/login", {
+        body: JSON.stringify({
+          challengeToken: "official-test-token-placeholder",
+          email,
+          password: "Tutor12345"
+        }),
+        headers: {
+          "content-type": "application/json",
+          origin: "https://ungraduedu.eu.cc"
+        },
+        method: "POST"
+      });
+    const expectUnavailableWithoutCookie = async (response: Response) => {
+      expect(response.status).toBe(503);
+      expect(response.headers.get("set-cookie")).toBeNull();
+      await expect(response.json()).resolves.toEqual({
+        errors: { request: "登录服务暂时不可用，请稍后重试" },
+        ok: false,
+        value: null
+      });
+    };
+
+    await expectUnavailableWithoutCookie(
+      await createProtectedHandlers("").POST_PASSWORD_LOGIN(createRequest())
+    );
+    expect(observedUserCollection.doc).not.toHaveBeenCalled();
+    expect(accountReads).not.toHaveBeenCalled();
+    expect(accountWrites).not.toHaveBeenCalled();
+
+    const userWithoutId = { ...collections.userCollection.documents.get(emailHash) };
+    delete userWithoutId.userId;
+    collections.userCollection.documents.set(emailHash, userWithoutId);
+    observedUserCollection.doc.mockClear();
+    accountReads.mockClear();
+    accountWrites.mockClear();
+    await expectUnavailableWithoutCookie(
+      await createProtectedHandlers("synthetic-session-secret").POST_PASSWORD_LOGIN(
+        createRequest()
+      )
+    );
+    expect(accountReads).toHaveBeenCalledOnce();
+    expect(accountWrites).toHaveBeenCalledOnce();
   });
 
   it("rejects wrong password with a generic message", async () => {

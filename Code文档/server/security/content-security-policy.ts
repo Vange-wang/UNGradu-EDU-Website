@@ -12,6 +12,8 @@ const CSP_DIRECTIVES = [
   "worker-src 'self' blob:"
 ] as const;
 
+const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+
 // Next's route announcer and image runtime emit two stable, non-sensitive
 // style attributes. Hash them explicitly instead of opening style attributes
 // with unsafe-inline; a changed runtime style fails the browser contract.
@@ -36,8 +38,10 @@ export function createContentSecurityPolicy(
     "script-src",
     "'self'",
     `'nonce-${normalizedNonce}'`,
+    TURNSTILE_ORIGIN,
     ...(options.allowUnsafeEval ? ["'unsafe-eval'"] : [])
   ].join(" ");
+  const frameSource = `frame-src ${TURNSTILE_ORIGIN}`;
   // Keep the same fixed, non-sensitive runtime style hashes in style-src as a
   // compatibility fallback for Chromium's shadow-root style attribute
   // enforcement. No unsafe-inline is permitted in any environment.
@@ -58,6 +62,7 @@ export function createContentSecurityPolicy(
     scriptSource,
     styleSource,
     styleAttributeSource,
+    frameSource,
     // Skip the legacy style-src entry already replaced above.
     ...CSP_DIRECTIVES.slice(6)
   ].join("; ");

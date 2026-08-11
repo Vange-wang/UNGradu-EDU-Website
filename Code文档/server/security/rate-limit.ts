@@ -1,3 +1,5 @@
+import { createHmac } from "node:crypto";
+
 export type RateLimitWindow = {
   limit: number;
   windowMs: number;
@@ -12,7 +14,34 @@ export type LayeredRateLimitConfig = {
 };
 
 export type ExternalRateLimiter = {
-  check: (input: RateLimitInput) => { ok: true } | { ok: false; reason: string };
+  check: (input: RateLimitInput) =>
+    | Promise<RateLimitResult>
+    | RateLimitResult;
+};
+
+export type RateLimitResult = { ok: true } | { ok: false; reason: string };
+
+type PersistentRateLimitDocument = {
+  count: number;
+  expiresAt: Date;
+  layer: string;
+  updatedAt: Date;
+  windowStartedAtMs: number;
+};
+
+type PersistentRateLimitTransaction = {
+  collection: (name: string) => {
+    doc: (id: string) => {
+      get: () => Promise<{ data?: unknown[] | Record<string, unknown> }>;
+      set: (value: PersistentRateLimitDocument) => Promise<unknown>;
+    };
+  };
+};
+
+export type PersistentRateLimitDatabase = {
+  runTransaction: <T>(
+    operation: (transaction: PersistentRateLimitTransaction) => Promise<T>
+  ) => Promise<T | { result?: T }>;
 };
 
 const DEFAULT_CONFIG: LayeredRateLimitConfig = {
@@ -30,6 +59,136 @@ type RateLimitInput = {
   ipKey: string;
   sessionKey?: string;
 };
+
+function readStoredDocument(data: unknown[] | Record<string, unknown> | undefined) {
+  const value = Array.isArray(data) ? data[0] : data;
+  return value && typeof value === "object"
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function createPersistentDocumentId(
+  keySecret: string,
+  layer: keyof LayeredRateLimitConfig,
+  key: string
+) {
+  return createHmac("sha256", keySecret)
+    .update(`${layer}\0${key}`)
+    .digest("base64url");
+}
+
+export function createCloudBasePersistentRateLimiter({
+  collectionName,
+  config = DEFAULT_CONFIG,
+  database,
+  keySecret,
+  now = () => Date.now()
+}: {
+  collectionName?: string;
+  config?: Partial<LayeredRateLimitConfig>;
+  database?: PersistentRateLimitDatabase;
+  keySecret?: string;
+  now?: () => number;
+}): ExternalRateLimiter {
+  const normalizedCollectionName = collectionName?.trim() ?? "";
+  const normalizedKeySecret = keySecret?.trim() ?? "";
+  const configured = Boolean(
+    database?.runTransaction &&
+    normalizedKeySecret &&
+    /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(normalizedCollectionName)
+  );
+  const resolved: LayeredRateLimitConfig = {
+    ...DEFAULT_CONFIG,
+    ...config
+  };
+
+  return {
+    async check(input) {
+      if (!configured || !database) {
+        return { ok: false as const, reason: "unavailable" };
+      }
+
+      const layers: Array<[keyof LayeredRateLimitConfig, string | undefined]> = [
+        ["account", input.accountKey],
+        ["ip", input.ipKey],
+        ["device", input.deviceKey],
+        ["action", input.actionKey],
+        ["session", input.sessionKey]
+      ];
+      const activeLayers = layers.filter(
+        (entry): entry is [keyof LayeredRateLimitConfig, string] => Boolean(entry[1])
+      );
+      if (activeLayers.some(([, key]) => !key.trim())) {
+        return { ok: false as const, reason: "unavailable" };
+      }
+
+      try {
+        const transactionResult = await database.runTransaction(async (transaction) => {
+          const current = now();
+          const pending: Array<{
+            count: number;
+            doc: ReturnType<ReturnType<PersistentRateLimitTransaction["collection"]>["doc"]>;
+            layer: keyof LayeredRateLimitConfig;
+            windowStartedAtMs: number;
+          }> = [];
+
+          for (const [layer, key] of activeLayers) {
+            const rule = resolved[layer];
+            if (!rule) continue;
+            const documentId = createPersistentDocumentId(
+              normalizedKeySecret,
+              layer,
+              key
+            );
+            const doc = transaction.collection(normalizedCollectionName).doc(documentId);
+            const stored = readStoredDocument((await doc.get()).data);
+            const storedCount = Number(stored?.count);
+            const storedWindowStartedAtMs = Number(stored?.windowStartedAtMs);
+            const inCurrentWindow =
+              Number.isFinite(storedCount) &&
+              Number.isFinite(storedWindowStartedAtMs) &&
+              current >= storedWindowStartedAtMs &&
+              current - storedWindowStartedAtMs < rule.windowMs;
+            const count = inCurrentWindow ? storedCount : 0;
+            const windowStartedAtMs = inCurrentWindow
+              ? storedWindowStartedAtMs
+              : current;
+
+            if (count >= rule.limit) {
+              return { ok: false as const, reason: layer };
+            }
+            pending.push({ count: count + 1, doc, layer, windowStartedAtMs });
+          }
+
+          for (const entry of pending) {
+            const rule = resolved[entry.layer];
+            if (!rule) throw new Error("RATE_LIMIT_RULE_UNAVAILABLE");
+            await entry.doc.set({
+              count: entry.count,
+              expiresAt: new Date(entry.windowStartedAtMs + rule.windowMs),
+              layer: entry.layer,
+              updatedAt: new Date(current),
+              windowStartedAtMs: entry.windowStartedAtMs
+            });
+          }
+          return { ok: true as const };
+        });
+        const result =
+          transactionResult &&
+          typeof transactionResult === "object" &&
+          "result" in transactionResult &&
+          transactionResult.result
+            ? transactionResult.result
+            : transactionResult;
+        return result && typeof result === "object" && "ok" in result
+          ? result as RateLimitResult
+          : { ok: false as const, reason: "unavailable" };
+      } catch {
+        return { ok: false as const, reason: "unavailable" };
+      }
+    }
+  };
+}
 
 export function createLayeredRateLimiter({
   config = DEFAULT_CONFIG,
@@ -115,8 +274,23 @@ export function createFailClosedProductionRateLimiter() {
   });
 }
 
-export function createRouteRateLimiter(env: { APP_ENV?: string; NODE_ENV?: string }) {
-  return env.APP_ENV === "production" || env.NODE_ENV === "production"
-    ? createFailClosedProductionRateLimiter()
-    : createLayeredRateLimiter({ mode: "local" });
+export function createRouteRateLimiter(env: {
+  APP_ENV?: string;
+  AUTH_RATE_LIMIT_COLLECTION?: string;
+  AUTH_RATE_LIMIT_KEY_SECRET?: string;
+  NODE_ENV?: string;
+  rateLimitDatabase?: PersistentRateLimitDatabase;
+}) {
+  if (env.APP_ENV !== "production" && env.NODE_ENV !== "production") {
+    return createLayeredRateLimiter({ mode: "local" });
+  }
+
+  return createLayeredRateLimiter({
+    external: createCloudBasePersistentRateLimiter({
+      collectionName: env.AUTH_RATE_LIMIT_COLLECTION,
+      database: env.rateLimitDatabase,
+      keySecret: env.AUTH_RATE_LIMIT_KEY_SECRET
+    }),
+    mode: "production"
+  });
 }

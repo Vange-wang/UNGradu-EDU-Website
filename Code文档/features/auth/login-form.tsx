@@ -1,12 +1,13 @@
 ﻿"use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { parseApiResponse, type ApiResult } from "@/features/api/api-client";
 import { notifyAuthSessionAuthenticated } from "@/features/auth/auth-session-events";
 import { validateEmailAddress, validateEmailCode } from "@/features/auth/email-auth";
 import { sanitizeNextPath } from "@/features/auth/test-auth";
+import { TurnstileWidget } from "@/features/auth/turnstile-widget";
 
 type SendCodeApiResult = ApiResult<{
   expiresInSeconds: number;
@@ -25,6 +26,25 @@ type PasswordActionResult = ApiResult<{
 
 type LoginMode = "code" | "password" | "reset";
 
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "";
+
+export function completePasswordLogin({
+  invalidateTurnstile,
+  navigate,
+  notifyAuthenticated,
+  refresh
+}: {
+  invalidateTurnstile: () => void;
+  navigate: () => void;
+  notifyAuthenticated: () => void;
+  refresh: () => void;
+}) {
+  invalidateTurnstile();
+  notifyAuthenticated();
+  navigate();
+  refresh();
+}
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -42,12 +62,22 @@ export function LoginForm() {
   const [formMessage, setFormMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [turnstileAttempt, setTurnstileAttempt] = useState(0);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [resendAvailableAt, setResendAvailableAt] = useState(0);
   const now = Date.now();
   const secondsUntilResend = useMemo(
     () => Math.max(0, Math.ceil((resendAvailableAt - now) / 1000)),
     [now, resendAvailableAt]
   );
+  const resetTurnstile = useCallback(() => {
+    setTurnstileToken("");
+    setTurnstileAttempt((current) => current + 1);
+  }, []);
+  const switchMode = useCallback((nextMode: LoginMode) => {
+    resetTurnstile();
+    setMode(nextMode);
+  }, [resetTurnstile]);
 
   async function sendCode() {
     setFormMessage("");
@@ -145,11 +175,17 @@ export function LoginForm() {
       return;
     }
 
+    if (!turnstileToken) {
+      setFormMessage("请先完成人机验证。");
+      return;
+    }
+
     setIsLoggingIn(true);
 
     try {
       const response = await fetch("/api/auth/password/login", {
         body: JSON.stringify({
+          challengeToken: turnstileToken,
           email: emailValidation.value,
           password
         }),
@@ -160,6 +196,7 @@ export function LoginForm() {
       const result = await parseApiResponse(response) as LoginApiResult;
 
       if (!result.ok) {
+        resetTurnstile();
         setErrors({
           email: result.errors.email,
           password: result.errors.password
@@ -168,9 +205,15 @@ export function LoginForm() {
         return;
       }
 
-      notifyAuthSessionAuthenticated();
-      router.push(sanitizeNextPath(searchParams.get("next")));
-      router.refresh();
+      completePasswordLogin({
+        invalidateTurnstile: resetTurnstile,
+        navigate: () => router.push(sanitizeNextPath(searchParams.get("next"))),
+        notifyAuthenticated: notifyAuthSessionAuthenticated,
+        refresh: () => router.refresh()
+      });
+    } catch {
+      resetTurnstile();
+      setFormMessage("服务暂时不可用，请稍后重试。");
     } finally {
       setIsLoggingIn(false);
     }
@@ -220,7 +263,7 @@ export function LoginForm() {
         return;
       }
 
-      setMode("password");
+      switchMode("password");
       setCode("");
       setPassword("");
       setPasswordConfirm("");
@@ -305,7 +348,7 @@ export function LoginForm() {
         <button
           className="auth-mode-link auth-mode-link-password"
           onClick={() => {
-            setMode("password");
+            switchMode("password");
             setFormMessage("");
             setErrors({});
           }}
@@ -347,14 +390,23 @@ export function LoginForm() {
             />
             <span className="error">{errors.password}</span>
           </div>
-          <button className="button primary" type="submit">
+          <TurnstileWidget
+            key={turnstileAttempt}
+            onTokenChange={setTurnstileToken}
+            siteKey={TURNSTILE_SITE_KEY}
+          />
+          <button
+            className="button primary"
+            disabled={isLoggingIn || !turnstileToken}
+            type="submit"
+          >
             {isLoggingIn ? "登录中..." : "邮箱密码登录"}
           </button>
           <div className="auth-mode-links">
             <button
               className="auth-mode-link"
               onClick={() => {
-                setMode("code");
+                switchMode("code");
                 setFormMessage("");
                 setErrors({});
               }}
@@ -365,7 +417,7 @@ export function LoginForm() {
             <button
               className="auth-mode-link"
               onClick={() => {
-                setMode("reset");
+                switchMode("reset");
                 setFormMessage("");
                 setErrors({});
               }}
@@ -458,7 +510,7 @@ export function LoginForm() {
           <button
             className="auth-mode-link"
             onClick={() => {
-              setMode("password");
+              switchMode("password");
               setFormMessage("");
               setErrors({});
             }}

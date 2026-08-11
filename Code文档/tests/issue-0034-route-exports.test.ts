@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { scryptSync } from "node:crypto";
 
 const state = vi.hoisted(() => ({
   documents: new Map<string, Record<string, unknown>>(),
@@ -45,6 +46,11 @@ const database = vi.hoisted(() => ({
         };
       }
     };
+  },
+  async runTransaction<T>(operation: (transaction: {
+    collection: typeof database.collection;
+  }) => Promise<T>) {
+    return operation({ collection: database.collection.bind(database) });
   }
 }));
 
@@ -136,6 +142,97 @@ describe("ISSUE-0034 actual Next route exports", () => {
     }));
     expect(response.status).toBe(503);
     expect(state.gets.some((entry) => entry.collection === "email_login_users")).toBe(false);
+  });
+
+  it("completes the production password-login protection chain before issuing a session cookie", async () => {
+    vi.resetModules();
+    process.env.APP_ENV = "production";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+    process.env.AUTH_CHALLENGE_REPLAY_COLLECTION = "auth_challenge_replays";
+    process.env.AUTH_CHALLENGE_REPLAY_KEY_SECRET = "synthetic-route-replay-hmac-secret";
+    process.env.AUTH_SESSION_SECRET = "synthetic-route-session-secret";
+    process.env.AUTH_RATE_LIMIT_COLLECTION = "auth_rate_limits";
+    process.env.AUTH_RATE_LIMIT_KEY_SECRET = "synthetic-route-rate-limit-hmac-secret";
+    process.env.TURNSTILE_EXPECTED_HOSTNAMES = "ungraduedu.eu.cc";
+    process.env.TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA";
+    const origin = "https://ungraduedu.eu.cc";
+    process.env.ALLOWED_ORIGINS = origin;
+    process.env.CSRF_SECRET = "synthetic-csrf-secret";
+    const email = "synthetic@example.test";
+    const password = "Synthetic123";
+    const { hashEmail } = await import("@/server/email-auth");
+    const emailHash = hashEmail(email);
+    const salt = "0123456789abcdef0123456789abcdef";
+    const passwordHash = `scrypt$${salt}$${scryptSync(password, salt, 64).toString("hex")}`;
+    state.documents.set(`email_login_users:${emailHash}`, {
+      createdAt: "2026-08-10T11:00:00.000Z",
+      emailHash,
+      emailMasked: "s***@example.test",
+      lastLoginAt: "2026-08-10T11:00:00.000Z",
+      passwordHash,
+      status: "active",
+      userId: `email_${emailHash.slice(0, 24)}`
+    });
+    const siteverify = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      Response.json({
+        action: "password_login",
+        challenge_ts: new Date(Date.now() - 60_000).toISOString(),
+        hostname: "ungraduedu.eu.cc",
+        success: true
+      })
+    );
+
+    const { POST } = await import("@/app/api/auth/password/login/route");
+    const request = () => new Request(`${origin}/api/auth/password/login`, {
+      body: JSON.stringify({
+        challengeToken: "XXXX.DUMMY.TOKEN.XXXX",
+        email,
+        password
+      }),
+      headers: {
+        "content-type": "application/json",
+        origin
+      },
+      method: "POST"
+    });
+    const response = await POST(request());
+    const responseBody = await response.clone().json();
+
+    expect(responseBody).toMatchObject({ ok: true });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("set-cookie")).toContain("ungradu_auth_session=");
+    expect(siteverify).toHaveBeenCalledOnce();
+    const rateLimitReadIndex = state.gets.findIndex(
+      (entry) => entry.collection === "auth_rate_limits"
+    );
+    const accountReadIndex = state.gets.findIndex(
+      (entry) => entry.collection === "email_login_users"
+    );
+    expect(rateLimitReadIndex).toBeGreaterThanOrEqual(0);
+    expect(accountReadIndex).toBeGreaterThan(rateLimitReadIndex);
+
+    const replay = await POST(request());
+    const replayBody = await replay.clone().json();
+    expect(replayBody).toMatchObject({
+      errors: { request: "人机验证未通过，请稍后重试" },
+      ok: false
+    });
+    expect(replay.status).toBe(403);
+    expect(
+      state.gets.filter((entry) => entry.collection === "email_login_users")
+    ).toHaveLength(1);
+    const replayWrites = state.sets.filter(
+      (entry) => entry.collection === "auth_challenge_replays"
+    );
+    expect(replayWrites).toHaveLength(1);
+    expect(replayWrites[0]?.id).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(replayWrites[0]?.id).not.toContain("XXXX.DUMMY.TOKEN.XXXX");
+    const replayDocument = state.documents.get(
+      `auth_challenge_replays:${replayWrites[0]?.id}`
+    );
+    expect(replayDocument?.expiresAt).toBeInstanceOf(Date);
+    expect(JSON.stringify(replayDocument)).not.toContain("XXXX.DUMMY.TOKEN.XXXX");
+    siteverify.mockRestore();
   });
 
   it("exposes the real conversation item route with anonymous access denied before enumeration", async () => {

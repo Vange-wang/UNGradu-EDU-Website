@@ -6,7 +6,11 @@ import {
 } from "@/server/email-auth";
 import { createEmailDelivery } from "@/server/email-delivery";
 import { createRuntimeEnvWithSessionRevocation } from "@/server/api-utils";
-import { createFailClosedEmailChallengeVerifier } from "@/server/security/email-challenge";
+import {
+  createCloudBasePersistentEmailChallengeReplayGuard,
+  createTurnstileEmailChallengeVerifier,
+  type PersistentChallengeReplayDatabase
+} from "@/server/security/email-challenge";
 import { createRouteRateLimiter } from "@/server/security/rate-limit";
 
 function createHandlers() {
@@ -14,7 +18,18 @@ function createHandlers() {
   const env = createRuntimeEnvWithSessionRevocation(database);
 
   return createEmailAuthApiHandlers({
-    challengeVerifier: createFailClosedEmailChallengeVerifier(),
+    challengeReplayGuard: createCloudBasePersistentEmailChallengeReplayGuard({
+      collectionName: env.AUTH_CHALLENGE_REPLAY_COLLECTION,
+      database: database as PersistentChallengeReplayDatabase,
+      keySecret: env.AUTH_CHALLENGE_REPLAY_KEY_SECRET
+    }),
+    challengeVerifier: createTurnstileEmailChallengeVerifier({
+      expectedHostnames: (env.TURNSTILE_EXPECTED_HOSTNAMES ?? "")
+        .split(",")
+        .map((hostname) => hostname.trim().toLowerCase())
+        .filter(Boolean),
+      secretKey: env.TURNSTILE_SECRET_KEY
+    }),
     emailCodeCollection: database.collection(EMAIL_LOGIN_CODES_COLLECTION),
     emailDelivery: createEmailDelivery(),
     env,

@@ -24,7 +24,11 @@ import {
   PUBLIC_PARENT_NEED_FIELDS
 } from "@/server/security/public-field-policy";
 import { evaluateScopedAccess } from "@/server/security/access-policy";
-import { createLayeredRateLimiter } from "@/server/security/rate-limit";
+import {
+  createCloudBasePersistentRateLimiter,
+  createLayeredRateLimiter
+} from "@/server/security/rate-limit";
+import { createCloudBasePersistentEmailChallengeReplayGuard } from "@/server/security/email-challenge";
 import { hashEmail, type EmailAuthCollection, type EmailAuthAtomicTransactionRunner } from "@/server/email-auth";
 
 function authorizedWriteRequest(
@@ -763,12 +767,25 @@ describe("ISSUE-0034 S1 independent rework contract", () => {
       ok: true as const,
       tokenId: "challenge-synthetic"
     }));
-    const limiterCheck = vi.fn(() => ({ ok: false as const, reason: "unavailable" }));
+    const limiterCheck = vi.fn((input: {
+      accountKey: string;
+      actionKey: string;
+      deviceKey: string;
+      ipKey: string;
+      sessionKey?: string;
+    }) => {
+      void input;
+      return { ok: false as const, reason: "unavailable" };
+    });
+    const replayConsume = vi.fn(async () => ({ ok: true as const }));
     const { createEmailAuthApiHandlers } = await import("@/server/email-auth-api");
     const origin = "https://ungraduedu.eu.cc";
     const csrfSecret = "synthetic-csrf-secret";
     const email = "synthetic@example.test";
     const handlers = createEmailAuthApiHandlers({
+      challengeReplayGuard: {
+        consume: replayConsume
+      },
       challengeVerifier: { verify: challengeVerify },
       emailCodeCollection,
       emailDelivery: { async send() { return { ok: true }; } },
@@ -786,29 +803,221 @@ describe("ISSUE-0034 S1 independent rework contract", () => {
       userCollection
     });
 
-    const response = await handlers.POST_PASSWORD_LOGIN(new Request(`${origin}/api/auth/password/login`, {
-      body: JSON.stringify({
-        challengeToken: "challenge-synthetic",
-        email,
-        password: "Synthetic123"
-      }),
-      headers: {
-        "content-type": "application/json",
-        origin,
-        "x-ungrade-csrf": createCsrfProof({
-          method: "POST",
+    const request = (requestEmail: string, challengeToken: string) =>
+      new Request(`${origin}/api/auth/password/login`, {
+        body: JSON.stringify({
+          challengeToken,
+          email: requestEmail,
+          password: "Synthetic123"
+        }),
+        headers: {
+          "accept-language": "zh-CN",
+          "cf-connecting-ip": "203.0.113.10",
+          "content-type": "application/json",
           origin,
-          secret: csrfSecret,
-          subjectId: email
-        })
-      },
-      method: "POST"
-    }));
+          "user-agent": "Mozilla/5.0 Synthetic Browser",
+          "x-ungrade-csrf": createCsrfProof({
+            method: "POST",
+            origin,
+            secret: csrfSecret,
+            subjectId: requestEmail
+          })
+        },
+        method: "POST"
+      });
+    const response = await handlers.POST_PASSWORD_LOGIN(
+      request(email, "challenge-synthetic-a")
+    );
+    const rotatedEmailResponse = await handlers.POST_PASSWORD_LOGIN(
+      request("rotated@example.test", "challenge-synthetic-b")
+    );
 
+    expect(challengeVerify).toHaveBeenCalledTimes(2);
+    expect(replayConsume).toHaveBeenCalledTimes(2);
+    expect(limiterCheck).toHaveBeenCalledTimes(2);
+
+    await expect(response.clone().json()).resolves.toMatchObject({
+      errors: { request: "限流服务暂不可用，请稍后再试" },
+      ok: false
+    });
     expect(response.status).toBe(503);
-    expect(challengeVerify).toHaveBeenCalledOnce();
-    expect(limiterCheck).toHaveBeenCalledOnce();
+    expect(rotatedEmailResponse.status).toBe(503);
+    const firstKeys = limiterCheck.mock.calls[0]?.[0];
+    const rotatedKeys = limiterCheck.mock.calls[1]?.[0];
+    expect(firstKeys?.accountKey).not.toBe(rotatedKeys?.accountKey);
+    expect(firstKeys?.actionKey).toBe("password-login");
+    expect(rotatedKeys?.actionKey).toBe(firstKeys?.actionKey);
+    expect(rotatedKeys?.ipKey).toBe(firstKeys?.ipKey);
+    expect(rotatedKeys?.deviceKey).toBe(firstKeys?.deviceKey);
+    expect(firstKeys?.ipKey).toContain("203.0.113.10");
+    expect(firstKeys?.deviceKey).toContain("Mozilla/5.0 Synthetic Browser");
     expect(userCollection.doc).not.toHaveBeenCalled();
+  });
+
+  it("persists atomic HMAC-keyed rate limits and resets only after the window expires", async () => {
+    const documents = new Map<string, Record<string, unknown>>();
+    const writes: Array<{ id: string; value: Record<string, unknown> }> = [];
+    let transactionQueue = Promise.resolve();
+    let nowMs = Date.parse("2026-08-10T12:00:00.000Z");
+    const database = {
+      runTransaction<T>(operation: (transaction: {
+        collection: (name: string) => {
+          doc: (id: string) => {
+            get: () => Promise<{ data?: Record<string, unknown> }>;
+            set: (value: Record<string, unknown>) => Promise<unknown>;
+          };
+        };
+      }) => Promise<T>) {
+        const run = transactionQueue.then(() => operation({
+          collection(name) {
+            expect(name).toBe("auth_rate_limits");
+            return {
+              doc(id) {
+                return {
+                  async get() {
+                    return { data: documents.get(id) };
+                  },
+                  async set(value) {
+                    documents.set(id, { ...value });
+                    writes.push({ id, value: { ...value } });
+                    return { updated: 1 };
+                  }
+                };
+              }
+            };
+          }
+        }));
+        transactionQueue = run.then(() => undefined, () => undefined);
+        return run;
+      }
+    };
+    const external = createCloudBasePersistentRateLimiter({
+      collectionName: "auth_rate_limits",
+      config: {
+        account: { limit: 1, windowMs: 60_000 },
+        action: { limit: 10, windowMs: 60_000 },
+        device: { limit: 10, windowMs: 60_000 },
+        ip: { limit: 10, windowMs: 60_000 },
+        session: { limit: 10, windowMs: 60_000 }
+      },
+      database,
+      keySecret: "synthetic-rate-limit-hmac-secret",
+      now: () => nowMs
+    });
+    const limiter = createLayeredRateLimiter({ external, mode: "production" });
+    const input = {
+      accountKey: "student@example.com",
+      actionKey: "password-login:student@example.com",
+      deviceKey: "device:student@example.com",
+      ipKey: "proxy:student@example.com"
+    };
+
+    const concurrent = await Promise.all([limiter.check(input), limiter.check(input)]);
+    expect(concurrent.filter((result) => result.ok)).toHaveLength(1);
+    expect(concurrent.find((result) => !result.ok)).toEqual({ ok: false, reason: "account" });
+    expect(writes).toHaveLength(4);
+    expect([...documents.keys()].every((id) => /^[A-Za-z0-9_-]{43}$/.test(id))).toBe(true);
+    expect(JSON.stringify([...documents.entries()])).not.toContain("student@example.com");
+    expect(JSON.stringify([...documents.entries()])).not.toContain("challenge");
+    expect(writes.every(({ value }) => value.expiresAt instanceof Date)).toBe(true);
+
+    nowMs += 60_001;
+    await expect(limiter.check(input)).resolves.toEqual({ ok: true });
+    expect(writes).toHaveLength(8);
+
+    const unavailable = createCloudBasePersistentRateLimiter({
+      collectionName: "",
+      database: undefined,
+      keySecret: "",
+      now: () => nowMs
+    });
+    await expect(unavailable.check(input)).resolves.toEqual({
+      ok: false,
+      reason: "unavailable"
+    });
+  });
+
+  it("consumes challenge tokens atomically across instances without persisting the raw token", async () => {
+    const documents = new Map<string, Record<string, unknown>>();
+    const writes: Array<{ id: string; value: Record<string, unknown> }> = [];
+    let transactionQueue = Promise.resolve();
+    let nowMs = Date.parse("2026-08-11T12:00:00.000Z");
+    const database = {
+      runTransaction<T>(operation: (transaction: {
+        collection: (name: string) => {
+          doc: (id: string) => {
+            get: () => Promise<{ data?: Record<string, unknown> }>;
+            set: (value: Record<string, unknown>) => Promise<unknown>;
+          };
+        };
+      }) => Promise<T>) {
+        const run = transactionQueue.then(() => operation({
+          collection(name) {
+            expect(name).toBe("auth_challenge_replays");
+            return {
+              doc(id) {
+                return {
+                  async get() {
+                    return { data: documents.get(id) };
+                  },
+                  async set(value) {
+                    documents.set(id, { ...value });
+                    writes.push({ id, value: { ...value } });
+                    return { updated: 1 };
+                  }
+                };
+              }
+            };
+          }
+        }));
+        transactionQueue = run.then(() => undefined, () => undefined);
+        return run;
+      }
+    };
+    const createGuard = () => createCloudBasePersistentEmailChallengeReplayGuard({
+      collectionName: "auth_challenge_replays",
+      database,
+      keySecret: "synthetic-replay-hmac-secret",
+      now: () => nowMs
+    });
+    const input = {
+      action: "password_login" as const,
+      expiresAt: new Date(nowMs + 300_000),
+      token: "synthetic-provider-token"
+    };
+
+    const concurrent = await Promise.all([
+      createGuard().consume(input),
+      createGuard().consume(input)
+    ]);
+    expect(concurrent.filter((result) => result.ok)).toHaveLength(1);
+    expect(concurrent.find((result) => !result.ok)).toEqual({
+      ok: false,
+      reason: "replay"
+    });
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.id).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(JSON.stringify([...documents.entries()])).not.toContain(
+      "synthetic-provider-token"
+    );
+    expect(writes[0]?.value.expiresAt).toBeInstanceOf(Date);
+
+    nowMs += 300_001;
+    await expect(createGuard().consume({
+      ...input,
+      expiresAt: new Date(nowMs + 300_000)
+    })).resolves.toEqual({ ok: true });
+    expect(writes).toHaveLength(2);
+
+    await expect(createCloudBasePersistentEmailChallengeReplayGuard({
+      collectionName: "",
+      database: undefined,
+      keySecret: "",
+      now: () => nowMs
+    }).consume(input)).resolves.toEqual({
+      ok: false,
+      reason: "unavailable"
+    });
   });
 
   it("defaults public projections to a narrow safe summary", () => {

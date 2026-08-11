@@ -15,6 +15,7 @@ import {
   type SessionRevocationStore
 } from "@/server/security/session-revocation";
 import {
+  createTurnstileEmailChallengeVerifier,
   verifyEmailChallenge,
   type EmailChallengeVerifier
 } from "@/server/security/email-challenge";
@@ -398,6 +399,124 @@ describe("ISSUE-0034 non-database security baseline", () => {
     expect(result).toMatchObject({ ok: false, reason: "expired" });
   });
 
+  it("validates a password-login Turnstile token through the official Siteverify seam", async () => {
+    const fetchImpl = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const body = init?.body as FormData;
+      expect(body.get("secret")).toBe("1x0000000000000000000000000000000AA");
+      expect(body.get("response")).toBe("XXXX.DUMMY.TOKEN.XXXX");
+      return Response.json({
+        action: "password_login",
+        challenge_ts: "2026-08-10T11:59:00.000Z",
+        hostname: "ungraduedu.eu.cc",
+        success: true
+      });
+    });
+    const verifier = createTurnstileEmailChallengeVerifier({
+      expectedHostnames: ["ungraduedu.eu.cc"],
+      fetchImpl,
+      secretKey: "1x0000000000000000000000000000000AA"
+    });
+
+    const result = await verifyEmailChallenge({
+      expectedAction: "password_login",
+      expectedHostname: "ungraduedu.eu.cc",
+      now: new Date("2026-08-10T12:00:00.000Z"),
+      token: "XXXX.DUMMY.TOKEN.XXXX",
+      verifier
+    });
+
+    expect(result).toMatchObject({
+      action: "password_login",
+      hostname: "ungraduedu.eu.cc",
+      ok: true,
+      providerEnforcesSingleUse: true
+    });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      expect.objectContaining({ method: "POST" })
+    );
+  });
+
+  it("fails closed for every Turnstile provider and token failure without logging credentials", async () => {
+    const verifyWith = async (
+      fetchImpl: typeof fetch,
+      options: { secretKey?: string; token?: string; timeoutMs?: number } = {}
+    ) => verifyEmailChallenge({
+      expectedAction: "password_login",
+      expectedHostname: "ungraduedu.eu.cc",
+      now: new Date("2026-08-10T12:00:00.000Z"),
+      token: options.token ?? "XXXX.DUMMY.TOKEN.XXXX",
+      verifier: createTurnstileEmailChallengeVerifier({
+        expectedHostnames: ["ungraduedu.eu.cc"],
+        fetchImpl,
+        secretKey: options.secretKey === undefined
+          ? "1x0000000000000000000000000000000AA"
+          : options.secretKey,
+        timeoutMs: options.timeoutMs
+      })
+    });
+    const response = (body: unknown, status = 200) =>
+      new Response(JSON.stringify(body), {
+        headers: { "content-type": "application/json" },
+        status
+      });
+    const success = (overrides: Record<string, unknown> = {}, status = 200) => response({
+      action: "password_login",
+      challenge_ts: "2026-08-10T11:59:00.000Z",
+      hostname: "ungraduedu.eu.cc",
+      success: true,
+      ...overrides
+    }, status);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const missingSecretFetch = vi.fn<typeof fetch>();
+    await expect(verifyWith(missingSecretFetch, { secretKey: "" }))
+      .resolves.toEqual({ ok: false, reason: "secret-missing" });
+    expect(missingSecretFetch).not.toHaveBeenCalled();
+
+    await expect(verifyWith(vi.fn(async (_url, init) => {
+      expect(init?.signal).toBeInstanceOf(AbortSignal);
+      throw new DOMException("timed out", "AbortError");
+    }), { timeoutMs: 1 })).resolves.toEqual({ ok: false, reason: "timeout" });
+    await expect(verifyWith(vi.fn(async () => new Response("not-json"))))
+      .resolves.toEqual({ ok: false, reason: "unreachable" });
+    await expect(verifyWith(vi.fn(async () => success({}, 503))))
+      .resolves.toEqual({ ok: false, reason: "unreachable" });
+    await expect(verifyWith(vi.fn(async () => response({
+      "error-codes": ["invalid-input-response"],
+      success: false
+    })))).resolves.toEqual({ ok: false, reason: "invalid" });
+    await expect(verifyWith(vi.fn(async () => response({
+      "error-codes": ["timeout-or-duplicate"],
+      success: false
+    })))).resolves.toEqual({ ok: false, reason: "replay" });
+    await expect(verifyWith(vi.fn(async () => response({
+      "error-codes": ["internal-error"],
+      success: false
+    })))).resolves.toEqual({ ok: false, reason: "unreachable" });
+    await expect(verifyWith(vi.fn(async () => response({
+      "error-codes": ["invalid-input-secret"],
+      success: false
+    })))).resolves.toEqual({ ok: false, reason: "secret-missing" });
+    await expect(verifyWith(vi.fn(async () => success({ action: "email_send_code" }))))
+      .resolves.toEqual({ ok: false, reason: "action-mismatch" });
+    await expect(verifyWith(vi.fn(async () => success({ hostname: "evil.example" }))))
+      .resolves.toEqual({ ok: false, reason: "hostname-mismatch" });
+    await expect(verifyWith(vi.fn(async () => success({
+      challenge_ts: "2026-08-10T11:50:00.000Z"
+    })))).resolves.toEqual({ ok: false, reason: "expired" });
+    const oversizedFetch = vi.fn<typeof fetch>();
+    await expect(verifyWith(oversizedFetch, { token: "x".repeat(2049) }))
+      .resolves.toEqual({ ok: false, reason: "invalid" });
+    expect(oversizedFetch).not.toHaveBeenCalled();
+    expect(consoleError).not.toHaveBeenCalled();
+    expect(consoleWarn).not.toHaveBeenCalled();
+
+    consoleError.mockRestore();
+    consoleWarn.mockRestore();
+  });
+
   it("emits correlation and redacted audit/alert data without sensitive values", () => {
     const audit = createRedactedSecurityAudit({
       actorId: "synthetic-owner",
@@ -426,7 +545,7 @@ describe("ISSUE-0034 non-database security baseline", () => {
     expect(sink.events).toHaveLength(1);
   });
 
-  it("enforces account, IP, device, and action rate limits independently", () => {
+  it("enforces account, IP, device, and action rate limits independently", async () => {
     const config: LayeredRateLimitConfig = {
       account: { limit: 2, windowMs: 60_000 },
       action: { limit: 2, windowMs: 60_000 },
@@ -440,16 +559,16 @@ describe("ISSUE-0034 non-database security baseline", () => {
       deviceKey: "device-a",
       ipKey: "ip-a"
     };
-    expect(limiter.check(input).ok).toBe(true);
-    expect(limiter.check(input).ok).toBe(true);
-    expect(limiter.check(input).ok).toBe(false);
-    expect(limiter.check({
+    expect((await limiter.check(input)).ok).toBe(true);
+    expect((await limiter.check(input)).ok).toBe(true);
+    expect((await limiter.check(input)).ok).toBe(false);
+    expect((await limiter.check({
       ...input,
       accountKey: "account-b",
       actionKey: "email-login",
       deviceKey: "device-b",
       ipKey: "ip-b"
-    }).ok).toBe(true);
+    })).ok).toBe(true);
   });
 
   it("projects public fields and rejects foreign/deleted/source/contact access", () => {
@@ -488,7 +607,7 @@ describe("ISSUE-0034 non-database security baseline", () => {
     ).toMatchObject({ ok: false, reason: "owner-mismatch" });
   });
 
-  it("requires a hardened CSP and long-lived HSTS without unsafe script execution", async () => {
+  it("allows only the Turnstile script and frame origins without weakening the hardened CSP", async () => {
     const headersConfig = await nextConfig.headers?.();
     const allHeaders = headersConfig?.flatMap((entry) => entry.headers) ?? [];
     const csp = createContentSecurityPolicy("synthetic-request-nonce");
@@ -496,7 +615,11 @@ describe("ISSUE-0034 non-database security baseline", () => {
 
     expect(csp).not.toContain("'unsafe-eval'");
     expect(csp).not.toContain("script-src 'self' 'unsafe-inline'");
-    expect(csp).toContain("script-src 'self'");
+    expect(csp).toContain("script-src 'self' 'nonce-synthetic-request-nonce' https://challenges.cloudflare.com");
+    expect(csp).toContain("frame-src https://challenges.cloudflare.com");
+    expect(csp).not.toMatch(/script-src[^;]*(?:\shttps:(?=\s|;|$)|\s\*)/);
+    expect(csp).not.toMatch(/frame-src[^;]*(?:\shttps:(?=\s|;|$)|\s\*)/);
+    expect(csp).not.toContain("'unsafe-inline'");
     expect(hsts).toContain("max-age=31536000");
     expect(hsts).toContain("includeSubDomains");
   });

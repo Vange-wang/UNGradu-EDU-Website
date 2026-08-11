@@ -17,6 +17,7 @@ import {
   createCloudBaseSessionRevocationStore,
   createSessionRevocationGuard
 } from "@/server/security/session-revocation";
+import type { PersistentRateLimitDatabase } from "@/server/security/rate-limit";
 
 export type AnonymousAntiAbuseAdapter = {
   available: boolean;
@@ -26,19 +27,26 @@ export type AnonymousAntiAbuseAdapter = {
 export type RuntimeEnv = {
   ALLOWED_ORIGINS?: string;
   APP_ENV?: string;
+  AUTH_CHALLENGE_REPLAY_COLLECTION?: string;
+  AUTH_CHALLENGE_REPLAY_KEY_SECRET?: string;
   AUTH_SESSION_SECRET?: string;
   AUTH_SESSION_KEY_VERSION?: string;
   AUTH_SESSION_REVOKED_AT?: string;
   AUTH_SESSION_REVOCATION_REQUIRED?: string;
+  AUTH_RATE_LIMIT_COLLECTION?: string;
+  AUTH_RATE_LIMIT_KEY_SECRET?: string;
   CSRF_SECRET?: string;
   M5_ENABLE_HOSTED_TEST_LOGIN?: string;
   NODE_ENV?: string;
   NEXT_PUBLIC_ALLOW_TEST_LOGIN?: string;
   ORIGIN_VERIFY_MODE?: "off" | "observe" | "enforce" | string;
+  rateLimitDatabase?: PersistentRateLimitDatabase;
   anonymousAntiAbuse?: AnonymousAntiAbuseAdapter;
   securityAlertSink?: SecurityAlertSink;
   sessionRevocationGuard?: AuthSessionRevocationGuard;
   TRUSTED_PROXY_IP?: string;
+  TURNSTILE_EXPECTED_HOSTNAMES?: string;
+  TURNSTILE_SECRET_KEY?: string;
 };
 
 export type ApiResult = {
@@ -64,6 +72,7 @@ export function createSecurityRuntimeEnv(env: RuntimeEnv = process.env): Runtime
 
 type RevocationDatabase = {
   collection: (name: string) => Parameters<typeof createCloudBaseSessionRevocationStore>[0];
+  runTransaction?: PersistentRateLimitDatabase["runTransaction"];
 };
 
 /** Build the fixed production revocation dependency for a route. */
@@ -71,17 +80,21 @@ export function createRuntimeEnvWithSessionRevocation(
   database: RevocationDatabase,
   env: RuntimeEnv = process.env
 ): RuntimeEnv {
+  const rateLimitDatabase = typeof database.runTransaction === "function"
+    ? database as PersistentRateLimitDatabase
+    : undefined;
   try {
     const collection = database.collection("auth_session_revocations");
     return createSecurityRuntimeEnv({
       ...env,
+      rateLimitDatabase,
       sessionRevocationGuard: createSessionRevocationGuard({
         activeKeyVersion: env.AUTH_SESSION_KEY_VERSION?.trim() ?? "",
         store: createCloudBaseSessionRevocationStore(collection)
       })
     });
   } catch {
-    return createSecurityRuntimeEnv(env);
+    return createSecurityRuntimeEnv({ ...env, rateLimitDatabase });
   }
 }
 

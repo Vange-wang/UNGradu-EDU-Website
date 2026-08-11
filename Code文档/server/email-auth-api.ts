@@ -21,6 +21,7 @@ import {
 import { createAuthSessionCookie } from "@/server/auth-session";
 import {
   verifyEmailChallenge,
+  type EmailChallengeReplayGuard,
   type EmailChallengeVerifier
 } from "@/server/security/email-challenge";
 import { createLayeredRateLimiter } from "@/server/security/rate-limit";
@@ -28,6 +29,7 @@ import { resolveTrustedRequestKeys } from "@/server/security/request-guard";
 
 type EmailAuthApiDependencies = {
   codeGenerator?: () => string;
+  challengeReplayGuard?: EmailChallengeReplayGuard;
   challengeVerifier?: EmailChallengeVerifier;
   emailCodeCollection: EmailAuthCollection;
   emailDelivery: EmailDelivery;
@@ -80,8 +82,26 @@ function challengeFailure(reason: string) {
   };
 }
 
+function passwordLoginGuardFailure(response: Response) {
+  if (response.headers.get("content-type")?.includes("application/json")) {
+    return response;
+  }
+  const headers = new Headers({ "Cache-Control": "no-store" });
+  const correlationId = response.headers.get("x-correlation-id");
+  if (correlationId) headers.set("x-correlation-id", correlationId);
+  return Response.json(
+    {
+      errors: { request: "请求来源校验失败，请重试" },
+      ok: false as const,
+      value: null
+    },
+    { headers, status: response.status }
+  );
+}
+
 export function createEmailAuthApiHandlers({
   codeGenerator,
+  challengeReplayGuard,
   challengeVerifier,
   emailCodeCollection,
   emailDelivery,
@@ -96,7 +116,12 @@ export function createEmailAuthApiHandlers({
   env = createSecurityRuntimeEnv(env);
   const consumedChallengeTokens = new Set<string>();
 
-  function checkRateLimit(email: string, actionKey: string) {
+  async function checkRateLimit(
+    request: Request,
+    email: string,
+    actionKey: string,
+    sessionUserId?: string
+  ) {
     if (rateLimiter) {
       if (
         (env.APP_ENV === "production" || env.NODE_ENV === "production") &&
@@ -107,18 +132,27 @@ export function createEmailAuthApiHandlers({
           503
         );
       }
+      const serverDeviceKey = [
+        request.headers.get("user-agent")?.trim().slice(0, 256),
+        request.headers.get("accept-language")?.trim().slice(0, 128)
+      ].filter(Boolean).join("|") || "unknown-device";
       const trustedKeys = resolveTrustedRequestKeys({
-        serverProxyIp: env.TRUSTED_PROXY_IP,
-        sessionUserId: undefined
+        serverProxyIp:
+          request.headers.get("cf-connecting-ip")?.trim().slice(0, 64) ||
+          env.TRUSTED_PROXY_IP,
+        sessionUserId
       });
-      let limited: ReturnType<typeof rateLimiter.check>;
+      let limited: Awaited<ReturnType<typeof rateLimiter.check>>;
       try {
-        limited = rateLimiter.check({
-          accountKey: hashEmail(email.trim().toLowerCase()),
+        const accountKey = hashEmail(email.trim().toLowerCase());
+        limited = await rateLimiter.check({
+          accountKey,
           actionKey,
-          deviceKey: trustedKeys.deviceKey,
+          deviceKey: sessionUserId
+            ? trustedKeys.deviceKey
+            : `device:${serverDeviceKey}`,
           ipKey: trustedKeys.ipKey,
-          sessionKey: trustedKeys.sessionKey
+          sessionKey: sessionUserId ? trustedKeys.sessionKey : undefined
         });
       } catch {
         return jsonResponse(
@@ -181,12 +215,28 @@ export function createEmailAuthApiHandlers({
       return jsonResponse(failure.result, failure.status);
     }
 
-    const tokenId = challenge.tokenId || token?.trim() || "";
-    if (!tokenId || consumedChallengeTokens.has(tokenId)) {
-      const failure = challengeFailure("replay");
-      return jsonResponse(failure.result, failure.status);
+    const production = env.APP_ENV === "production" || env.NODE_ENV === "production";
+    if (production) {
+      if (!challengeReplayGuard || !challenge.expiresAt) {
+        return jsonResponse(challengeFailure("unreachable").result, 503);
+      }
+      const consumed = await challengeReplayGuard.consume({
+        action: expectedAction,
+        expiresAt: new Date(challenge.expiresAt),
+        token: token?.trim() ?? ""
+      });
+      if (!consumed.ok) {
+        const failure = challengeFailure(consumed.reason);
+        return jsonResponse(failure.result, failure.status);
+      }
+    } else if (!challenge.providerEnforcesSingleUse) {
+      const tokenId = challenge.tokenId || token?.trim() || "";
+      if (!tokenId || consumedChallengeTokens.has(tokenId)) {
+        const failure = challengeFailure("replay");
+        return jsonResponse(failure.result, failure.status);
+      }
+      consumedChallengeTokens.add(tokenId);
     }
-    consumedChallengeTokens.add(tokenId);
     return null;
   }
 
@@ -214,7 +264,8 @@ export function createEmailAuthApiHandlers({
       );
       if (challengeResponse) return challengeResponse;
 
-      const rateLimitResponse = checkRateLimit(
+      const rateLimitResponse = await checkRateLimit(
+        request,
         body.value.email ?? "",
         "email-send-code"
       );
@@ -252,7 +303,8 @@ export function createEmailAuthApiHandlers({
       const securityResponse = guardWriteRequest(request, env, body.value.email?.trim().toLowerCase());
       if (securityResponse) return securityResponse;
 
-      const rateLimitResponse = checkRateLimit(
+      const rateLimitResponse = await checkRateLimit(
+        request,
         body.value.email ?? "",
         "email-login-code"
       );
@@ -341,8 +393,21 @@ export function createEmailAuthApiHandlers({
         return body.response;
       }
 
-      const securityResponse = guardWriteRequest(request, env, body.value.email?.trim().toLowerCase());
-      if (securityResponse) return securityResponse;
+      const securityResponse = guardWriteRequest(
+        request,
+        {
+          ...env,
+          anonymousAntiAbuse: requireChallenge
+            ? {
+                available: Boolean(challengeVerifier),
+                verify: () => true
+              }
+            : env.anonymousAntiAbuse
+        },
+        undefined,
+        { allowAnonymous: true }
+      );
+      if (securityResponse) return passwordLoginGuardFailure(securityResponse);
 
       const challengeResponse = await verifyChallengeForRequest(
         request,
@@ -351,11 +416,22 @@ export function createEmailAuthApiHandlers({
       );
       if (challengeResponse) return challengeResponse;
 
-      const rateLimitResponse = checkRateLimit(
+      const rateLimitResponse = await checkRateLimit(
+        request,
         body.value.email ?? "",
         "password-login"
       );
       if (rateLimitResponse) return rateLimitResponse;
+
+      if (
+        (env.APP_ENV === "production" || env.NODE_ENV === "production") &&
+        !env.AUTH_SESSION_SECRET?.trim()
+      ) {
+        return jsonResponse(
+          createEmailAuthFailure({ request: "登录服务暂时不可用，请稍后重试" }),
+          503
+        );
+      }
 
       const result = await loginWithEmailPassword({
         email: body.value.email ?? "",
@@ -422,7 +498,12 @@ export function createEmailAuthApiHandlers({
       if (securityResponse) return securityResponse;
 
       const email = body.value.email ?? "";
-      const rateLimitResponse = checkRateLimit(email, "password-set");
+      const rateLimitResponse = await checkRateLimit(
+        request,
+        email,
+        "password-set",
+        auth.authenticatedUserId
+      );
       if (rateLimitResponse) return rateLimitResponse;
 
       const expectedUserId = `email_${hashEmail(email.trim().toLowerCase()).slice(0, 24)}`;
@@ -471,7 +552,8 @@ export function createEmailAuthApiHandlers({
       const securityResponse = guardWriteRequest(request, env, body.value.email?.trim().toLowerCase());
       if (securityResponse) return securityResponse;
 
-      const rateLimitResponse = checkRateLimit(
+      const rateLimitResponse = await checkRateLimit(
+        request,
         body.value.email ?? "",
         "password-reset"
       );

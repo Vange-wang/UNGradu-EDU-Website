@@ -71,23 +71,43 @@ export function createCloudBaseSessionRevocationStore(collection: {
     get: () => Promise<{ data?: unknown[] | Record<string, unknown> }>;
     set: (value: Record<string, unknown>) => Promise<unknown>;
   };
-}) : SessionRevocationStore {
+}, options: {
+  onError?: (operation: "read" | "revoke") => void;
+} = {}) : SessionRevocationStore {
+  function reportError(operation: "read" | "revoke") {
+    try {
+      options.onError?.(operation);
+    } catch {
+      // Observability must not replace the original fail-closed store error.
+    }
+  }
+
   return {
     async readRevokedAt(userId) {
-      const response = await collection.doc(userId.trim()).get();
-      const value = Array.isArray(response.data) ? response.data[0] : response.data;
-      if (!value || typeof value !== "object") return undefined;
-      const revokedAt = (value as Record<string, unknown>).revokedAt;
-      return typeof revokedAt === "string" ? revokedAt : undefined;
+      try {
+        const response = await collection.doc(userId.trim()).get();
+        const value = Array.isArray(response.data) ? response.data[0] : response.data;
+        if (!value || typeof value !== "object") return undefined;
+        const revokedAt = (value as Record<string, unknown>).revokedAt;
+        return typeof revokedAt === "string" ? revokedAt : undefined;
+      } catch (error) {
+        reportError("read");
+        throw error;
+      }
     },
     async revoke(userId, at) {
-      const revokedAt = at.trim();
-      await collection.doc(userId.trim()).set({
-        updatedAt: new Date().toISOString(),
-        userId: userId.trim(),
-        revokedAt
-      });
-      return revokedAt;
+      try {
+        const revokedAt = at.trim();
+        await collection.doc(userId.trim()).set({
+          updatedAt: new Date().toISOString(),
+          userId: userId.trim(),
+          revokedAt
+        });
+        return revokedAt;
+      } catch (error) {
+        reportError("revoke");
+        throw error;
+      }
     }
   };
 }

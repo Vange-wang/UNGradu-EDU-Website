@@ -29,6 +29,7 @@ import {
   createLayeredRateLimiter
 } from "@/server/security/rate-limit";
 import { createCloudBasePersistentEmailChallengeReplayGuard } from "@/server/security/email-challenge";
+import { createCloudBaseSessionRevocationStore } from "@/server/security/session-revocation";
 import { hashEmail, type EmailAuthCollection, type EmailAuthAtomicTransactionRunner } from "@/server/email-auth";
 
 function authorizedWriteRequest(
@@ -350,6 +351,32 @@ describe("ISSUE-0034 S1 independent rework contract", () => {
       })
     );
     expect(response.status).toBe(503);
+  });
+
+  it("treats the CloudBase SDK empty document response as not revoked but preserves real failures", async () => {
+    const onError = vi.fn();
+    const missingStore = createCloudBaseSessionRevocationStore({
+      doc: vi.fn(() => ({
+        get: vi.fn(async () => ({ data: [] })),
+        set: vi.fn(async () => ({ updated: 1 }))
+      }))
+    }, { onError });
+
+    await expect(missingStore.readRevokedAt("synthetic-user")).resolves.toBeUndefined();
+    expect(onError).not.toHaveBeenCalled();
+
+    const unavailableStore = createCloudBaseSessionRevocationStore({
+      doc: vi.fn(() => ({
+        get: vi.fn(async () => {
+          throw new Error("synthetic-storage-unavailable");
+        }),
+        set: vi.fn(async () => ({ updated: 1 }))
+      }))
+    }, { onError });
+    await expect(unavailableStore.readRevokedAt("synthetic-user"))
+      .rejects.toThrow("synthetic-storage-unavailable");
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledWith("read");
   });
 
   it("preserves an env-provided revocation guard when a factory override is omitted", async () => {

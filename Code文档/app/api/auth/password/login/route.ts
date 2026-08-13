@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { createCloudBaseServerApp } from "@/server/cloudbase-server";
 import { createEmailAuthApiHandlers } from "@/server/email-auth-api";
 import {
@@ -39,6 +41,57 @@ function createHandlers() {
   });
 }
 
+function logPasswordLoginFailure(
+  correlationId: string,
+  errorCode: "AUTH_PASSWORD_LOGIN_HANDLER_FAILED" | "AUTH_PASSWORD_LOGIN_ROUTE_SETUP_FAILED",
+  stage: "handler" | "setup"
+) {
+  console.error(JSON.stringify({
+    correlationId,
+    errorCode,
+    event: "auth_password_login_unavailable",
+    stage
+  }));
+}
+
+function passwordLoginUnavailable(correlationId: string) {
+  return Response.json({
+    errors: { request: "登录服务暂时不可用，请稍后重试" },
+    ok: false,
+    value: null
+  }, {
+    headers: {
+      "Cache-Control": "no-store",
+      "x-correlation-id": correlationId
+    },
+    status: 503
+  });
+}
+
 export async function POST(request: Request) {
-  return createHandlers().POST_PASSWORD_LOGIN(request);
+  const correlationId = randomUUID();
+  let handlers: ReturnType<typeof createEmailAuthApiHandlers>;
+  try {
+    handlers = createHandlers();
+  } catch {
+    logPasswordLoginFailure(
+      correlationId,
+      "AUTH_PASSWORD_LOGIN_ROUTE_SETUP_FAILED",
+      "setup"
+    );
+    return passwordLoginUnavailable(correlationId);
+  }
+
+  try {
+    const response = await handlers.POST_PASSWORD_LOGIN(request);
+    response.headers.set("x-correlation-id", correlationId);
+    return response;
+  } catch {
+    logPasswordLoginFailure(
+      correlationId,
+      "AUTH_PASSWORD_LOGIN_HANDLER_FAILED",
+      "handler"
+    );
+    return passwordLoginUnavailable(correlationId);
+  }
 }

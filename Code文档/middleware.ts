@@ -77,6 +77,9 @@ export function middleware(request: NextRequest) {
     }));
   }
 
+  const allowsAnonymousAuthWrite =
+    request.method === "POST" &&
+    ANONYMOUS_AUTH_WRITE_PATHS.has(request.nextUrl.pathname);
   const writeGuard = evaluateWriteRequest({
     env: {
       allowedOrigins: process.env.ALLOWED_ORIGINS ??
@@ -85,10 +88,10 @@ export function middleware(request: NextRequest) {
       mode,
       appEnv: process.env.APP_ENV,
       nodeEnv: process.env.NODE_ENV,
-      subjectId: readAuthSessionFromRequest(request, process.env)?.userId,
-      allowAnonymous:
-        request.method === "POST" &&
-        ANONYMOUS_AUTH_WRITE_PATHS.has(request.nextUrl.pathname)
+      subjectId: allowsAnonymousAuthWrite
+        ? undefined
+        : readAuthSessionFromRequest(request, process.env)?.userId,
+      allowAnonymous: allowsAnonymousAuthWrite
     },
     request
   });

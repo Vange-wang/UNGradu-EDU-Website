@@ -6,6 +6,7 @@ import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { parseApiResponse } from "@/features/api/api-client";
+import { createAuthSessionCookie } from "@/server/auth-session";
 import { createEmailAuthApiHandlers } from "@/server/email-auth-api";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -152,6 +153,111 @@ describe("origin verification middleware", () => {
       pathname,
       status: 200
     })));
+  });
+
+  it("keeps public authentication POST routes anonymous when a valid session cookie is already present", async () => {
+    vi.stubEnv("APP_ENV", "production");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ORIGIN_VERIFY_MODE", "enforce");
+    vi.stubEnv("ORIGIN_VERIFY_SECRET", "expected-test-secret");
+    vi.stubEnv("CSRF_SECRET", "expected-csrf-secret");
+    vi.stubEnv("ALLOWED_ORIGINS", "https://ungraduedu.eu.cc");
+    vi.stubEnv("AUTH_SESSION_SECRET", "synthetic-session-secret");
+    vi.stubEnv("AUTH_SESSION_KEY_VERSION", "v1");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const middlewareModule = await loadMiddleware();
+    if (!middlewareModule) return;
+    const cookie = createAuthSessionCookie({
+      env: process.env,
+      userId: "synthetic-user"
+    });
+    const publicAuthRoutes = [
+      "/api/auth/email/send-code",
+      "/api/auth/email/login",
+      "/api/auth/password/login",
+      "/api/auth/password/reset"
+    ];
+
+    const results = await Promise.all(publicAuthRoutes.map(async (pathname) => {
+      const response = await middlewareModule.middleware(
+        new NextRequest(`https://ungraduedu.eu.cc${pathname}`, {
+          body: "{}",
+          headers: {
+            cookie: cookie ?? "",
+            "content-type": "application/json",
+            origin: "https://ungraduedu.eu.cc",
+            "x-ungrade-origin-verify": "expected-test-secret"
+          },
+          method: "POST"
+        })
+      );
+      return {
+        middlewarePassed: response.headers.get("x-middleware-next") === "1",
+        pathname,
+        status: response.status
+      };
+    }));
+
+    expect(results).toEqual(publicAuthRoutes.map((pathname) => ({
+      middlewarePassed: true,
+      pathname,
+      status: 200
+    })));
+  });
+
+  it("still rejects cross-origin, non-JSON, and non-public writes when a session cookie is present", async () => {
+    vi.stubEnv("APP_ENV", "production");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ORIGIN_VERIFY_MODE", "enforce");
+    vi.stubEnv("ORIGIN_VERIFY_SECRET", "expected-test-secret");
+    vi.stubEnv("CSRF_SECRET", "expected-csrf-secret");
+    vi.stubEnv("ALLOWED_ORIGINS", "https://ungraduedu.eu.cc");
+    vi.stubEnv("AUTH_SESSION_SECRET", "synthetic-session-secret");
+    vi.stubEnv("AUTH_SESSION_KEY_VERSION", "v1");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const middlewareModule = await loadMiddleware();
+    if (!middlewareModule) return;
+    const cookie = createAuthSessionCookie({
+      env: process.env,
+      userId: "synthetic-user"
+    });
+    const cases = [
+      {
+        contentType: "application/json",
+        origin: "https://attacker.example",
+        pathname: "/api/auth/password/login"
+      },
+      {
+        contentType: "text/plain",
+        origin: "https://ungraduedu.eu.cc",
+        pathname: "/api/auth/password/login"
+      },
+      {
+        contentType: "application/json",
+        origin: "https://ungraduedu.eu.cc",
+        pathname: "/api/auth/logout"
+      }
+    ];
+
+    const responses = await Promise.all(cases.map((testCase) =>
+      middlewareModule.middleware(
+        new NextRequest(`https://ungraduedu.eu.cc${testCase.pathname}`, {
+          body: "{}",
+          headers: {
+            cookie: cookie ?? "",
+            "content-type": testCase.contentType,
+            origin: testCase.origin,
+            "x-ungrade-origin-verify": "expected-test-secret"
+          },
+          method: "POST"
+        })
+      )
+    ));
+
+    expect(responses.map((response) => ({
+      middlewarePassed: response.headers.get("x-middleware-next") === "1",
+      status: response.status
+    }))).toEqual(cases.map(() => ({ middlewarePassed: false, status: 403 })));
   });
 
   it("keeps non-public, cross-origin, and non-JSON anonymous writes fail-closed", async () => {

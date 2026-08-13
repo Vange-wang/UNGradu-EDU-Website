@@ -3,6 +3,10 @@ import { scryptSync } from "node:crypto";
 
 const state = vi.hoisted(() => ({
   documents: new Map<string, Record<string, unknown>>(),
+  passwordLoginReadError: undefined as Error | undefined,
+  routeSetupError: false,
+  revocationReadError: undefined as Error | undefined,
+  revocationSetupError: false,
   revokedAt: undefined as string | undefined,
   sets: [] as Array<{ collection: string; id: string }>,
   gets: [] as Array<{ collection: string; id: string }>
@@ -10,11 +14,20 @@ const state = vi.hoisted(() => ({
 
 const database = vi.hoisted(() => ({
   collection(name: string) {
+    if (name === "auth_session_revocations" && state.revocationSetupError) {
+      throw new Error("synthetic-revocation-setup-failure");
+    }
     return {
       doc(id: string) {
         return {
           async get() {
             state.gets.push({ collection: name, id });
+            if (name === "email_login_users" && state.passwordLoginReadError) {
+              throw state.passwordLoginReadError;
+            }
+            if (name === "auth_session_revocations" && state.revocationReadError) {
+              throw state.revocationReadError;
+            }
             if (name === "auth_session_revocations" && state.revokedAt) {
               return { data: [{ id, userId: id, revokedAt: state.revokedAt }] };
             }
@@ -55,7 +68,12 @@ const database = vi.hoisted(() => ({
 }));
 
 vi.mock("@/server/cloudbase-server", () => ({
-  createCloudBaseServerApp: () => ({ database: () => database })
+  createCloudBaseServerApp: () => {
+    if (state.routeSetupError) {
+      throw new Error("synthetic-route-setup-failure");
+    }
+    return { database: () => database };
+  }
 }));
 
 import { createAuthSessionCookie } from "@/server/auth-session";
@@ -64,6 +82,11 @@ import { createCsrfProof } from "@/server/security/request-guard";
 const originalEnv = { ...process.env };
 
 afterEach(() => {
+  vi.restoreAllMocks();
+  state.passwordLoginReadError = undefined;
+  state.routeSetupError = false;
+  state.revocationReadError = undefined;
+  state.revocationSetupError = false;
   state.revokedAt = undefined;
   state.documents.clear();
   state.sets.length = 0;
@@ -144,12 +167,101 @@ describe("ISSUE-0034 actual Next route exports", () => {
     expect(state.gets.some((entry) => entry.collection === "email_login_users")).toBe(false);
   });
 
+  it("keeps password-login setup and handler failures inside correlated JSON boundaries", async () => {
+    const configure = () => {
+      process.env.APP_ENV = "production";
+      (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+      process.env.AUTH_CHALLENGE_REPLAY_COLLECTION = "auth_challenge_replays";
+      process.env.AUTH_CHALLENGE_REPLAY_KEY_SECRET = "synthetic-route-replay-hmac-secret";
+      process.env.AUTH_SESSION_KEY_VERSION = "v1";
+      process.env.AUTH_SESSION_SECRET = "synthetic-route-session-secret";
+      process.env.AUTH_RATE_LIMIT_COLLECTION = "auth_rate_limits";
+      process.env.AUTH_RATE_LIMIT_KEY_SECRET = "synthetic-route-rate-limit-hmac-secret";
+      process.env.TURNSTILE_EXPECTED_HOSTNAMES = "ungraduedu.eu.cc";
+      process.env.TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA";
+      process.env.ALLOWED_ORIGINS = "https://ungraduedu.eu.cc";
+      process.env.CSRF_SECRET = "synthetic-csrf-secret";
+    };
+    const origin = "https://ungraduedu.eu.cc";
+    const request = () => new Request(`${origin}/api/auth/password/login`, {
+      body: JSON.stringify({
+        challengeToken: "XXXX.DUMMY.TOKEN.XXXX",
+        email: "synthetic@example.test",
+        password: "Synthetic123"
+      }),
+      headers: {
+        "content-type": "application/json",
+        origin
+      },
+      method: "POST"
+    });
+    const expectSafeFailure = async (
+      response: Response,
+      errorLog: ReturnType<typeof vi.spyOn>,
+      code: string,
+      stage: string
+    ) => {
+      const correlationId = response.headers.get("x-correlation-id");
+      expect(response.status).toBe(503);
+      expect(response.headers.get("content-type")).toContain("application/json");
+      expect(correlationId).toBeTruthy();
+      await expect(response.json()).resolves.toEqual({
+        errors: { request: "登录服务暂时不可用，请稍后重试" },
+        ok: false,
+        value: null
+      });
+      expect(errorLog).toHaveBeenCalledOnce();
+      const serializedLog = String(errorLog.mock.calls[0]?.[0]);
+      expect(serializedLog).toContain(`"errorCode":"${code}"`);
+      expect(serializedLog).toContain(`"stage":"${stage}"`);
+      expect(serializedLog).toContain(`"correlationId":"${correlationId}"`);
+      expect(serializedLog).not.toContain("synthetic@example.test");
+      expect(serializedLog).not.toContain("Synthetic123");
+      expect(serializedLog).not.toContain("XXXX.DUMMY.TOKEN.XXXX");
+    };
+
+    configure();
+    state.routeSetupError = true;
+    let errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    let route = await import("@/app/api/auth/password/login/route");
+    await expectSafeFailure(
+      await route.POST(request()),
+      errorLog,
+      "AUTH_PASSWORD_LOGIN_ROUTE_SETUP_FAILED",
+      "setup"
+    );
+
+    vi.restoreAllMocks();
+    vi.resetModules();
+    configure();
+    state.routeSetupError = false;
+    state.passwordLoginReadError = new Error(
+      "synthetic account read failure with secret material"
+    );
+    errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () => Response.json({
+      action: "password_login",
+      challenge_ts: new Date(Date.now() - 60_000).toISOString(),
+      hostname: "ungraduedu.eu.cc",
+      success: true
+    }));
+    route = await import("@/app/api/auth/password/login/route");
+    await expectSafeFailure(
+      await route.POST(request()),
+      errorLog,
+      "AUTH_PASSWORD_LOGIN_HANDLER_FAILED",
+      "handler"
+    );
+    expect(String(errorLog.mock.calls[0]?.[0])).not.toContain("secret material");
+  });
+
   it("completes the production password-login protection chain before issuing a session cookie", async () => {
     vi.resetModules();
     process.env.APP_ENV = "production";
     (process.env as Record<string, string | undefined>).NODE_ENV = "production";
     process.env.AUTH_CHALLENGE_REPLAY_COLLECTION = "auth_challenge_replays";
     process.env.AUTH_CHALLENGE_REPLAY_KEY_SECRET = "synthetic-route-replay-hmac-secret";
+    process.env.AUTH_SESSION_KEY_VERSION = "v1";
     process.env.AUTH_SESSION_SECRET = "synthetic-route-session-secret";
     process.env.AUTH_RATE_LIMIT_COLLECTION = "auth_rate_limits";
     process.env.AUTH_RATE_LIMIT_KEY_SECRET = "synthetic-route-rate-limit-hmac-secret";
@@ -200,7 +312,8 @@ describe("ISSUE-0034 actual Next route exports", () => {
 
     expect(responseBody).toMatchObject({ ok: true });
     expect(response.status).toBe(200);
-    expect(response.headers.get("set-cookie")).toContain("ungradu_auth_session=");
+    const cookie = response.headers.get("set-cookie") ?? "";
+    expect(cookie).toContain("ungradu_auth_session=");
     expect(siteverify).toHaveBeenCalledOnce();
     const rateLimitReadIndex = state.gets.findIndex(
       (entry) => entry.collection === "auth_rate_limits"
@@ -232,7 +345,85 @@ describe("ISSUE-0034 actual Next route exports", () => {
     );
     expect(replayDocument?.expiresAt).toBeInstanceOf(Date);
     expect(JSON.stringify(replayDocument)).not.toContain("XXXX.DUMMY.TOKEN.XXXX");
+
+    const { GET: GET_SESSION } = await import("@/app/api/auth/session/route");
+    const session = await GET_SESSION(new Request(`${origin}/api/auth/session`, {
+      headers: { cookie }
+    }));
+    expect(session.status).toBe(200);
+    await expect(session.json()).resolves.toMatchObject({
+      ok: true,
+      value: { userId: `email_${emailHash.slice(0, 24)}` }
+    });
     siteverify.mockRestore();
+  });
+
+  it("returns correlated JSON and redacted stage logs when the production revocation read fails", async () => {
+    vi.resetModules();
+    process.env.APP_ENV = "production";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+    process.env.AUTH_SESSION_KEY_VERSION = "v1";
+    process.env.AUTH_SESSION_SECRET = "synthetic-route-session-secret";
+    const cookie = createAuthSessionCookie({
+      env: process.env,
+      userId: "synthetic-user"
+    });
+    state.revocationReadError = new Error(
+      "synthetic-store-failure with synthetic-user and secret material"
+    );
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const { GET } = await import("@/app/api/auth/session/route");
+    const response = await GET(new Request("https://ungraduedu.eu.cc/api/auth/session", {
+      headers: { cookie: cookie ?? "" }
+    }));
+    const correlationId = response.headers.get("x-correlation-id");
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(correlationId).toBeTruthy();
+    await expect(response.json()).resolves.toEqual({
+      errors: { request: "Session security is temporarily unavailable." },
+      ok: false,
+      value: null
+    });
+    expect(errorLog).toHaveBeenCalledOnce();
+    const serializedLog = String(errorLog.mock.calls[0]?.[0]);
+    expect(serializedLog).toContain('"errorCode":"AUTH_SESSION_REVOCATION_READ_FAILED"');
+    expect(serializedLog).toContain('"stage":"revocation_read"');
+    expect(serializedLog).toContain(`"correlationId":"${correlationId}"`);
+    expect(serializedLog).not.toContain("synthetic-store-failure");
+    expect(serializedLog).not.toContain("synthetic-user");
+    expect(serializedLog).not.toContain("secret material");
+  });
+
+  it("keeps session route setup failures inside the correlated JSON boundary", async () => {
+    vi.resetModules();
+    process.env.APP_ENV = "production";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+    process.env.AUTH_SESSION_KEY_VERSION = "v1";
+    process.env.AUTH_SESSION_SECRET = "synthetic-route-session-secret";
+    state.revocationSetupError = true;
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const { GET } = await import("@/app/api/auth/session/route");
+    const response = await GET(new Request("https://ungraduedu.eu.cc/api/auth/session"));
+    const correlationId = response.headers.get("x-correlation-id");
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(correlationId).toBeTruthy();
+    await expect(response.json()).resolves.toEqual({
+      errors: { request: "Session security is temporarily unavailable." },
+      ok: false,
+      value: null
+    });
+    expect(errorLog).toHaveBeenCalledOnce();
+    const serializedLog = String(errorLog.mock.calls[0]?.[0]);
+    expect(serializedLog).toContain('"errorCode":"AUTH_SESSION_ROUTE_SETUP_FAILED"');
+    expect(serializedLog).toContain('"stage":"setup"');
+    expect(serializedLog).toContain(`"correlationId":"${correlationId}"`);
+    expect(serializedLog).not.toContain("synthetic-revocation-setup-failure");
   });
 
   it("exposes the real conversation item route with anonymous access denied before enumeration", async () => {

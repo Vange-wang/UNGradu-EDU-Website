@@ -5,6 +5,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { parseApiResponse } from "@/features/api/api-client";
+import { createEmailAuthApiHandlers } from "@/server/email-auth-api";
+
 const here = dirname(fileURLToPath(import.meta.url));
 const middlewarePath = join(here, "..", "middleware.ts");
 
@@ -27,6 +30,204 @@ afterEach(() => {
 });
 
 describe("origin verification middleware", () => {
+  it("lets an anonymous production password login reach structured challenge validation", async () => {
+    vi.stubEnv("APP_ENV", "production");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ORIGIN_VERIFY_MODE", "enforce");
+    vi.stubEnv("ORIGIN_VERIFY_SECRET", "expected-test-secret");
+    vi.stubEnv("CSRF_SECRET", "expected-csrf-secret");
+    vi.stubEnv("ALLOWED_ORIGINS", "https://ungraduedu.eu.cc");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const middlewareModule = await loadMiddleware();
+    if (!middlewareModule) return;
+
+    const userCollection = {
+      doc: vi.fn(() => ({
+        get: vi.fn(async () => ({ data: [] })),
+        set: vi.fn(async () => ({ updated: 1 }))
+      }))
+    };
+    const challengeReplayConsume = vi.fn(async () => ({ ok: true as const }));
+    const handlers = createEmailAuthApiHandlers({
+      challengeReplayGuard: { consume: challengeReplayConsume },
+      challengeVerifier: {
+        verify: vi.fn(async () => ({ ok: false as const, reason: "invalid" as const }))
+      },
+      emailCodeCollection: userCollection,
+      emailDelivery: { async send() { return { ok: true as const }; } },
+      env: {
+        ALLOWED_ORIGINS: "https://ungraduedu.eu.cc",
+        APP_ENV: "production",
+        AUTH_SESSION_SECRET: "synthetic-session-secret",
+        CSRF_SECRET: "expected-csrf-secret",
+        NODE_ENV: "production",
+        securityAlertSink: { available: true, emit() {} }
+      },
+      requireChallenge: true,
+      userCollection
+    });
+    const request = new Request(
+      "https://ungraduedu.eu.cc/api/auth/password/login",
+      {
+        body: JSON.stringify({
+          challengeToken: "invalid-synthetic-token",
+          email: "nobody@example.test",
+          password: "Synthetic123"
+        }),
+        headers: {
+          "content-type": "application/json",
+          origin: "https://ungraduedu.eu.cc",
+          "x-ungrade-origin-verify": "expected-test-secret"
+        },
+        method: "POST"
+      }
+    );
+    const middlewareResponse = await middlewareModule.middleware(
+      new NextRequest(request.clone())
+    );
+    const response = middlewareResponse.headers.get("x-middleware-next") === "1"
+      ? await handlers.POST_PASSWORD_LOGIN(request)
+      : middlewareResponse;
+    const rawBody = await response.clone().text();
+    const parsed = await parseApiResponse(response);
+
+    expect({
+      contentType: response.headers.get("content-type"),
+      middlewarePassed: middlewareResponse.headers.get("x-middleware-next") === "1",
+      rawBody,
+      requestError: parsed.ok ? null : parsed.errors.request,
+      status: response.status,
+      persistentWriteCalls: challengeReplayConsume.mock.calls.length,
+      userCollectionCalls: userCollection.doc.mock.calls.length
+    }).toEqual({
+      contentType: "application/json",
+      middlewarePassed: true,
+      rawBody:
+        '{"errors":{"request":"人机验证未通过，请稍后重试"},"ok":false,"value":null}',
+      requestError: "人机验证未通过，请稍后重试",
+      status: 403,
+      persistentWriteCalls: 0,
+      userCollectionCalls: 0
+    });
+  });
+
+  it("allows only the existing anonymous authentication write routes through middleware", async () => {
+    vi.stubEnv("APP_ENV", "production");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ORIGIN_VERIFY_MODE", "enforce");
+    vi.stubEnv("ORIGIN_VERIFY_SECRET", "expected-test-secret");
+    vi.stubEnv("CSRF_SECRET", "expected-csrf-secret");
+    vi.stubEnv("ALLOWED_ORIGINS", "https://ungraduedu.eu.cc");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const middlewareModule = await loadMiddleware();
+    if (!middlewareModule) return;
+
+    const publicAuthRoutes = [
+      "/api/auth/email/send-code",
+      "/api/auth/email/login",
+      "/api/auth/password/login",
+      "/api/auth/password/reset"
+    ];
+    const results = await Promise.all(publicAuthRoutes.map(async (pathname) => {
+      const response = await middlewareModule.middleware(
+        new NextRequest(`https://ungraduedu.eu.cc${pathname}`, {
+          body: "{}",
+          headers: {
+            "content-type": "application/json",
+            origin: "https://ungraduedu.eu.cc",
+            "x-ungrade-origin-verify": "expected-test-secret"
+          },
+          method: "POST"
+        })
+      );
+      return {
+        middlewarePassed: response.headers.get("x-middleware-next") === "1",
+        pathname,
+        status: response.status
+      };
+    }));
+
+    expect(results).toEqual(publicAuthRoutes.map((pathname) => ({
+      middlewarePassed: true,
+      pathname,
+      status: 200
+    })));
+  });
+
+  it("keeps non-public, cross-origin, and non-JSON anonymous writes fail-closed", async () => {
+    vi.stubEnv("APP_ENV", "production");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ORIGIN_VERIFY_MODE", "enforce");
+    vi.stubEnv("ORIGIN_VERIFY_SECRET", "expected-test-secret");
+    vi.stubEnv("CSRF_SECRET", "expected-csrf-secret");
+    vi.stubEnv("ALLOWED_ORIGINS", "https://ungraduedu.eu.cc");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const middlewareModule = await loadMiddleware();
+    if (!middlewareModule) return;
+
+    const cases = [
+      ...[
+        "/api/parent-needs",
+        "/api/auth/logout",
+        "/api/auth/password/set",
+        "/api/auth/test-login"
+      ].map((pathname) => ({
+        contentType: "application/json",
+        label: `non-public:${pathname}`,
+        method: "POST",
+        origin: "https://ungraduedu.eu.cc",
+        pathname
+      })),
+      {
+        contentType: "application/json",
+        label: "cross-origin:password-login",
+        method: "POST",
+        origin: "https://attacker.example",
+        pathname: "/api/auth/password/login"
+      },
+      {
+        contentType: "text/plain",
+        label: "non-json:password-login",
+        method: "POST",
+        origin: "https://ungraduedu.eu.cc",
+        pathname: "/api/auth/password/login"
+      },
+      {
+        contentType: "application/json",
+        label: "non-post:password-login",
+        method: "PUT",
+        origin: "https://ungraduedu.eu.cc",
+        pathname: "/api/auth/password/login"
+      }
+    ];
+    const results = await Promise.all(cases.map(async (testCase) => {
+      const response = await middlewareModule.middleware(
+        new NextRequest(`https://ungraduedu.eu.cc${testCase.pathname}`, {
+          body: "{}",
+          headers: {
+            "content-type": testCase.contentType,
+            origin: testCase.origin,
+            "x-ungrade-origin-verify": "expected-test-secret"
+          },
+          method: testCase.method
+        })
+      );
+      return {
+        correlationId: Boolean(response.headers.get("x-correlation-id")),
+        label: testCase.label,
+        middlewarePassed: response.headers.get("x-middleware-next") === "1",
+        status: response.status
+      };
+    }));
+
+    expect(results).toEqual(cases.map((testCase) => ({
+      correlationId: true,
+      label: testCase.label,
+      middlewarePassed: false,
+      status: 403
+    })));
+  });
+
   it("logs a missing header in observe mode without rejecting the request", async () => {
     vi.stubEnv("ORIGIN_VERIFY_MODE", "observe");
     vi.stubEnv("ORIGIN_VERIFY_SECRET", "expected-test-secret");

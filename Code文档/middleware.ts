@@ -14,6 +14,13 @@ import {
   createCspNonce
 } from "./server/security/content-security-policy";
 
+const ANONYMOUS_AUTH_WRITE_PATHS = new Set([
+  "/api/auth/email/login",
+  "/api/auth/email/send-code",
+  "/api/auth/password/login",
+  "/api/auth/password/reset"
+]);
+
 export function middleware(request: NextRequest) {
   const nonce = createCspNonce();
 
@@ -78,7 +85,10 @@ export function middleware(request: NextRequest) {
       mode,
       appEnv: process.env.APP_ENV,
       nodeEnv: process.env.NODE_ENV,
-      subjectId: readAuthSessionFromRequest(request, process.env)?.userId
+      subjectId: readAuthSessionFromRequest(request, process.env)?.userId,
+      allowAnonymous:
+        request.method === "POST" &&
+        ANONYMOUS_AUTH_WRITE_PATHS.has(request.nextUrl.pathname)
     },
     request
   });

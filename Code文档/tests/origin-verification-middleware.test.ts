@@ -6,6 +6,8 @@ import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { parseApiResponse } from "@/features/api/api-client";
+import { submitRiskFeedbackToApi } from "@/features/feedback/risk-feedback-api-client";
+import { createAuthApiHandlers } from "@/server/auth-api";
 import { createAuthSessionCookie } from "@/server/auth-session";
 import { createEmailAuthApiHandlers } from "@/server/email-auth-api";
 
@@ -31,6 +33,197 @@ afterEach(() => {
 });
 
 describe("origin verification middleware", () => {
+  it("lets the authenticated feedback browser client obtain a CSRF proof and reach the handler", async () => {
+    const origin = "https://ungraduedu.eu.cc";
+    vi.stubEnv("APP_ENV", "production");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ORIGIN_VERIFY_MODE", "enforce");
+    vi.stubEnv("ORIGIN_VERIFY_SECRET", "expected-test-secret");
+    vi.stubEnv("CSRF_SECRET", "expected-csrf-secret");
+    vi.stubEnv("ALLOWED_ORIGINS", origin);
+    vi.stubEnv("AUTH_SESSION_SECRET", "synthetic-session-secret");
+    vi.stubEnv("AUTH_SESSION_KEY_VERSION", "v1");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const middlewareModule = await loadMiddleware();
+    if (!middlewareModule) return;
+
+    const cookie = createAuthSessionCookie({
+      env: process.env,
+      userId: "synthetic-user"
+    });
+    const sessionHandlers = createAuthApiHandlers({
+      env: process.env,
+      sessionRevocationGuard: {
+        async check() { return { ok: true as const }; },
+        async revoke() { return; }
+      }
+    });
+    const middlewareRejections: Array<{
+      body: string;
+      contentType: string | null;
+      status: number;
+    }> = [];
+    let feedbackHandlerCalls = 0;
+    const fetcher: typeof fetch = async (input, init) => {
+      const url = new URL(input.toString(), origin);
+      const method = init?.method ?? "GET";
+
+      if (url.pathname === "/api/auth/csrf" && method === "GET") {
+        return sessionHandlers.GET_CSRF_PROOF(new Request(url, {
+          headers: { cookie: cookie ?? "" },
+          method
+        }));
+      }
+
+      const headers = new Headers(init?.headers);
+      headers.set("cookie", cookie ?? "");
+      headers.set("origin", origin);
+      headers.set("x-ungrade-origin-verify", "expected-test-secret");
+      const request = new Request(url, { ...init, headers, method });
+      const middlewareResponse = await middlewareModule.middleware(
+        new NextRequest(request.clone())
+      );
+
+      if (middlewareResponse.headers.get("x-middleware-next") !== "1") {
+        middlewareRejections.push({
+          body: await middlewareResponse.clone().text(),
+          contentType: middlewareResponse.headers.get("content-type"),
+          status: middlewareResponse.status
+        });
+        return middlewareResponse;
+      }
+
+      feedbackHandlerCalls += 1;
+      return Response.json({
+        errors: {},
+        ok: true,
+        value: { id: "feedback-synthetic", status: "recorded" }
+      });
+    };
+
+    const result = await submitRiskFeedbackToApi({
+      fetcher,
+      input: {
+        category: "功能异常",
+        contactMethod: "",
+        description: "登录后反馈提交应穿过生产写保护。",
+        evidenceNote: "",
+        sourcePage: "/feedback",
+        targetReference: "",
+        targetType: "其他 / 不确定"
+      }
+    });
+
+    expect({
+      feedbackHandlerCalls,
+      middlewareRejections,
+      result
+    }).toEqual({
+      feedbackHandlerCalls: 1,
+      middlewareRejections: [],
+      result: {
+        errors: {},
+        ok: true,
+        value: { id: "feedback-synthetic", status: "recorded" }
+      }
+    });
+  });
+
+  it("keeps the anonymous feedback policy while requiring JSON and an allowed Origin", async () => {
+    const origin = "https://ungraduedu.eu.cc";
+    vi.stubEnv("APP_ENV", "production");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ORIGIN_VERIFY_MODE", "enforce");
+    vi.stubEnv("ORIGIN_VERIFY_SECRET", "expected-test-secret");
+    vi.stubEnv("CSRF_SECRET", "expected-csrf-secret");
+    vi.stubEnv("ALLOWED_ORIGINS", origin);
+    vi.stubEnv("AUTH_SESSION_SECRET", "synthetic-session-secret");
+    vi.stubEnv("AUTH_SESSION_KEY_VERSION", "v1");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const middlewareModule = await loadMiddleware();
+    if (!middlewareModule) return;
+
+    const sessionHandlers = createAuthApiHandlers({ env: process.env });
+    let feedbackHandlerCalls = 0;
+    const fetcher: typeof fetch = async (input, init) => {
+      const url = new URL(input.toString(), origin);
+      const method = init?.method ?? "GET";
+
+      if (url.pathname === "/api/auth/csrf" && method === "GET") {
+        return sessionHandlers.GET_CSRF_PROOF(new Request(url, { method }));
+      }
+
+      const headers = new Headers(init?.headers);
+      headers.set("origin", origin);
+      headers.set("x-ungrade-origin-verify", "expected-test-secret");
+      const request = new Request(url, { ...init, headers, method });
+      const middlewareResponse = await middlewareModule.middleware(
+        new NextRequest(request.clone())
+      );
+      if (middlewareResponse.headers.get("x-middleware-next") !== "1") {
+        return middlewareResponse;
+      }
+
+      feedbackHandlerCalls += 1;
+      return Response.json({
+        errors: {},
+        ok: true,
+        value: { id: "anonymous-feedback", status: "recorded" }
+      });
+    };
+
+    const result = await submitRiskFeedbackToApi({
+      fetcher,
+      input: {
+        category: "功能异常",
+        contactMethod: "",
+        description: "匿名反馈策略保持不变。",
+        evidenceNote: "",
+        sourcePage: "/feedback",
+        targetReference: "",
+        targetType: "其他 / 不确定"
+      }
+    });
+
+    expect(feedbackHandlerCalls).toBe(1);
+    expect(result).toMatchObject({
+      errors: {},
+      ok: true,
+      value: { id: "anonymous-feedback", status: "recorded" }
+    });
+
+    const rejected = await Promise.all([
+      {
+        headers: {
+          "content-type": "application/json",
+          origin: "https://attacker.example",
+          "x-ungrade-origin-verify": "expected-test-secret"
+        }
+      },
+      {
+        headers: {
+          "content-type": "text/plain",
+          origin,
+          "x-ungrade-origin-verify": "expected-test-secret"
+        }
+      }
+    ].map(({ headers }) => middlewareModule.middleware(
+      new NextRequest(`${origin}/api/feedback`, {
+        body: "{}",
+        headers,
+        method: "POST"
+      })
+    )));
+    expect(rejected.map((response) => ({
+      correlationId: Boolean(response.headers.get("x-correlation-id")),
+      middlewarePassed: response.headers.get("x-middleware-next") === "1",
+      status: response.status
+    }))).toEqual([
+      { correlationId: true, middlewarePassed: false, status: 403 },
+      { correlationId: true, middlewarePassed: false, status: 403 }
+    ]);
+  });
+
   it("lets an anonymous production password login reach structured challenge validation", async () => {
     vi.stubEnv("APP_ENV", "production");
     vi.stubEnv("NODE_ENV", "production");

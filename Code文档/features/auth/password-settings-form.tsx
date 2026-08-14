@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 
-import { parseApiResponse, type ApiResult } from "@/features/api/api-client";
+import { fetchWithCsrf, parseApiResponse, type ApiResult } from "@/features/api/api-client";
 
 type PasswordSettingsFormProps = {
   emailMasked?: string;
@@ -42,7 +42,7 @@ export function PasswordSettingsForm({ emailMasked }: PasswordSettingsFormProps)
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/auth/password/set", {
+      const response = await fetchWithCsrf(fetch, "/api/auth/password/set", {
         body: JSON.stringify({ email, password, passwordConfirm }),
         credentials: "same-origin",
         headers: { "content-type": "application/json" },

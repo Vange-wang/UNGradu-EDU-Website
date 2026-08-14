@@ -18,6 +18,13 @@ describe("chat API client", () => {
   it("uses cookie-backed conversation and exchange APIs", async () => {
     const calls: Array<{ body: string | null; headers: Headers; method: string; url: string }> = [];
     const fetcher: typeof fetch = async (url, init) => {
+      if (url.toString().startsWith("/api/auth/csrf")) {
+        return Response.json({
+          errors: {},
+          ok: true,
+          value: { proof: "chat-post-proof" }
+        });
+      }
       calls.push({
         body: init?.body?.toString() ?? null,
         headers: new Headers(init?.headers),
@@ -116,5 +123,8 @@ describe("chat API client", () => {
       requestId: "exchange-a",
       secondConfirmation: true
     }));
+    expect(calls.filter((call) => call.method === "POST").every(
+      (call) => call.headers.get("x-ungrade-csrf") === "chat-post-proof"
+    )).toBe(true);
   });
 });

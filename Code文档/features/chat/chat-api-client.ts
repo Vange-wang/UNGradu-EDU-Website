@@ -1,5 +1,5 @@
 import type { ContactProfileInput } from "@/features/profile/contact-profile";
-import { parseApiResponse } from "@/features/api/api-client";
+import { fetchWithCsrf, parseApiResponse } from "@/features/api/api-client";
 import type { ServerContactExchangeRequestView } from "@/server/contact-exchange";
 import type {
   ServerConversationMessageView,
@@ -47,7 +47,7 @@ export async function createConversationFromSourceToApi({
   sourceId: string;
   sourceType: ServerConversationSourceType;
 }) {
-  const response = await fetcher("/api/conversations", {
+  const response = await fetchWithCsrf(fetcher, "/api/conversations", {
     body: JSON.stringify({ sourceId, sourceType }),
     credentials: "same-origin",
     headers: createCookieBackedHeaders(),
@@ -94,7 +94,8 @@ export async function sendConversationMessageToApi({
   fetcher = fetch,
   text
 }: ChatApiClientInput & { conversationId: string; text: string }) {
-  const response = await fetcher(
+  const response = await fetchWithCsrf(
+    fetcher,
     `/api/conversations/${encodePathSegment(conversationId)}/messages`,
     {
       body: JSON.stringify({ text }),
@@ -143,7 +144,7 @@ export async function createContactExchangeRequestFromApi({
   conversationId,
   fetcher = fetch
 }: ChatApiClientInput & { conversationId: string }) {
-  const response = await fetcher("/api/contact-exchange", {
+  const response = await fetchWithCsrf(fetcher, "/api/contact-exchange", {
     body: JSON.stringify({ action: "create", conversationId }),
     credentials: "same-origin",
     headers: createCookieBackedHeaders(),
@@ -161,7 +162,7 @@ export async function approveContactExchangeRequestFromApi({
   requestId: string;
   secondConfirmation: boolean;
 }) {
-  const response = await fetcher("/api/contact-exchange", {
+  const response = await fetchWithCsrf(fetcher, "/api/contact-exchange", {
     body: JSON.stringify({
       action: "approve",
       requestId,
@@ -179,7 +180,7 @@ export async function rejectContactExchangeRequestFromApi({
   fetcher = fetch,
   requestId
 }: ChatApiClientInput & { requestId: string }) {
-  const response = await fetcher("/api/contact-exchange", {
+  const response = await fetchWithCsrf(fetcher, "/api/contact-exchange", {
     body: JSON.stringify({ action: "reject", requestId }),
     credentials: "same-origin",
     headers: createCookieBackedHeaders(),
@@ -193,7 +194,7 @@ export async function withdrawContactExchangeRequestFromApi({
   fetcher = fetch,
   requestId
 }: ChatApiClientInput & { requestId: string }) {
-  const response = await fetcher("/api/contact-exchange", {
+  const response = await fetchWithCsrf(fetcher, "/api/contact-exchange", {
     body: JSON.stringify({ action: "withdraw", requestId }),
     credentials: "same-origin",
     headers: createCookieBackedHeaders(),

@@ -407,6 +407,10 @@ const mockApiScript = String.raw`
     const method = (init && init.method ? init.method : "GET").toUpperCase();
     const mode = localStorage.getItem("issue0033-mode") || "normal";
 
+    if (url.pathname === "/api/auth/csrf" && method === "GET") {
+      return Promise.resolve(success({ proof: "synthetic-browser-csrf-proof" }));
+    }
+
     if (
       url.pathname === "/api/parent-needs" &&
       url.searchParams.get("scope") === "mine"

@@ -27,6 +27,13 @@ describe("tutor profile API client", () => {
   it("uses cookie-backed routes for private reads and writes", async () => {
     const calls: Array<{ body: string | null; headers: Headers; method: string; url: string }> = [];
     const fetcher: typeof fetch = async (url, init) => {
+      if (url.toString().startsWith("/api/auth/csrf")) {
+        return Response.json({
+          errors: {},
+          ok: true,
+          value: { proof: `proof-${new URL(url.toString(), "http://localhost").searchParams.get("method")}` }
+        });
+      }
       calls.push({
         body: init?.body?.toString() ?? null,
         headers: new Headers(init?.headers),
@@ -87,5 +94,8 @@ describe("tutor profile API client", () => {
     expect(calls[6].headers.get("idempotency-key")).toMatch(/^delete:profile-a:v4:/);
     expect(calls[7]).toMatchObject({ method: "POST", url: "/api/tutor-profiles/profile-a" });
     expect(calls[7].headers.get("idempotency-key")).toMatch(/^restore:profile-a:v5:/);
+    expect(calls.filter((call) => ["DELETE", "PATCH", "POST", "PUT"].includes(call.method)).every(
+      (call) => call.headers.get("x-ungrade-csrf") === `proof-${call.method}`
+    )).toBe(true);
   });
 });

@@ -1,4 +1,4 @@
-import { parseApiResponse } from "@/features/api/api-client";
+import { fetchWithCsrf, parseApiResponse } from "@/features/api/api-client";
 import type { RiskFeedbackInput } from "@/features/feedback/risk-feedback";
 import type {
   PublicRiskFeedbackRecord,
@@ -12,14 +12,14 @@ export async function submitRiskFeedbackToApi({
   fetcher?: typeof fetch;
   input: RiskFeedbackInput;
 }) {
-  const response = await fetcher("/api/feedback", {
+  const response = await fetchWithCsrf(fetcher, "/api/feedback", {
     body: JSON.stringify(input),
     credentials: "same-origin",
     headers: {
       "content-type": "application/json"
     },
     method: "POST"
-  });
+  }, { allowAnonymous: true });
 
   return parseApiResponse<ServerRiskFeedback>(response);
 }

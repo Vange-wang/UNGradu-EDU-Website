@@ -365,6 +365,7 @@ describeWithBrowser("ISSUE-0033 publishing submit browser contract", () => {
     await cdp.send("Fetch.enable", {
       patterns: [
         { urlPattern: "*/api/auth/session*", requestStage: "Request" },
+        { urlPattern: "*/api/auth/csrf*", requestStage: "Request" },
         { urlPattern: "*/api/parent-needs*", requestStage: "Request" },
         { urlPattern: "*/api/tutor-profiles*", requestStage: "Request" }
       ]
@@ -378,6 +379,19 @@ describeWithBrowser("ISSUE-0033 publishing submit browser contract", () => {
         const requestId = String(params.requestId);
         const request = params.request as { method: string; url: string };
         const url = new URL(request.url);
+        if (url.pathname === "/api/auth/csrf") {
+          await cdp.send("Fetch.fulfillRequest", {
+            body: jsonBody({
+              errors: {},
+              ok: true,
+              value: { proof: "synthetic-browser-csrf-proof" }
+            }),
+            responseCode: 200,
+            responseHeaders: [{ name: "content-type", value: "application/json" }],
+            requestId
+          });
+          return;
+        }
         if (url.pathname === "/api/auth/session") {
           await delay(sessionDelayMs);
           await cdp.send("Fetch.fulfillRequest", {

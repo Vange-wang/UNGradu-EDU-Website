@@ -8,7 +8,14 @@ import {
 describe("contact profile API client", () => {
   it("sends the current test user phone as a temporary identity header", async () => {
     const calls: Array<{ body: string | null; headers: Headers; method: string }> = [];
-    const fetcher: typeof fetch = async (_url, init) => {
+    const fetcher: typeof fetch = async (url, init) => {
+      if (url.toString().startsWith("/api/auth/csrf")) {
+        return Response.json({
+          errors: {},
+          ok: true,
+          value: { proof: "contact-put-proof" }
+        });
+      }
       calls.push({
         body: init?.body?.toString() ?? null,
         headers: new Headers(init?.headers),
@@ -46,5 +53,6 @@ describe("contact profile API client", () => {
     ]);
     expect(calls[0].headers.get("x-ungradu-test-user-phone")).toBeNull();
     expect(calls[1].headers.get("x-ungradu-test-user-phone")).toBeNull();
+    expect(calls[0].headers.get("x-ungrade-csrf")).toBe("contact-put-proof");
   });
 });

@@ -98,6 +98,100 @@ afterEach(() => {
 });
 
 describe("ISSUE-0034 actual Next route exports", () => {
+  it("issues a method-bound CSRF proof without exposing the server secret", async () => {
+    const origin = "https://ungraduedu.eu.cc";
+    process.env.APP_ENV = "production";
+    Object.assign(process.env, { NODE_ENV: "production" });
+    process.env.ALLOWED_ORIGINS = origin;
+    process.env.AUTH_SESSION_SECRET = "synthetic-session-secret";
+    process.env.AUTH_SESSION_KEY_VERSION = "v1";
+    process.env.CSRF_SECRET = "synthetic-csrf-secret";
+    const cookie = createAuthSessionCookie({
+      env: process.env,
+      userId: "synthetic-user"
+    });
+    const { GET } = await import("@/app/api/auth/csrf/route");
+
+    const response = await GET(new Request("https://cloudbase-upstream.example/api/auth/csrf?method=POST", {
+      headers: {
+        cookie: cookie ?? "",
+        "x-ungrade-csrf-origin": origin
+      }
+    }));
+    const rawBody = await response.clone().text();
+    const body = await response.json() as {
+      ok: boolean;
+      value: { proof: string } | null;
+    };
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("x-correlation-id")).toBeTruthy();
+    expect(body).toMatchObject({
+      ok: true,
+      value: {
+        proof: createCsrfProof({
+          method: "POST",
+          origin,
+          secret: "synthetic-csrf-secret",
+          subjectId: "synthetic-user"
+        })
+      }
+    });
+    expect(rawBody).not.toContain("synthetic-csrf-secret");
+  });
+
+  it("keeps the CSRF proof route JSON fail-closed when the server secret is absent", async () => {
+    const origin = "https://ungraduedu.eu.cc";
+    process.env.APP_ENV = "production";
+    Object.assign(process.env, { NODE_ENV: "production" });
+    process.env.ALLOWED_ORIGINS = origin;
+    process.env.AUTH_SESSION_SECRET = "synthetic-session-secret";
+    process.env.AUTH_SESSION_KEY_VERSION = "v1";
+    delete process.env.CSRF_SECRET;
+    const cookie = createAuthSessionCookie({
+      env: process.env,
+      userId: "synthetic-user"
+    });
+    const { GET } = await import("@/app/api/auth/csrf/route");
+
+    const response = await GET(new Request(`${origin}/api/auth/csrf?method=POST`, {
+      headers: { cookie: cookie ?? "" }
+    }));
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(response.headers.get("x-correlation-id")).toBeTruthy();
+    await expect(response.json()).resolves.toMatchObject({
+      errors: { request: "Request security is temporarily unavailable." },
+      ok: false,
+      value: null
+    });
+  });
+
+  it("rejects a CSRF proof request for an Origin outside the allowlist", async () => {
+    const origin = "https://ungraduedu.eu.cc";
+    process.env.APP_ENV = "production";
+    Object.assign(process.env, { NODE_ENV: "production" });
+    process.env.ALLOWED_ORIGINS = origin;
+    process.env.AUTH_SESSION_SECRET = "synthetic-session-secret";
+    process.env.AUTH_SESSION_KEY_VERSION = "v1";
+    process.env.CSRF_SECRET = "synthetic-csrf-secret";
+    const cookie = createAuthSessionCookie({ env: process.env, userId: "synthetic-user" });
+    const { GET } = await import("@/app/api/auth/csrf/route");
+
+    const response = await GET(new Request("https://cloudbase-upstream.example/api/auth/csrf?method=POST", {
+      headers: {
+        cookie: cookie ?? "",
+        "x-ungrade-csrf-origin": "https://attacker.example"
+      }
+    }));
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(response.headers.get("x-correlation-id")).toBeTruthy();
+  });
+
   it("keeps feedback POST anonymous while GET is non-enumerable and authenticated", async () => {
     process.env.APP_ENV = "test";
     const { GET, POST } = await import("@/app/api/feedback/route");

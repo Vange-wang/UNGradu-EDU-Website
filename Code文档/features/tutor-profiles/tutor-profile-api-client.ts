@@ -1,5 +1,5 @@
 import type { TutorProfileInput } from "@/features/tutor-profiles/tutor-profile";
-import { parseApiResponse } from "@/features/api/api-client";
+import { fetchWithCsrf, parseApiResponse } from "@/features/api/api-client";
 import type {
   PublicServerTutorProfile,
   ServerTutorProfile,
@@ -105,7 +105,7 @@ export async function updateTutorProfileToApi({
   input: TutorProfileInput;
   version: number;
 }) {
-  const response = await fetcher(`/api/tutor-profiles/${encodeURIComponent(id)}`, {
+  const response = await fetchWithCsrf(fetcher, `/api/tutor-profiles/${encodeURIComponent(id)}`, {
     body: JSON.stringify({ ...input, version }),
     credentials: "same-origin",
     headers: createCookieBackedHeaders(),
@@ -125,7 +125,7 @@ export async function deleteTutorProfileFromApi({
   id: string;
   version: number;
 }) {
-  const response = await fetcher(`/api/tutor-profiles/${encodeURIComponent(id)}`, {
+  const response = await fetchWithCsrf(fetcher, `/api/tutor-profiles/${encodeURIComponent(id)}`, {
     body: JSON.stringify({ version }),
     credentials: "same-origin",
     headers: {
@@ -148,7 +148,7 @@ export async function restoreTutorProfileFromApi({
   id: string;
   version: number;
 }) {
-  const response = await fetcher(`/api/tutor-profiles/${encodeURIComponent(id)}`, {
+  const response = await fetchWithCsrf(fetcher, `/api/tutor-profiles/${encodeURIComponent(id)}`, {
     body: JSON.stringify({ action: "restore", version }),
     credentials: "same-origin",
     headers: {
@@ -169,7 +169,7 @@ export async function saveTutorProfileToApi({
   fetcher?: typeof fetch;
   input: TutorProfileInput;
 }) {
-  const response = await fetcher("/api/tutor-profiles", {
+  const response = await fetchWithCsrf(fetcher, "/api/tutor-profiles", {
     body: JSON.stringify(input),
     credentials: "same-origin",
     headers: createCookieBackedHeaders(),

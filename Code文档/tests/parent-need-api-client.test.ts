@@ -27,6 +27,13 @@ describe("parent need API client", () => {
   it("uses cookie-backed routes for private reads and writes", async () => {
     const calls: Array<{ body: string | null; headers: Headers; method: string; url: string }> = [];
     const fetcher: typeof fetch = async (url, init) => {
+      if (url.toString().startsWith("/api/auth/csrf")) {
+        return Response.json({
+          errors: {},
+          ok: true,
+          value: { proof: `proof-${new URL(url.toString(), "http://localhost").searchParams.get("method")}` }
+        });
+      }
       calls.push({
         body: init?.body?.toString() ?? null,
         headers: new Headers(init?.headers),
@@ -87,5 +94,37 @@ describe("parent need API client", () => {
     expect(calls[6].headers.get("idempotency-key")).toMatch(/^delete:need-a:v4:/);
     expect(calls[7]).toMatchObject({ method: "POST", url: "/api/parent-needs/need-a" });
     expect(calls[7].headers.get("idempotency-key")).toMatch(/^restore:need-a:v5:/);
+    expect(calls.filter((call) => ["DELETE", "PATCH", "POST", "PUT"].includes(call.method)).every(
+      (call) => call.headers.get("x-ungrade-csrf") === `proof-${call.method}`
+    )).toBe(true);
+  });
+
+  it("obtains a CSRF proof before the existing parent-need publish request", async () => {
+    const calls: Array<{ body: string | null; headers: Headers; method: string; url: string }> = [];
+    const fetcher: typeof fetch = async (url, init) => {
+      calls.push({
+        body: init?.body?.toString() ?? null,
+        headers: new Headers(init?.headers),
+        method: init?.method ?? "GET",
+        url: url.toString()
+      });
+      if (url.toString().startsWith("/api/auth/csrf")) {
+        return Response.json({ errors: {}, ok: true, value: { proof: "publish-proof" } });
+      }
+      return Response.json({ errors: {}, ok: true, value: { id: "need-a" } });
+    };
+
+    await saveParentNeedToApi({
+      currentUserPhone: "13800138000",
+      fetcher,
+      input
+    });
+
+    expect(calls.map((call) => ({ method: call.method, url: call.url }))).toEqual([
+      { method: "GET", url: "/api/auth/csrf?method=POST" },
+      { method: "POST", url: "/api/parent-needs" }
+    ]);
+    expect(calls[1].body).toBe(JSON.stringify(input));
+    expect(calls[1].headers.get("x-ungrade-csrf")).toBe("publish-proof");
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createAuthApiHandlers } from "@/server/auth-api";
+import { logoutFromApi } from "@/features/auth/logout-button";
 import {
   clearAuthSessionCookie,
   createAuthSessionCookie,
@@ -31,6 +32,39 @@ function createFakeCollection(initialValues: Record<string, StoredDocument> = {}
 }
 
 describe("backend trusted auth session API", () => {
+  it("adds a session-bound CSRF proof to the existing logout request", async () => {
+    const calls: Array<{ headers: Headers; method: string; url: string }> = [];
+    const fetcher: typeof fetch = async (input, init) => {
+      calls.push({
+        headers: new Headers(init?.headers),
+        method: init?.method ?? "GET",
+        url: input.toString()
+      });
+      if (input.toString().startsWith("/api/auth/csrf")) {
+        return Response.json({
+          errors: {},
+          ok: true,
+          value: { proof: "synthetic-logout-proof" }
+        });
+      }
+      return Response.json({ errors: {}, ok: true, value: null });
+    };
+
+    const response = await logoutFromApi(fetcher);
+
+    expect(response.status).toBe(200);
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toMatchObject({
+      method: "GET",
+      url: "/api/auth/csrf?method=POST"
+    });
+    expect(calls[1]).toMatchObject({
+      method: "POST",
+      url: "/api/auth/logout"
+    });
+    expect(calls[1].headers.get("x-ungrade-csrf")).toBe("synthetic-logout-proof");
+  });
+
   it("creates an HttpOnly signed session cookie and reads it back", async () => {
     const handlers = createAuthApiHandlers({
       env: {

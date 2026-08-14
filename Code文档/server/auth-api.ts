@@ -1,5 +1,5 @@
 import { validateTestLoginInput } from "@/features/auth/test-auth";
-import { apiError, createSecurityRuntimeEnv, guardWriteRequest, jsonResponse, readJsonBody, type RuntimeEnv } from "@/server/api-utils";
+import { apiError, createSecurityRuntimeEnv, guardWriteRequest, isProductionRuntime, jsonResponse, readJsonBody, type RuntimeEnv } from "@/server/api-utils";
 import {
   clearAuthSessionCookie,
   createAuthSessionCookie,
@@ -7,11 +7,40 @@ import {
   type AuthSessionRevocationGuard
 } from "@/server/auth-session";
 import { isTestLoginAllowed } from "@/features/auth/test-auth";
+import { createCsrfProof } from "@/server/security/request-guard";
 
 type AuthApiDependencies = {
   env?: RuntimeEnv & { AUTH_SESSION_SECRET?: string };
   sessionRevocationGuard?: AuthSessionRevocationGuard;
 };
+
+const CSRF_PROTECTED_METHODS = new Set(["DELETE", "PATCH", "POST", "PUT"]);
+
+function normalizeOrigin(origin: string) {
+  return origin.trim().replace(/\/$/u, "");
+}
+
+function resolveCsrfOrigin(request: Request, env: RuntimeEnv) {
+  const requestedOrigin = request.headers.get("x-ungrade-csrf-origin")?.trim();
+  const requestOrigin = normalizeOrigin(
+    requestedOrigin || new URL(request.url).origin
+  );
+  const allowedOrigins = new Set(
+    env.ALLOWED_ORIGINS?.split(",")
+      .map(normalizeOrigin)
+      .filter(Boolean) ?? []
+  );
+
+  if (allowedOrigins.size > 0 && !allowedOrigins.has(requestOrigin)) {
+    return null;
+  }
+
+  if (isProductionRuntime(env) && allowedOrigins.size === 0) {
+    return null;
+  }
+
+  return requestOrigin;
+}
 
 function jsonWithCookie(body: unknown, cookie: string) {
   return Response.json(body, {
@@ -26,6 +55,43 @@ export function createAuthApiHandlers({ env = process.env, sessionRevocationGuar
     sessionRevocationGuard: sessionRevocationGuard ?? env.sessionRevocationGuard
   });
   return {
+    async GET_CSRF_PROOF(request: Request) {
+      const result = await readAuthSessionFromRequestWithRevocation(
+        request,
+        securedEnv,
+        securedEnv.sessionRevocationGuard
+      );
+
+      if (!result.ok) {
+        return apiError(
+          result.reason === "unavailable" ? 503 : 401,
+          result.reason === "unavailable"
+            ? "Session security is temporarily unavailable."
+            : "Login is required for this API."
+        );
+      }
+
+      const method = new URL(request.url).searchParams.get("method")?.toUpperCase() ?? "";
+      if (!CSRF_PROTECTED_METHODS.has(method)) {
+        return apiError(400, "Unsupported CSRF request method.");
+      }
+
+      const secret = securedEnv.CSRF_SECRET?.trim();
+      const origin = resolveCsrfOrigin(request, securedEnv);
+      const subjectId = result.session.userId ?? result.session.phone;
+      if (!secret || !origin || !subjectId?.trim()) {
+        return apiError(503, "Request security is temporarily unavailable.");
+      }
+
+      return jsonResponse({
+        errors: {},
+        ok: true,
+        value: {
+          proof: createCsrfProof({ method, origin, secret, subjectId })
+        }
+      });
+    },
+
     async GET_SESSION(request: Request) {
       const result = await readAuthSessionFromRequestWithRevocation(
         request,

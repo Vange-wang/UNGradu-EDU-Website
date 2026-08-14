@@ -80,6 +80,14 @@ export function middleware(request: NextRequest) {
   const allowsAnonymousAuthWrite =
     request.method === "POST" &&
     ANONYMOUS_AUTH_WRITE_PATHS.has(request.nextUrl.pathname);
+  const sessionSubjectId = allowsAnonymousAuthWrite
+    ? undefined
+    : readAuthSessionFromRequest(request, process.env)?.userId;
+  const allowsAnonymousFeedbackWrite =
+    isProduction &&
+    request.method === "POST" &&
+    request.nextUrl.pathname === "/api/feedback" &&
+    !sessionSubjectId;
   const writeGuard = evaluateWriteRequest({
     env: {
       allowedOrigins: process.env.ALLOWED_ORIGINS ??
@@ -88,10 +96,8 @@ export function middleware(request: NextRequest) {
       mode,
       appEnv: process.env.APP_ENV,
       nodeEnv: process.env.NODE_ENV,
-      subjectId: allowsAnonymousAuthWrite
-        ? undefined
-        : readAuthSessionFromRequest(request, process.env)?.userId,
-      allowAnonymous: allowsAnonymousAuthWrite
+      subjectId: sessionSubjectId,
+      allowAnonymous: allowsAnonymousAuthWrite || allowsAnonymousFeedbackWrite
     },
     request
   });

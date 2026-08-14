@@ -3,7 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { fetchWithCsrf } from "@/features/api/api-client";
 import { notifyAuthSessionAnonymous } from "@/features/auth/auth-session-events";
+
+export function logoutFromApi(fetcher: typeof fetch = fetch) {
+  return fetchWithCsrf(fetcher, "/api/auth/logout", {
+    credentials: "same-origin",
+    method: "POST"
+  });
+}
 
 export function LogoutButton() {
   const router = useRouter();
@@ -18,10 +26,7 @@ export function LogoutButton() {
       return;
     }
 
-    const response = await fetch("/api/auth/logout", {
-      credentials: "same-origin",
-      method: "POST"
-    });
+    const response = await logoutFromApi();
 
     if (!response.ok) {
       setMessage("退出登录失败，请稍后重试。");

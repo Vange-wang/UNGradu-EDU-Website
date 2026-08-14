@@ -1,5 +1,5 @@
 import type { ParentNeedInput } from "@/features/parent-needs/parent-need";
-import { parseApiResponse } from "@/features/api/api-client";
+import { fetchWithCsrf, parseApiResponse } from "@/features/api/api-client";
 import type {
   PublicServerParentNeed,
   ServerParentNeed,
@@ -105,7 +105,7 @@ export async function updateParentNeedToApi({
   input: ParentNeedInput;
   version: number;
 }) {
-  const response = await fetcher(`/api/parent-needs/${encodeURIComponent(id)}`, {
+  const response = await fetchWithCsrf(fetcher, `/api/parent-needs/${encodeURIComponent(id)}`, {
     body: JSON.stringify({ ...input, version }),
     credentials: "same-origin",
     headers: createCookieBackedHeaders(),
@@ -125,7 +125,7 @@ export async function deleteParentNeedFromApi({
   id: string;
   version: number;
 }) {
-  const response = await fetcher(`/api/parent-needs/${encodeURIComponent(id)}`, {
+  const response = await fetchWithCsrf(fetcher, `/api/parent-needs/${encodeURIComponent(id)}`, {
     body: JSON.stringify({ version }),
     credentials: "same-origin",
     headers: {
@@ -148,7 +148,7 @@ export async function restoreParentNeedFromApi({
   id: string;
   version: number;
 }) {
-  const response = await fetcher(`/api/parent-needs/${encodeURIComponent(id)}`, {
+  const response = await fetchWithCsrf(fetcher, `/api/parent-needs/${encodeURIComponent(id)}`, {
     body: JSON.stringify({ action: "restore", version }),
     credentials: "same-origin",
     headers: {
@@ -169,7 +169,7 @@ export async function saveParentNeedToApi({
   fetcher?: typeof fetch;
   input: ParentNeedInput;
 }) {
-  const response = await fetcher("/api/parent-needs", {
+  const response = await fetchWithCsrf(fetcher, "/api/parent-needs", {
     body: JSON.stringify(input),
     credentials: "same-origin",
     headers: createCookieBackedHeaders(),

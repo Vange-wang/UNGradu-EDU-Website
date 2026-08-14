@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { notifyAuthSessionAnonymous } from "@/features/auth/auth-session-events";
+import { logoutFromApi } from "@/features/auth/logout-button";
 import { useTestSession } from "@/features/auth/use-test-session";
 
 export function SessionNav() {
@@ -21,10 +22,7 @@ export function SessionNav() {
       return;
     }
 
-    const response = await fetch("/api/auth/logout", {
-      credentials: "same-origin",
-      method: "POST"
-    });
+    const response = await logoutFromApi();
 
     if (!response.ok) {
       setMessage("退出失败");

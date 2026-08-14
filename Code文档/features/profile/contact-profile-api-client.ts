@@ -1,5 +1,5 @@
 import type { ContactProfileInput } from "@/features/profile/contact-profile";
-import { parseApiResponse, type ApiResult } from "@/features/api/api-client";
+import { fetchWithCsrf, parseApiResponse, type ApiResult } from "@/features/api/api-client";
 
 type ContactProfileApiResult = ApiResult<ContactProfileInput>;
 
@@ -30,7 +30,7 @@ export async function saveContactProfileToApi({
   fetcher = fetch,
   input
 }: ContactProfileApiClientInput & { input: ContactProfileInput }) {
-  const response = await fetcher("/api/contact-profile", {
+  const response = await fetchWithCsrf(fetcher, "/api/contact-profile", {
     body: JSON.stringify(input),
     credentials: "same-origin",
     headers: createCookieBackedHeaders(),

@@ -9,33 +9,48 @@ import {
 import { createParentNeedManagementHandlers } from "./management-handlers";
 import { createRuntimeEnvWithSessionRevocation } from "@/server/api-utils";
 
-const database = createCloudBaseServerApp().database();
-type TransactionLike = {
-  collection: (name: string) => ReturnType<typeof database.collection>;
-};
+type GetHandler = ReturnType<typeof createParentNeedApiHandlers>["GET_COLLECTION"];
+type PostHandler = ReturnType<
+  typeof createParentNeedManagementHandlers
+>["POST_COLLECTION"];
 
-const collection = database.collection(PARENT_NEEDS_COLLECTION);
-const env = createRuntimeEnvWithSessionRevocation(database);
-const handlers = createParentNeedApiHandlers({ collection, env });
-const runTransaction: ParentNeedLifecycleTransactionRunner | undefined =
-  typeof database.runTransaction === "function"
-    ? (operation) =>
-        database.runTransaction((transaction: TransactionLike) =>
-          operation({
-            auditCollection: transaction.collection("audit_events"),
-            contactExchangeRequestsCollection: transaction.collection(
-              CONTACT_EXCHANGE_REQUESTS_COLLECTION
-            ),
-            conversationsCollection: transaction.collection(CONVERSATIONS_COLLECTION),
-            sourceCollection: transaction.collection(PARENT_NEEDS_COLLECTION)
-          })
-        )
-    : undefined;
-const managementHandlers = createParentNeedManagementHandlers({
-  collection,
-  env,
-  runTransaction
-});
+let routeHandlers: { GET: GetHandler; POST: PostHandler } | undefined;
 
-export const GET = handlers.GET_COLLECTION;
-export const POST = managementHandlers.POST_COLLECTION;
+function getRouteHandlers() {
+  if (!routeHandlers) {
+    const database = createCloudBaseServerApp().database();
+    type TransactionLike = {
+      collection: (name: string) => ReturnType<typeof database.collection>;
+    };
+    const collection = database.collection(PARENT_NEEDS_COLLECTION);
+    const env = createRuntimeEnvWithSessionRevocation(database);
+    const handlers = createParentNeedApiHandlers({ collection, env });
+    const runTransaction: ParentNeedLifecycleTransactionRunner | undefined =
+      typeof database.runTransaction === "function"
+        ? (operation) =>
+            database.runTransaction((transaction: TransactionLike) =>
+              operation({
+                auditCollection: transaction.collection("audit_events"),
+                contactExchangeRequestsCollection: transaction.collection(
+                  CONTACT_EXCHANGE_REQUESTS_COLLECTION
+                ),
+                conversationsCollection: transaction.collection(CONVERSATIONS_COLLECTION),
+                sourceCollection: transaction.collection(PARENT_NEEDS_COLLECTION)
+              })
+            )
+        : undefined;
+    const managementHandlers = createParentNeedManagementHandlers({
+      collection,
+      env,
+      runTransaction
+    });
+    routeHandlers = {
+      GET: handlers.GET_COLLECTION,
+      POST: managementHandlers.POST_COLLECTION
+    };
+  }
+  return routeHandlers;
+}
+
+export const GET: GetHandler = (...args) => getRouteHandlers().GET(...args);
+export const POST: PostHandler = (...args) => getRouteHandlers().POST(...args);

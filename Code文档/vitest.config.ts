@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
   test: {
     environment: "node",
+    fileParallelism: false,
     include: ["tests/**/*.test.ts"],
     testTimeout: 15000
   },

@@ -6,16 +6,25 @@ import {
 import { createCloudBaseServerApp } from "@/server/cloudbase-server";
 import { createRuntimeEnvWithSessionRevocation } from "@/server/api-utils";
 
-const database = createCloudBaseServerApp().database();
-const env = createRuntimeEnvWithSessionRevocation(database);
+type RouteHandlers = ReturnType<typeof createConversationApiHandlers>;
 
-const handlers = createConversationApiHandlers({
-  conversationsCollection: database.collection(CONVERSATIONS_COLLECTION),
-  messagesCollection: database.collection(CONVERSATION_MESSAGES_COLLECTION),
-  parentNeedsCollection: database.collection("parent_needs"),
-  tutorProfilesCollection: database.collection("tutor_profiles"),
-  env
-});
+let handlers: RouteHandlers | undefined;
 
-export const GET = handlers.GET_MESSAGES;
-export const POST = handlers.POST_MESSAGES;
+function getHandlers() {
+  if (!handlers) {
+    const database = createCloudBaseServerApp().database();
+    handlers = createConversationApiHandlers({
+      conversationsCollection: database.collection(CONVERSATIONS_COLLECTION),
+      messagesCollection: database.collection(CONVERSATION_MESSAGES_COLLECTION),
+      parentNeedsCollection: database.collection("parent_needs"),
+      tutorProfilesCollection: database.collection("tutor_profiles"),
+      env: createRuntimeEnvWithSessionRevocation(database)
+    });
+  }
+  return handlers;
+}
+
+export const GET: RouteHandlers["GET_MESSAGES"] = (...args) =>
+  getHandlers().GET_MESSAGES(...args);
+export const POST: RouteHandlers["POST_MESSAGES"] = (...args) =>
+  getHandlers().POST_MESSAGES(...args);

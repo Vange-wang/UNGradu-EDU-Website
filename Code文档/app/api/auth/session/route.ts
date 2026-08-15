@@ -37,6 +37,13 @@ function sessionUnavailable(correlationId: string) {
   });
 }
 
+function allowsLocalTestSessionFallback() {
+  return process.env.APP_ENV === "test" &&
+    process.env.NODE_ENV !== "production" &&
+    process.env.NEXT_PUBLIC_ALLOW_TEST_LOGIN === "true" &&
+    process.env.AUTH_SESSION_REVOCATION_REQUIRED !== "true";
+}
+
 function createHandlers(correlationId: string) {
   const database = createCloudBaseServerApp().database();
   const store = createCloudBaseSessionRevocationStore(
@@ -68,12 +75,16 @@ export async function GET(request: Request) {
   try {
     handlers = createHandlers(correlationId);
   } catch {
-    logSessionRouteFailure(
-      correlationId,
-      "AUTH_SESSION_ROUTE_SETUP_FAILED",
-      "setup"
-    );
-    return sessionUnavailable(correlationId);
+    if (allowsLocalTestSessionFallback()) {
+      handlers = createAuthApiHandlers();
+    } else {
+      logSessionRouteFailure(
+        correlationId,
+        "AUTH_SESSION_ROUTE_SETUP_FAILED",
+        "setup"
+      );
+      return sessionUnavailable(correlationId);
+    }
   }
 
   try {

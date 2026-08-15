@@ -1,10 +1,65 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const codeRoot = join(__dirname, "..");
+const opsScript = join(codeRoot, "scripts", "production-ops-baseline-check.mjs");
+let fixtureCodeRoot = "";
+let fixtureRoot = "";
+
+const syntheticDocuments: Record<string, string> = {
+  "S2生产运行观察与运维基线执行包.md": "# Synthetic S2 execution package\n",
+  "生产运行观察记录模板.md": "# Synthetic production observation template\n",
+  "生产问题分级与响应规则.md": "# Synthetic production response rules\n",
+  "部署回滚与环境配置核对清单.md": [
+    "# Synthetic deployment rollback checklist",
+    "Baseline: `2d409faf820d76a497a33a77e11045bc0e2d6b07`"
+  ].join("\n"),
+  "数据库集合与权限配置检查表.md": [
+    "# Synthetic database checklist",
+    "`contact_profiles`",
+    "`parent_needs`",
+    "`tutor_profiles`",
+    "`conversations`",
+    "`messages`",
+    "`contact_exchange_requests`",
+    "`email_login_codes`",
+    "`email_login_users`"
+  ].join("\n")
+};
+
+beforeAll(() => {
+  fixtureRoot = mkdtempSync(join(tmpdir(), "ungradu-production-ops-"));
+  fixtureCodeRoot = join(fixtureRoot, "Code文档");
+  const documentsRoot = join(
+    fixtureRoot,
+    "规划文档",
+    "里程碑文档",
+    "生产运行观察与运维基线准备"
+  );
+  mkdirSync(fixtureCodeRoot, { recursive: true });
+  mkdirSync(documentsRoot, { recursive: true });
+  copyFileSync(join(codeRoot, ".env.example"), join(fixtureCodeRoot, ".env.example"));
+  for (const [name, content] of Object.entries(syntheticDocuments)) {
+    writeFileSync(join(documentsRoot, name), `${content}\n`, "utf8");
+  }
+});
+
+afterAll(() => {
+  if (fixtureRoot) {
+    rmSync(fixtureRoot, { force: true, recursive: true });
+  }
+});
 
 function productionEnv(overrides: Record<string, string | undefined> = {}) {
   return {
@@ -36,16 +91,15 @@ function productionEnv(overrides: Record<string, string | undefined> = {}) {
 
 function runOpsBaseline(env: Record<string, string | undefined> = {}) {
   return execFileSync(
-    process.platform === "win32" ? "npm.cmd" : "npm",
-    ["run", "production:ops:baseline", "--silent"],
+    process.execPath,
+    [opsScript],
     {
-      cwd: codeRoot,
+      cwd: fixtureCodeRoot,
       encoding: "utf8",
       env: {
         ...process.env,
         ...env
       },
-      shell: process.platform === "win32",
       stdio: ["ignore", "pipe", "pipe"]
     }
   );

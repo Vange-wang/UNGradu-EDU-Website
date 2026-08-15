@@ -150,7 +150,8 @@ const SYNTHETIC_FIXTURE_DOMAIN_FILES = Object.freeze({
   "@/server/contact-profiles": "server/contact-profiles.ts",
   "@/server/contact-exchange": "server/contact-exchange.ts",
   "@/server/conversations": "server/conversations.ts",
-  "@/server/parent-needs": "server/parent-needs.ts"
+  "@/server/parent-needs": "server/parent-needs.ts",
+  "@/server/security/access-policy": "server/security/access-policy.ts"
 });
 
 let syntheticFixtureDomainPromise;

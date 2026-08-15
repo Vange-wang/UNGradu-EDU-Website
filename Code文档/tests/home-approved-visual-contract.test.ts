@@ -26,7 +26,8 @@ describe("approved home visual contract", () => {
 
   it("uses the approved local brand mark and keeps all interactive home copy as DOM text", () => {
     expect(layoutSource).toContain("<SiteHeader />");
-    expect(siteHeaderSource).toContain('from "next/image"');
+    expect(siteHeaderSource).toContain("<img");
+    expect(siteHeaderSource).not.toContain("style=");
     expect(siteHeaderSource).toContain("/assets/sitewide-ui/brand-mark.png");
     expect(homeSource).toContain("发布找老师需求");
     expect(homeSource).toContain("发布老师信息");

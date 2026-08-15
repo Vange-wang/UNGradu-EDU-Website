@@ -9,33 +9,48 @@ import {
 import { createTutorProfileManagementHandlers } from "./management-handlers";
 import { createRuntimeEnvWithSessionRevocation } from "@/server/api-utils";
 
-const database = createCloudBaseServerApp().database();
-type TransactionLike = {
-  collection: (name: string) => ReturnType<typeof database.collection>;
-};
+type GetHandler = ReturnType<typeof createTutorProfileApiHandlers>["GET_COLLECTION"];
+type PostHandler = ReturnType<
+  typeof createTutorProfileManagementHandlers
+>["POST_COLLECTION"];
 
-const collection = database.collection(TUTOR_PROFILES_COLLECTION);
-const env = createRuntimeEnvWithSessionRevocation(database);
-const handlers = createTutorProfileApiHandlers({ collection, env });
-const runTransaction: TutorProfileLifecycleTransactionRunner | undefined =
-  typeof database.runTransaction === "function"
-    ? (operation) =>
-        database.runTransaction((transaction: TransactionLike) =>
-          operation({
-            auditCollection: transaction.collection("audit_events"),
-            contactExchangeRequestsCollection: transaction.collection(
-              CONTACT_EXCHANGE_REQUESTS_COLLECTION
-            ),
-            conversationsCollection: transaction.collection(CONVERSATIONS_COLLECTION),
-            sourceCollection: transaction.collection(TUTOR_PROFILES_COLLECTION)
-          })
-        )
-    : undefined;
-const managementHandlers = createTutorProfileManagementHandlers({
-  collection,
-  env,
-  runTransaction
-});
+let routeHandlers: { GET: GetHandler; POST: PostHandler } | undefined;
 
-export const GET = handlers.GET_COLLECTION;
-export const POST = managementHandlers.POST_COLLECTION;
+function getRouteHandlers() {
+  if (!routeHandlers) {
+    const database = createCloudBaseServerApp().database();
+    type TransactionLike = {
+      collection: (name: string) => ReturnType<typeof database.collection>;
+    };
+    const collection = database.collection(TUTOR_PROFILES_COLLECTION);
+    const env = createRuntimeEnvWithSessionRevocation(database);
+    const handlers = createTutorProfileApiHandlers({ collection, env });
+    const runTransaction: TutorProfileLifecycleTransactionRunner | undefined =
+      typeof database.runTransaction === "function"
+        ? (operation) =>
+            database.runTransaction((transaction: TransactionLike) =>
+              operation({
+                auditCollection: transaction.collection("audit_events"),
+                contactExchangeRequestsCollection: transaction.collection(
+                  CONTACT_EXCHANGE_REQUESTS_COLLECTION
+                ),
+                conversationsCollection: transaction.collection(CONVERSATIONS_COLLECTION),
+                sourceCollection: transaction.collection(TUTOR_PROFILES_COLLECTION)
+              })
+            )
+        : undefined;
+    const managementHandlers = createTutorProfileManagementHandlers({
+      collection,
+      env,
+      runTransaction
+    });
+    routeHandlers = {
+      GET: handlers.GET_COLLECTION,
+      POST: managementHandlers.POST_COLLECTION
+    };
+  }
+  return routeHandlers;
+}
+
+export const GET: GetHandler = (...args) => getRouteHandlers().GET(...args);
+export const POST: PostHandler = (...args) => getRouteHandlers().POST(...args);

@@ -8,34 +8,42 @@ import { CONVERSATIONS_COLLECTION } from "@/server/conversations";
 import { createParentNeedManagementHandlers } from "../management-handlers";
 import { createRuntimeEnvWithSessionRevocation } from "@/server/api-utils";
 
-const database = createCloudBaseServerApp().database();
-type TransactionLike = {
-  collection: (name: string) => ReturnType<typeof database.collection>;
-};
+type RouteHandlers = ReturnType<typeof createParentNeedManagementHandlers>;
 
-const collection = database.collection(PARENT_NEEDS_COLLECTION);
-const env = createRuntimeEnvWithSessionRevocation(database);
-const runTransaction: ParentNeedLifecycleTransactionRunner | undefined =
-  typeof database.runTransaction === "function"
-    ? (operation) =>
-        database.runTransaction((transaction: TransactionLike) =>
-          operation({
-            auditCollection: transaction.collection("audit_events"),
-            contactExchangeRequestsCollection: transaction.collection(
-              CONTACT_EXCHANGE_REQUESTS_COLLECTION
-            ),
-            conversationsCollection: transaction.collection(CONVERSATIONS_COLLECTION),
-            sourceCollection: transaction.collection(PARENT_NEEDS_COLLECTION)
-          })
-        )
-    : undefined;
-const handlers = createParentNeedManagementHandlers({
-  collection,
-  env,
-  runTransaction
-});
+let handlers: RouteHandlers | undefined;
 
-export const DELETE = handlers.DELETE_ITEM;
-export const GET = handlers.GET_ITEM;
-export const PATCH = handlers.PATCH_ITEM;
-export const POST = handlers.POST_ITEM;
+function getHandlers() {
+  if (!handlers) {
+    const database = createCloudBaseServerApp().database();
+    type TransactionLike = {
+      collection: (name: string) => ReturnType<typeof database.collection>;
+    };
+    const collection = database.collection(PARENT_NEEDS_COLLECTION);
+    const env = createRuntimeEnvWithSessionRevocation(database);
+    const runTransaction: ParentNeedLifecycleTransactionRunner | undefined =
+      typeof database.runTransaction === "function"
+        ? (operation) =>
+            database.runTransaction((transaction: TransactionLike) =>
+              operation({
+                auditCollection: transaction.collection("audit_events"),
+                contactExchangeRequestsCollection: transaction.collection(
+                  CONTACT_EXCHANGE_REQUESTS_COLLECTION
+                ),
+                conversationsCollection: transaction.collection(CONVERSATIONS_COLLECTION),
+                sourceCollection: transaction.collection(PARENT_NEEDS_COLLECTION)
+              })
+            )
+        : undefined;
+    handlers = createParentNeedManagementHandlers({ collection, env, runTransaction });
+  }
+  return handlers;
+}
+
+export const DELETE: RouteHandlers["DELETE_ITEM"] = (...args) =>
+  getHandlers().DELETE_ITEM(...args);
+export const GET: RouteHandlers["GET_ITEM"] = (...args) =>
+  getHandlers().GET_ITEM(...args);
+export const PATCH: RouteHandlers["PATCH_ITEM"] = (...args) =>
+  getHandlers().PATCH_ITEM(...args);
+export const POST: RouteHandlers["POST_ITEM"] = (...args) =>
+  getHandlers().POST_ITEM(...args);

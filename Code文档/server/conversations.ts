@@ -1,3 +1,5 @@
+import { createNormalizedObjectNotFoundFailure } from "@/server/security/access-policy";
+
 export const CONVERSATIONS_COLLECTION = "conversations";
 export const CONVERSATION_MESSAGES_COLLECTION = "messages";
 
@@ -95,6 +97,7 @@ type ConversationDependencies = {
 
 type Failure = {
   ok: false;
+  status: number;
   value: null;
   errors: { request: string };
 };
@@ -172,16 +175,17 @@ function createConversationIndexFields({
   };
 }
 
-function createFailure(message: string): Failure {
+function createFailure(message: string, status = 400): Failure {
   return {
     ok: false,
+    status,
     value: null,
     errors: { request: message }
   };
 }
 
 function createAuthFailure() {
-  return createFailure("必须登录后才能访问会话");
+  return createFailure("必须登录后才能访问会话", 401);
 }
 
 function requireAuthenticatedUser(authenticatedUserId: string) {
@@ -510,11 +514,11 @@ export async function createOrReadServerConversationFromSource({
   });
 
   if (!ownerUserId) {
-    return createFailure("无法找到会话来源");
+    return createNormalizedObjectNotFoundFailure();
   }
 
   if (ownerUserId === currentUserId) {
-    return createFailure("不能和自己发布的信息创建会话");
+    return createFailure("不能和自己发布的信息创建会话", 403);
   }
 
   const participants = [currentUserId, ownerUserId].sort();
@@ -525,7 +529,7 @@ export async function createOrReadServerConversationFromSource({
   });
   const requestedId = resolveDocumentId(preallocatedId, "conversation");
   if (!requestedId) {
-    return createFailure("会话标识无效");
+    return createFailure("会话标识无效", 400);
   }
   if (preallocatedId !== undefined) {
     const exactDocument = firstDocument(
@@ -539,7 +543,7 @@ export async function createOrReadServerConversationFromSource({
         exact.sourceType === sourceType &&
         exact.participantUserIds.join(":") === participants.join(":")
         ? { ok: true, value: toConversationView(exact), errors: {} }
-        : createFailure("会话标识已被占用");
+        : createFailure("会话标识已被占用", 409);
     }
   }
   const existingConversation = (await readConversationsByUniqueKey({
@@ -598,7 +602,7 @@ export async function readServerConversationForUser({
 }: ConversationDependencies & {
   authenticatedUserId: string;
   conversationId: string;
-}): Promise<Success<ServerConversationView | null> | Failure> {
+}): Promise<Success<ServerConversationView> | Failure> {
   const currentUserId = requireAuthenticatedUser(authenticatedUserId);
 
   if (!currentUserId) {
@@ -607,14 +611,18 @@ export async function readServerConversationForUser({
 
   const conversation = await readConversation({ conversationId, conversationsCollection });
 
-  const value = conversation && isParticipant(conversation, currentUserId)
-    ? await toConversationViewWithSource(conversation, {
-        parentNeedsCollection,
-        tutorProfilesCollection
-      })
-    : null;
+  if (!conversation || !isParticipant(conversation, currentUserId)) {
+    return createNormalizedObjectNotFoundFailure();
+  }
 
-  return { ok: true, value, errors: {} };
+  return {
+    ok: true,
+    value: await toConversationViewWithSource(conversation, {
+      parentNeedsCollection,
+      tutorProfilesCollection
+    }),
+    errors: {}
+  };
 }
 
 export async function listServerConversationsForUser({
@@ -682,7 +690,7 @@ export async function sendServerConversationMessage({
   const conversation = await readConversation({ conversationId, conversationsCollection });
 
   if (!conversation || !isParticipant(conversation, currentUserId)) {
-    return createFailure("只有会话参与者可以发送消息");
+    return createNormalizedObjectNotFoundFailure();
   }
 
   const source = await readSourceState({
@@ -697,18 +705,18 @@ export async function sendServerConversationMessage({
     conversation.sourceVersion === source?.version;
 
   if (source?.status !== "published" || source.managementState === "legacy-readonly" || !sourceVersionMatches) {
-    return createFailure("关联发布已删除，会话当前只读");
+    return createFailure("关联发布已删除，会话当前只读", 403);
   }
 
   const normalizedText = text.trim();
 
   if (!normalizedText) {
-    return createFailure("消息内容不能为空");
+    return createFailure("消息内容不能为空", 400);
   }
 
   const requestedId = resolveDocumentId(preallocatedId, "message");
   if (!requestedId) {
-    return createFailure("消息标识无效");
+    return createFailure("消息标识无效", 400);
   }
   if (preallocatedId !== undefined) {
     const existing = firstDocument(await messagesCollection.doc(requestedId).get()) as
@@ -721,7 +729,7 @@ export async function sendServerConversationMessage({
         existing.senderUserId === currentUserId &&
         existing.text === normalizedText
         ? { ok: true, value: toMessageView(normalizedExisting, currentUserId), errors: {} }
-        : createFailure("消息标识已被占用");
+        : createFailure("消息标识已被占用", 409);
     }
   }
 
@@ -760,11 +768,7 @@ export async function listServerConversationMessages({
   const conversation = await readConversation({ conversationId, conversationsCollection });
 
   if (!conversation || !isParticipant(conversation, currentUserId)) {
-    return {
-      ok: true,
-      value: [],
-      errors: {}
-    };
+    return createNormalizedObjectNotFoundFailure();
   }
 
   const result = await messagesCollection.where({ conversationId }).get();

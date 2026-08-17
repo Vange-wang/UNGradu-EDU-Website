@@ -172,7 +172,12 @@ describe("server conversations interface", () => {
         authenticatedUserId: "stranger",
         conversationId
       })
-    ).resolves.toEqual({ ok: true, value: null, errors: {} });
+    ).resolves.toEqual({
+      errors: { request: "无法找到请求的资源" },
+      ok: false,
+      status: 404,
+      value: null
+    });
 
     const message = await sendServerConversationMessage({
       ...dependencies,
@@ -200,7 +205,8 @@ describe("server conversations interface", () => {
       })
     ).resolves.toMatchObject({
       ok: false,
-      errors: { request: "只有会话参与者可以发送消息" }
+      status: 404,
+      errors: { request: "无法找到请求的资源" }
     });
 
     await expect(
@@ -226,7 +232,12 @@ describe("server conversations interface", () => {
         authenticatedUserId: "stranger",
         conversationId
       })
-    ).resolves.toEqual({ ok: true, value: [], errors: {} });
+    ).resolves.toEqual({
+      errors: { request: "无法找到请求的资源" },
+      ok: false,
+      status: 404,
+      value: null
+    });
   });
 
   it("keeps historical messages readable but blocks new messages when the source is deleted", async () => {

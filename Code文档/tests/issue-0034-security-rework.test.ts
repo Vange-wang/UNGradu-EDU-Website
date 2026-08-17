@@ -774,6 +774,7 @@ describe("ISSUE-0034 S1 independent rework contract", () => {
   });
 
   it("checks the limiter after a successful password challenge", async () => {
+    const challengeNow = new Date("2026-08-17T00:00:00.000Z");
     const userCollection = {
       doc: vi.fn(() => ({
         get: vi.fn(async () => ({ data: [] })),
@@ -790,7 +791,7 @@ describe("ISSUE-0034 S1 independent rework contract", () => {
     const challengeVerify = vi.fn(async () => ({
       action: "password_login",
       hostname: "ungraduedu.eu.cc",
-      issuedAt: new Date().toISOString(),
+      issuedAt: challengeNow.toISOString(),
       ok: true as const,
       tokenId: "challenge-synthetic"
     }));
@@ -822,6 +823,7 @@ describe("ISSUE-0034 S1 independent rework contract", () => {
         CSRF_SECRET: csrfSecret,
         NODE_ENV: "production"
       },
+      now: () => challengeNow,
       rateLimiter: {
         mode: "production",
         check: limiterCheck

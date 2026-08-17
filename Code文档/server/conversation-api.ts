@@ -1,10 +1,9 @@
 import {
   apiError,
   guardWriteRequest,
-  jsonResponse,
+  jsonResultResponse,
   readJsonBody,
   readAuthenticatedUserIdWithRevocation,
-  statusForResult,
   createSecurityRuntimeEnv,
   type RuntimeEnv
 } from "@/server/api-utils";
@@ -68,7 +67,7 @@ export function createConversationApiHandlers({
         authenticatedUserId: auth.authenticatedUserId
       });
 
-      return jsonResponse(result, statusForResult(result, 403));
+      return jsonResultResponse(result, 403);
     },
 
     async POST_COLLECTION(request: Request) {
@@ -110,7 +109,7 @@ export function createConversationApiHandlers({
         sourceType: body.value.sourceType
       });
 
-      return jsonResponse(result, statusForResult(result, 403));
+      return jsonResultResponse(result, 403);
     },
 
     async GET_ITEM(request: Request, context: RouteContext) {
@@ -127,7 +126,7 @@ export function createConversationApiHandlers({
         conversationId: id
       });
 
-      return jsonResponse(result, statusForResult(result, 403));
+      return jsonResultResponse(result, 403);
     },
 
     async GET_MESSAGES(request: Request, context: RouteContext) {
@@ -144,7 +143,7 @@ export function createConversationApiHandlers({
         conversationId: id
       });
 
-      return jsonResponse(result, statusForResult(result, 403));
+      return jsonResultResponse(result, 403);
     },
 
     async POST_MESSAGES(request: Request, context: RouteContext) {
@@ -178,7 +177,7 @@ export function createConversationApiHandlers({
         text: body.value.text ?? ""
       });
 
-      return jsonResponse(result, statusForResult(result, 403));
+      return jsonResultResponse(result, 403);
     }
   };
 }

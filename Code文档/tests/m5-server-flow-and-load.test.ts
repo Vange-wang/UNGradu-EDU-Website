@@ -292,7 +292,12 @@ describe("M5 server flow and load baseline", () => {
         parentNeedsCollection: dependencies.parentNeedsCollection,
         requestsCollection: dependencies.exchangeRequestsCollection,
         tutorProfilesCollection: dependencies.tutorProfilesCollection
-      })).resolves.toEqual({ ok: true, value: null, errors: {} });
+      })).resolves.toEqual({
+        errors: { request: "无法找到请求的资源" },
+        ok: false,
+        status: 404,
+        value: null
+      });
       await expect(listServerConversationMessages({
         authenticatedUserId: parentUserId,
         conversationId: conversation.value.id,

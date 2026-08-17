@@ -177,10 +177,11 @@ describe("contact exchange API handlers", () => {
       })
     );
 
-    expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toMatchObject({
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      errors: { request: "无法找到请求的资源" },
       ok: false,
-      errors: { request: "只有会话参与者可以请求交换联系方式" }
+      value: null
     });
   });
 

@@ -82,6 +82,7 @@ import { createCsrfProof } from "@/server/security/request-guard";
 const originalEnv = { ...process.env };
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   state.passwordLoginReadError = undefined;
   state.routeSetupError = false;
@@ -681,6 +682,8 @@ describe("ISSUE-0034 actual Next route exports", () => {
   });
 
   it("covers participant, nonparticipant, revoked, deleted, legacy, version-mismatch and contact IDOR at real exports", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-10T00:02:00.000Z"));
     vi.resetModules();
     process.env.APP_ENV = "test";
     (process.env as Record<string, string | undefined>).NODE_ENV = "test";
@@ -759,14 +762,22 @@ describe("ISSUE-0034 actual Next route exports", () => {
 
     expect(participant.status).toBe(200);
     await expect(participant.json()).resolves.toMatchObject({ value: { readOnly: false, sourceStatus: "published" } });
-    expect(nonparticipant.status).toBe(200);
-    await expect(nonparticipant.json()).resolves.toMatchObject({ value: null });
+    expect(nonparticipant.status).toBe(404);
+    await expect(nonparticipant.json()).resolves.toEqual({
+      errors: { request: "无法找到请求的资源" },
+      ok: false,
+      value: null
+    });
     expect(messages.status).toBe(200);
     await expect(messages.json()).resolves.toMatchObject({ value: [expect.objectContaining({ id: "route-message" })] });
     expect(exchangeParticipant.status).toBe(200);
     await expect(exchangeParticipant.json()).resolves.toMatchObject({ value: [expect.objectContaining({ id: "route-request" })] });
-    expect(exchangeStranger.status).toBe(200);
-    await expect(exchangeStranger.json()).resolves.toMatchObject({ value: [] });
+    expect(exchangeStranger.status).toBe(404);
+    await expect(exchangeStranger.json()).resolves.toEqual({
+      errors: { request: "无法找到请求的资源" },
+      ok: false,
+      value: null
+    });
     expect(contactOwner.status).toBe(200);
     await expect(contactOther.status).toBe(200);
     await expect(contactOwner.json()).resolves.toMatchObject({ value: { phone: "13800000000" } });

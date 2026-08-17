@@ -75,6 +75,7 @@ import { createAuthSessionCookie } from "@/server/auth-session";
 const originalEnv = { ...process.env };
 
 afterEach(() => {
+  vi.useRealTimers();
   state.documents.clear();
   state.gets.length = 0;
   state.sets.length = 0;
@@ -204,6 +205,296 @@ function seedSourceFixture({
 }
 
 describe("ISSUE-0034 real route source-type and deletion matrix", () => {
+  it("normalizes missing and non-participant conversation reads to the same 404 contract", async () => {
+    process.env.APP_ENV = "test";
+    Object.assign(process.env, { NODE_ENV: "test" });
+    process.env.M5_ENABLE_HOSTED_TEST_LOGIN = "true";
+    process.env.NEXT_PUBLIC_ALLOW_TEST_LOGIN = "true";
+    process.env.AUTH_SESSION_SECRET = "synthetic-route-matrix-secret";
+    process.env.AUTH_SESSION_KEY_VERSION = "v1";
+
+    const fixture = seedSourceFixture({
+      sourceId: "parent-need-normalized-read",
+      sourceType: "parent-need"
+    });
+    const conversationsRoute = await import("@/app/api/conversations/[id]/route");
+    const messagesRoute = await import("@/app/api/conversations/[id]/messages/route");
+    const expectedBody = {
+      errors: { request: "无法找到请求的资源" },
+      ok: false,
+      value: null
+    };
+
+    const probes = [
+      await conversationsRoute.GET(
+        request(`/api/conversations/${fixture.conversationId}`, "stranger", undefined, "GET"),
+        { params: Promise.resolve({ id: fixture.conversationId }) }
+      ),
+      await conversationsRoute.GET(
+        request("/api/conversations/missing-conversation", fixture.participantUserId, undefined, "GET"),
+        { params: Promise.resolve({ id: "missing-conversation" }) }
+      ),
+      await messagesRoute.GET(
+        request(`/api/conversations/${fixture.conversationId}/messages`, "stranger", undefined, "GET"),
+        { params: Promise.resolve({ id: fixture.conversationId }) }
+      ),
+      await messagesRoute.GET(
+        request("/api/conversations/missing-conversation/messages", fixture.participantUserId, undefined, "GET"),
+        { params: Promise.resolve({ id: "missing-conversation" }) }
+      )
+    ];
+
+    expect(probes.map((response) => response.status)).toEqual([404, 404, 404, 404]);
+    for (const response of probes) {
+      await expect(response.json()).resolves.toEqual(expectedBody);
+    }
+    expect(state.sets).toHaveLength(0);
+  });
+
+  it("normalizes missing and non-participant message writes without mutating storage", async () => {
+    process.env.APP_ENV = "test";
+    Object.assign(process.env, { NODE_ENV: "test" });
+    process.env.M5_ENABLE_HOSTED_TEST_LOGIN = "true";
+    process.env.NEXT_PUBLIC_ALLOW_TEST_LOGIN = "true";
+    process.env.AUTH_SESSION_SECRET = "synthetic-route-matrix-secret";
+    process.env.AUTH_SESSION_KEY_VERSION = "v1";
+
+    const fixture = seedSourceFixture({
+      sourceId: "parent-need-normalized-message",
+      sourceType: "parent-need"
+    });
+    const messagesRoute = await import("@/app/api/conversations/[id]/messages/route");
+    const writesBefore = state.sets.length;
+    const expectedBody = {
+      errors: { request: "无法找到请求的资源" },
+      ok: false,
+      value: null
+    };
+    const probes = [
+      await messagesRoute.POST(
+        request(`/api/conversations/${fixture.conversationId}/messages`, "stranger", { text: "synthetic-blocked" }),
+        { params: Promise.resolve({ id: fixture.conversationId }) }
+      ),
+      await messagesRoute.POST(
+        request("/api/conversations/missing-conversation/messages", fixture.participantUserId, { text: "synthetic-blocked" }),
+        { params: Promise.resolve({ id: "missing-conversation" }) }
+      )
+    ];
+
+    expect(probes.map((response) => response.status)).toEqual([404, 404]);
+    for (const response of probes) {
+      await expect(response.json()).resolves.toEqual(expectedBody);
+    }
+    expect(state.sets).toHaveLength(writesBefore);
+  });
+
+  it("normalizes invisible contact-exchange objects across read, create, and action seams", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-18T00:00:00.000Z"));
+    process.env.APP_ENV = "test";
+    Object.assign(process.env, { NODE_ENV: "test" });
+    process.env.M5_ENABLE_HOSTED_TEST_LOGIN = "true";
+    process.env.NEXT_PUBLIC_ALLOW_TEST_LOGIN = "true";
+    process.env.AUTH_SESSION_SECRET = "synthetic-route-matrix-secret";
+    process.env.AUTH_SESSION_KEY_VERSION = "v1";
+
+    const fixture = seedSourceFixture({
+      sourceId: "parent-need-normalized-contact",
+      sourceType: "parent-need"
+    });
+    const contactExchangeRoute = await import("@/app/api/contact-exchange/route");
+    const writesBefore = state.sets.length;
+    const expectedBody = {
+      errors: { request: "无法找到请求的资源" },
+      ok: false,
+      value: null
+    };
+    const probes = [
+      await contactExchangeRoute.GET(
+        request(`/api/contact-exchange?conversationId=${fixture.conversationId}`, "stranger", undefined, "GET")
+      ),
+      await contactExchangeRoute.GET(
+        request("/api/contact-exchange?conversationId=missing-conversation", fixture.participantUserId, undefined, "GET")
+      ),
+      await contactExchangeRoute.POST(
+        request("/api/contact-exchange", "stranger", {
+          action: "create",
+          conversationId: fixture.conversationId
+        })
+      ),
+      await contactExchangeRoute.POST(
+        request("/api/contact-exchange", fixture.participantUserId, {
+          action: "create",
+          conversationId: "missing-conversation"
+        })
+      ),
+      await contactExchangeRoute.POST(
+        request("/api/contact-exchange", "stranger", {
+          action: "approve",
+          requestId: fixture.requestId,
+          secondConfirmation: true
+        })
+      ),
+      await contactExchangeRoute.POST(
+        request("/api/contact-exchange", fixture.ownerUserId, {
+          action: "approve",
+          requestId: "missing-request",
+          secondConfirmation: true
+        })
+      )
+    ];
+
+    expect(probes.map((response) => response.status)).toEqual([404, 404, 404, 404, 404, 404]);
+    for (const response of probes) {
+      await expect(response.json()).resolves.toEqual(expectedBody);
+    }
+    expect(state.sets).toHaveLength(writesBefore);
+  });
+
+  it("keeps expired invisible actions side-effect free while authorized actors receive frozen 403", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-18T00:00:00.000Z"));
+    process.env.APP_ENV = "test";
+    Object.assign(process.env, { NODE_ENV: "test" });
+    process.env.M5_ENABLE_HOSTED_TEST_LOGIN = "true";
+    process.env.NEXT_PUBLIC_ALLOW_TEST_LOGIN = "true";
+    process.env.AUTH_SESSION_SECRET = "synthetic-route-matrix-secret";
+    process.env.AUTH_SESSION_KEY_VERSION = "v1";
+
+    const fixture = seedSourceFixture({
+      sourceId: "parent-need-expired-actions",
+      sourceType: "parent-need"
+    });
+    const contactExchangeRoute = await import("@/app/api/contact-exchange/route");
+    const actions = [
+      { action: "approve", authorizedUserId: fixture.ownerUserId },
+      { action: "reject", authorizedUserId: fixture.ownerUserId },
+      { action: "withdraw", authorizedUserId: fixture.participantUserId }
+    ] as const;
+    const seedRequest = (requestId: string) => {
+      state.documents.set(`contact_exchange_requests:${requestId}`, {
+        conversationId: fixture.conversationId,
+        createdAt: "2026-08-10T00:01:00.000Z",
+        receiverUserId: fixture.ownerUserId,
+        requesterUserId: fixture.participantUserId,
+        secondConfirmedAt: null,
+        status: "pending",
+        updatedAt: "2026-08-10T00:01:00.000Z"
+      });
+    };
+
+    const unauthorizedResponses: Response[] = [];
+    for (const { action } of actions) {
+      const requestId = `expired-stranger-${action}`;
+      seedRequest(requestId);
+      unauthorizedResponses.push(await contactExchangeRoute.POST(
+        request("/api/contact-exchange", "stranger", {
+          action,
+          requestId,
+          ...(action === "approve" ? { secondConfirmation: true } : {})
+        })
+      ));
+    }
+    const writesAfterUnauthorized = state.sets.length;
+
+    const authorizedResponses: Response[] = [];
+    for (const { action, authorizedUserId } of actions) {
+      const requestId = `expired-authorized-${action}`;
+      seedRequest(requestId);
+      authorizedResponses.push(await contactExchangeRoute.POST(
+        request("/api/contact-exchange", authorizedUserId, {
+          action,
+          requestId,
+          ...(action === "approve" ? { secondConfirmation: true } : {})
+        })
+      ));
+    }
+
+    expect(unauthorizedResponses.map((response) => response.status)).toEqual([404, 404, 404]);
+    for (const response of unauthorizedResponses) {
+      await expect(response.json()).resolves.toEqual({
+        errors: { request: "无法找到请求的资源" },
+        ok: false,
+        value: null
+      });
+    }
+    expect(writesAfterUnauthorized).toBe(0);
+    expect(authorizedResponses.map((response) => response.status)).toEqual([403, 403, 403]);
+    expect(state.sets).toHaveLength(3);
+    for (const { action } of actions) {
+      expect(state.documents.get(`contact_exchange_requests:expired-authorized-${action}`)?.status).toBe("expired");
+      expect(state.documents.get(`contact_exchange_requests:expired-stranger-${action}`)?.status).toBe("pending");
+    }
+  });
+
+  it("ignores forged client clocks for contact request creation and expiry decisions", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-10T00:02:00.000Z"));
+    process.env.APP_ENV = "test";
+    Object.assign(process.env, { NODE_ENV: "test" });
+    process.env.M5_ENABLE_HOSTED_TEST_LOGIN = "true";
+    process.env.NEXT_PUBLIC_ALLOW_TEST_LOGIN = "true";
+    process.env.AUTH_SESSION_SECRET = "synthetic-route-matrix-secret";
+    process.env.AUTH_SESSION_KEY_VERSION = "v1";
+
+    const fixture = seedSourceFixture({
+      sourceId: "parent-need-forged-clock",
+      sourceType: "parent-need"
+    });
+    const contactExchangeRoute = await import("@/app/api/contact-exchange/route");
+    const create = await contactExchangeRoute.POST(
+      request("/api/contact-exchange", fixture.participantUserId, {
+        action: "create",
+        conversationId: fixture.conversationId,
+        now: "1900-01-01T00:00:00.000Z"
+      })
+    );
+    const createBody = await json(create);
+    const requestId = (createBody.value as { id?: string } | null)?.id;
+
+    vi.setSystemTime(new Date("2026-08-10T00:03:00.000Z"));
+    const futureApproval = await contactExchangeRoute.POST(
+      request("/api/contact-exchange", fixture.ownerUserId, {
+        action: "approve",
+        now: "2099-01-01T00:00:00.000Z",
+        requestId,
+        secondConfirmation: true
+      })
+    );
+
+    const expiredRequestId = "forged-past-expired-request";
+    state.documents.set(`contact_exchange_requests:${expiredRequestId}`, {
+      conversationId: fixture.conversationId,
+      createdAt: "2026-08-01T00:00:00.000Z",
+      receiverUserId: fixture.ownerUserId,
+      requesterUserId: fixture.participantUserId,
+      secondConfirmedAt: null,
+      status: "pending",
+      updatedAt: "2026-08-01T00:00:00.000Z"
+    });
+    const pastApproval = await contactExchangeRoute.POST(
+      request("/api/contact-exchange", fixture.ownerUserId, {
+        action: "approve",
+        now: "2026-08-01T00:01:00.000Z",
+        requestId: expiredRequestId,
+        secondConfirmation: true
+      })
+    );
+
+    expect(create.status).toBe(200);
+    expect(createBody).toMatchObject({ value: { createdAt: "2026-08-10T00:02:00.000Z" } });
+    expect(futureApproval.status).toBe(200);
+    await expect(futureApproval.json()).resolves.toMatchObject({
+      value: {
+        secondConfirmedAt: "2026-08-10T00:03:00.000Z",
+        status: "approved",
+        updatedAt: "2026-08-10T00:03:00.000Z"
+      }
+    });
+    expect(pastApproval.status).toBe(403);
+    expect(state.documents.get(`contact_exchange_requests:${expiredRequestId}`)?.status).toBe("expired");
+  });
+
   it("covers parent-need and tutor-profile live bidirectional writes, stranger denial, and deleted fail-closed gates", async () => {
     process.env.APP_ENV = "test";
     Object.assign(process.env, { NODE_ENV: "test" });
@@ -286,10 +577,14 @@ describe("ISSUE-0034 real route source-type and deletion matrix", () => {
       );
       expect(ownerView.status).toBe(200);
       expect(participantView.status).toBe(200);
-      expect(strangerView.status).toBe(200);
+      expect(strangerView.status).toBe(404);
       await expect(ownerView.json()).resolves.toMatchObject({ value: { sourceStatus: "published", readOnly: false } });
       await expect(participantView.json()).resolves.toMatchObject({ value: { sourceStatus: "published", readOnly: false } });
-      await expect(strangerView.json()).resolves.toMatchObject({ value: null });
+      await expect(strangerView.json()).resolves.toEqual({
+        errors: { request: "无法找到请求的资源" },
+        ok: false,
+        value: null
+      });
 
       const writeCountBeforeLive = state.sets.length;
       const ownerMessage = await messagesRoute.POST(
@@ -308,11 +603,11 @@ describe("ISSUE-0034 real route source-type and deletion matrix", () => {
         request(participantPath, "stranger", { text: `synthetic-${sourceType}-stranger` }),
         context
       );
-      expect(strangerMessage.status).toBe(403);
-      await expect(strangerMessage.json()).resolves.toMatchObject({
+      expect(strangerMessage.status).toBe(404);
+      await expect(strangerMessage.json()).resolves.toEqual({
+        errors: { request: "无法找到请求的资源" },
         ok: false,
-        value: null,
-        errors: { request: "只有会话参与者可以发送消息" }
+        value: null
       });
       expect(state.sets.length).toBe(writeCountBeforeLive + 2);
 
@@ -330,11 +625,11 @@ describe("ISSUE-0034 real route source-type and deletion matrix", () => {
       );
       expect(ownerExchange.status).toBe(200);
       expect(participantExchange.status).toBe(200);
-      expect(strangerExchange.status).toBe(403);
-      await expect(strangerExchange.json()).resolves.toMatchObject({
+      expect(strangerExchange.status).toBe(404);
+      await expect(strangerExchange.json()).resolves.toEqual({
+        errors: { request: "无法找到请求的资源" },
         ok: false,
-        value: null,
-        errors: { request: "只有会话参与者可以请求交换联系方式" }
+        value: null
       });
       expect(state.sets.filter((entry) => entry.collection === "contact_exchange_requests").length).toBe(
         exchangeWritesBefore + 2
@@ -415,6 +710,8 @@ describe("ISSUE-0034 real route source-type and deletion matrix", () => {
   });
 
   it("composes bilateral contact approval and authorized-profile reads through the real route export", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-10T00:02:00.000Z"));
     process.env.APP_ENV = "test";
     Object.assign(process.env, { NODE_ENV: "test" });
     process.env.M5_ENABLE_HOSTED_TEST_LOGIN = "true";
@@ -450,8 +747,12 @@ describe("ISSUE-0034 real route source-type and deletion matrix", () => {
       const stranger = await contactExchangeRoute.GET(
         request(`${exchangePath}?conversationId=${fixture.conversationId}&view=authorized-profiles`, "stranger", undefined, "GET")
       );
-      expect(stranger.status).toBe(200);
-      await expect(stranger.json()).resolves.toMatchObject({ ok: true, value: null });
+      expect(stranger.status).toBe(404);
+      await expect(stranger.json()).resolves.toEqual({
+        errors: { request: "无法找到请求的资源" },
+        ok: false,
+        value: null
+      });
 
       const approve = await contactExchangeRoute.POST(
         request(exchangePath, fixture.ownerUserId, {
@@ -553,26 +854,26 @@ describe("ISSUE-0034 real route source-type and deletion matrix", () => {
             request(`/api/conversations/${fixture.conversationId}/messages`, userId, { text: `synthetic-${sourceType}-blocked` }),
             context
           );
-          expect(message.status).toBe(403);
+          expect(message.status).toBe(userId === "stranger" ? 404 : 403);
           await expect(message.json()).resolves.toMatchObject({
             ok: false,
             value: null,
             errors: {
               request: userId === "stranger"
-                ? "只有会话参与者可以发送消息"
+                ? "无法找到请求的资源"
                 : "关联发布已删除，会话当前只读"
             }
           });
           const exchange = await contactExchangeRoute.POST(
             request("/api/contact-exchange", userId, { action: "create", conversationId: fixture.conversationId })
           );
-          expect(exchange.status).toBe(403);
+          expect(exchange.status).toBe(userId === "stranger" ? 404 : 403);
           await expect(exchange.json()).resolves.toMatchObject({
             ok: false,
             value: null,
             errors: {
               request: userId === "stranger"
-                ? "只有会话参与者可以请求交换联系方式"
+                ? "无法找到请求的资源"
                 : "关联发布已删除，暂不可交换联系方式"
             }
           });

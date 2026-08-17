@@ -1,6 +1,9 @@
 import type { ContactProfileInput } from "@/features/profile/contact-profile";
 import { readServerContactProfile } from "@/server/contact-profiles";
-import { evaluateScopedAccess } from "@/server/security/access-policy";
+import {
+  createNormalizedObjectNotFoundFailure,
+  evaluateScopedAccess
+} from "@/server/security/access-policy";
 
 export const CONTACT_EXCHANGE_REQUESTS_COLLECTION = "contact_exchange_requests";
 export const CONVERSATIONS_COLLECTION = "conversations";
@@ -79,6 +82,7 @@ type ContactExchangeDependencies = {
 
 type Failure = {
   ok: false;
+  status: number;
   value: null;
   errors: { request: string };
 };
@@ -114,16 +118,17 @@ function resolveDocumentId(preallocatedId: string | undefined, prefix: string) {
     : null;
 }
 
-function createFailure(message: string): Failure {
+function createFailure(message: string, status = 400): Failure {
   return {
     ok: false,
+    status,
     value: null,
     errors: { request: message }
   };
 }
 
 function createAuthFailure() {
-  return createFailure("必须登录后才能访问联系方式交换请求");
+  return createFailure("必须登录后才能访问联系方式交换请求", 401);
 }
 
 function requireAuthenticatedUser(authenticatedUserId: string) {
@@ -281,11 +286,9 @@ function refreshExpiry<T extends ContactExchangeRequestDocument>(
 }
 
 async function readRequestById({
-  now,
   requestId,
   requestsCollection
 }: Pick<ContactExchangeDependencies, "requestsCollection"> & {
-  now: string;
   requestId: string;
 }) {
   const result = await requestsCollection.doc(requestId).get();
@@ -295,13 +298,24 @@ async function readRequestById({
     return null;
   }
 
-  const refreshedRequest = refreshExpiry({ ...rawRequest, id: requestId }, now);
+  return normalizeRequest({ ...rawRequest, id: requestId });
+}
 
-  if (refreshedRequest !== rawRequest && refreshedRequest.status === "expired") {
-    await requestsCollection.doc(requestId).set(refreshedRequest);
+async function refreshAndPersistRequestExpiry({
+  now,
+  request,
+  requestsCollection
+}: Pick<ContactExchangeDependencies, "requestsCollection"> & {
+  now: string;
+  request: NonNullable<ReturnType<typeof normalizeRequest>>;
+}) {
+  const refreshedRequest = refreshExpiry(request, now);
+
+  if (refreshedRequest !== request && refreshedRequest.status === "expired") {
+    await requestsCollection.doc(request.id).set(refreshedRequest);
   }
 
-  return normalizeRequest(refreshedRequest);
+  return refreshedRequest;
 }
 
 async function readRequestsForConversation({
@@ -385,7 +399,7 @@ export async function createServerContactExchangeRequest({
   });
 
   if (!conversation || !isParticipant(conversation, currentUserId)) {
-    return createFailure("只有会话参与者可以请求交换联系方式");
+    return createNormalizedObjectNotFoundFailure();
   }
 
   if (!(await isConversationSourceAvailable({
@@ -393,27 +407,27 @@ export async function createServerContactExchangeRequest({
     parentNeedsCollection,
     tutorProfilesCollection
   }))) {
-    return createFailure("关联发布已删除，暂不可交换联系方式");
+    return createFailure("关联发布已删除，暂不可交换联系方式", 403);
   }
 
   const receiverUserId = findOtherParticipant(conversation, currentUserId);
 
   if (!receiverUserId) {
-    return createFailure("无法找到联系方式交换接收方");
+    return createNormalizedObjectNotFoundFailure();
   }
 
   const requestedId = resolveDocumentId(preallocatedId, "contact-exchange");
   if (!requestedId) {
-    return createFailure("联系方式交换请求标识无效");
+    return createFailure("联系方式交换请求标识无效", 400);
   }
   if (preallocatedId !== undefined) {
-    const existing = await readRequestById({ now, requestId: requestedId, requestsCollection });
+    const existing = await readRequestById({ requestId: requestedId, requestsCollection });
     if (existing) {
       return existing.conversationId === conversationId &&
         existing.requesterUserId === currentUserId &&
         existing.receiverUserId === receiverUserId
         ? { ok: true, value: toRequestView(existing, currentUserId), errors: {} }
-        : createFailure("联系方式交换请求标识已被占用");
+        : createFailure("联系方式交换请求标识已被占用", 409);
     }
   }
 
@@ -461,14 +475,16 @@ export async function approveServerContactExchangeRequest({
     return createAuthFailure();
   }
 
-  const request = await readRequestById({ now, requestId, requestsCollection });
+  let request = await readRequestById({ requestId, requestsCollection });
 
   if (!request || request.receiverUserId !== currentUserId) {
-    return createFailure("只能处理发给自己的联系方式交换请求");
+    return createNormalizedObjectNotFoundFailure();
   }
 
+  request = await refreshAndPersistRequestExpiry({ now, request, requestsCollection });
+
   if (request.status === "expired") {
-    return createFailure("联系方式交换请求已过期");
+    return createFailure("联系方式交换请求已过期", 403);
   }
 
   const normalizedApprovalKey = approvalIdempotencyKey?.trim();
@@ -478,7 +494,7 @@ export async function approveServerContactExchangeRequest({
     request.approvalIdempotencyKey === normalizedApprovalKey;
 
   if (request.status !== "pending" && !isMatchingApprovalReplay) {
-    return createFailure("只能处理待处理的联系方式交换请求");
+    return createFailure("只能处理待处理的联系方式交换请求", 403);
   }
 
   const conversation = await readConversation({
@@ -494,11 +510,11 @@ export async function approveServerContactExchangeRequest({
       tutorProfilesCollection
     }))
   ) {
-    return createFailure("关联发布已删除，暂不可交换联系方式");
+    return createFailure("关联发布已删除，暂不可交换联系方式", 403);
   }
 
   if (!secondConfirmation) {
-    return createFailure("同意交换联系方式前必须完成二次确认");
+    return createFailure("同意交换联系方式前必须完成二次确认", 403);
   }
 
   const requesterProfile = await readValidatedContactProfile({
@@ -511,7 +527,7 @@ export async function approveServerContactExchangeRequest({
   });
 
   if (!requesterProfile || !receiverProfile) {
-    return createFailure("双方都必须先填写存档手机号");
+    return createFailure("双方都必须先填写存档手机号", 403);
   }
 
   if (isMatchingApprovalReplay) {
@@ -554,14 +570,16 @@ export async function rejectServerContactExchangeRequest({
     return createAuthFailure();
   }
 
-  const request = await readRequestById({ now, requestId, requestsCollection });
+  let request = await readRequestById({ requestId, requestsCollection });
 
   if (!request || request.receiverUserId !== currentUserId) {
-    return createFailure("只能处理发给自己的联系方式交换请求");
+    return createNormalizedObjectNotFoundFailure();
   }
 
+  request = await refreshAndPersistRequestExpiry({ now, request, requestsCollection });
+
   if (request.status !== "pending") {
-    return createFailure("只能处理待处理的联系方式交换请求");
+    return createFailure("只能处理待处理的联系方式交换请求", 403);
   }
 
   const conversation = await readConversation({
@@ -577,7 +595,7 @@ export async function rejectServerContactExchangeRequest({
       tutorProfilesCollection
     }))
   ) {
-    return createFailure("关联发布已删除，暂不可交换联系方式");
+    return createFailure("关联发布已删除，暂不可交换联系方式", 403);
   }
 
   const rejectedRequest = {
@@ -614,14 +632,16 @@ export async function withdrawServerContactExchangeRequest({
     return createAuthFailure();
   }
 
-  const request = await readRequestById({ now, requestId, requestsCollection });
+  let request = await readRequestById({ requestId, requestsCollection });
 
   if (!request || request.requesterUserId !== currentUserId) {
-    return createFailure("只能撤回自己发起的联系方式交换请求");
+    return createNormalizedObjectNotFoundFailure();
   }
 
+  request = await refreshAndPersistRequestExpiry({ now, request, requestsCollection });
+
   if (request.status !== "pending") {
-    return createFailure("只能撤回待处理的联系方式交换请求");
+    return createFailure("只能撤回待处理的联系方式交换请求", 403);
   }
 
   const conversation = await readConversation({
@@ -637,7 +657,7 @@ export async function withdrawServerContactExchangeRequest({
       tutorProfilesCollection
     }))
   ) {
-    return createFailure("关联发布已删除，暂不可交换联系方式");
+    return createFailure("关联发布已删除，暂不可交换联系方式", 403);
   }
 
   const withdrawnRequest = {
@@ -678,11 +698,7 @@ export async function listServerContactExchangeRequests({
   });
 
   if (!conversation || !isParticipant(conversation, currentUserId)) {
-    return {
-      ok: true,
-      value: [],
-      errors: {}
-    };
+    return createNormalizedObjectNotFoundFailure();
   }
 
   const requests = await readRequestsForConversation({
@@ -729,11 +745,7 @@ export async function readServerAuthorizedContactProfiles({
   });
 
   if (!conversation || !isParticipant(conversation, currentUserId)) {
-    return {
-      ok: true,
-      value: null,
-      errors: {}
-    };
+    return createNormalizedObjectNotFoundFailure();
   }
 
   if (!(await isConversationSourceAvailable({

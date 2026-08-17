@@ -52,6 +52,7 @@ export type RuntimeEnv = {
 export type ApiResult = {
   errors?: { request?: string };
   ok: boolean;
+  status?: number;
 };
 
 export function isProductionRuntime(env: Pick<RuntimeEnv, "APP_ENV" | "NODE_ENV">) {
@@ -420,5 +421,14 @@ export async function readJsonBody<T>(
 }
 
 export function statusForResult(result: ApiResult, failureStatus: 400 | 403) {
-  return result.ok ? 200 : failureStatus;
+  return result.ok ? 200 : (result.status ?? failureStatus);
+}
+
+export function jsonResultResponse<T extends ApiResult>(
+  result: T,
+  failureStatus: 400 | 403
+) {
+  const { status, ...body } = result;
+  void status;
+  return jsonResponse(body, statusForResult(result, failureStatus));
 }

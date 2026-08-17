@@ -1,10 +1,9 @@
 import {
   apiError,
   guardWriteRequest,
-  jsonResponse,
+  jsonResultResponse,
   readJsonBody,
   readAuthenticatedUserIdWithRevocation,
-  statusForResult,
   createSecurityRuntimeEnv,
   type RuntimeEnv
 } from "@/server/api-utils";
@@ -88,7 +87,7 @@ export function createContactExchangeApiHandlers({
           conversationId
         });
 
-        return jsonResponse(result, statusForResult(result, 403));
+        return jsonResultResponse(result, 403);
       }
 
       const result = await listServerContactExchangeRequests({
@@ -97,7 +96,7 @@ export function createContactExchangeApiHandlers({
         conversationId
       });
 
-      return jsonResponse(result, statusForResult(result, 403));
+      return jsonResultResponse(result, 403);
     },
 
     async POST(request: Request) {
@@ -129,45 +128,41 @@ export function createContactExchangeApiHandlers({
         const result = await createServerContactExchangeRequest({
           ...dependencies,
           authenticatedUserId: auth.authenticatedUserId,
-          conversationId: body.value.conversationId,
-          now: body.value.now
+          conversationId: body.value.conversationId
         });
 
-        return jsonResponse(result, statusForResult(result, 403));
+        return jsonResultResponse(result, 403);
       }
 
       if (body.value.action === "approve" && body.value.requestId) {
         const result = await approveServerContactExchangeRequest({
           ...dependencies,
           authenticatedUserId: auth.authenticatedUserId,
-          now: body.value.now,
           requestId: body.value.requestId,
           secondConfirmation: Boolean(body.value.secondConfirmation)
         });
 
-        return jsonResponse(result, statusForResult(result, 403));
+        return jsonResultResponse(result, 403);
       }
 
       if (body.value.action === "reject" && body.value.requestId) {
         const result = await rejectServerContactExchangeRequest({
           ...dependencies,
           authenticatedUserId: auth.authenticatedUserId,
-          now: body.value.now,
           requestId: body.value.requestId
         });
 
-        return jsonResponse(result, statusForResult(result, 403));
+        return jsonResultResponse(result, 403);
       }
 
       if (body.value.action === "withdraw" && body.value.requestId) {
         const result = await withdrawServerContactExchangeRequest({
           ...dependencies,
           authenticatedUserId: auth.authenticatedUserId,
-          now: body.value.now,
           requestId: body.value.requestId
         });
 
-        return jsonResponse(result, statusForResult(result, 403));
+        return jsonResultResponse(result, 403);
       }
 
       return apiError(400, "Unsupported contact exchange action.");

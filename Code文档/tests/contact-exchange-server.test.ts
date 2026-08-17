@@ -175,7 +175,8 @@ describe("server contact exchange interface", () => {
       })
     ).resolves.toMatchObject({
       ok: false,
-      errors: { request: "只有会话参与者可以请求交换联系方式" }
+      status: 404,
+      errors: { request: "无法找到请求的资源" }
     });
 
     await expect(
@@ -184,7 +185,12 @@ describe("server contact exchange interface", () => {
         authenticatedUserId: "stranger",
         conversationId: "conversation-a"
       })
-    ).resolves.toEqual({ ok: true, value: [], errors: {} });
+    ).resolves.toEqual({
+      errors: { request: "无法找到请求的资源" },
+      ok: false,
+      status: 404,
+      value: null
+    });
 
     await expect(
       readServerAuthorizedContactProfiles({
@@ -192,7 +198,12 @@ describe("server contact exchange interface", () => {
         authenticatedUserId: "stranger",
         conversationId: "conversation-a"
       })
-    ).resolves.toEqual({ ok: true, value: null, errors: {} });
+    ).resolves.toEqual({
+      errors: { request: "无法找到请求的资源" },
+      ok: false,
+      status: 404,
+      value: null
+    });
   });
 
   it("requires the receiver to approve with second confirmation", async () => {
@@ -213,7 +224,8 @@ describe("server contact exchange interface", () => {
       })
     ).resolves.toMatchObject({
       ok: false,
-      errors: { request: "只能处理发给自己的联系方式交换请求" }
+      status: 404,
+      errors: { request: "无法找到请求的资源" }
     });
 
     await expect(

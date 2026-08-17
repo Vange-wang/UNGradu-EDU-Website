@@ -10,6 +10,17 @@ export type ScopedAccessResult =
         | "source-version-mismatch";
     };
 
+export const NORMALIZED_OBJECT_NOT_FOUND_MESSAGE = "无法找到请求的资源";
+
+export function createNormalizedObjectNotFoundFailure() {
+  return {
+    errors: { request: NORMALIZED_OBJECT_NOT_FOUND_MESSAGE },
+    ok: false as const,
+    status: 404 as const,
+    value: null
+  };
+}
+
 export function evaluateScopedAccess({
   actorId,
   contactAuthorized,

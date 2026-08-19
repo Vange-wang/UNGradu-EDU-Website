@@ -183,6 +183,7 @@ describe("email auth API handlers", () => {
         AUTH_SESSION_SECRET: "synthetic-session-secret",
         CSRF_SECRET: "synthetic-csrf-secret",
         NODE_ENV: "production",
+        ORIGIN_VERIFY_SECRET: "synthetic-origin-proof",
         securityAlertSink: { available: true, emit() {} }
       },
       rateLimiter: createLayeredRateLimiter({
@@ -245,6 +246,7 @@ describe("email auth API handlers", () => {
         AUTH_SESSION_SECRET: "synthetic-session-secret",
         CSRF_SECRET: "synthetic-csrf-secret",
         NODE_ENV: "production",
+        ORIGIN_VERIFY_SECRET: "synthetic-origin-proof",
         securityAlertSink: { available: true, emit() {} }
       },
       rateLimiter: createLayeredRateLimiter({
@@ -305,9 +307,12 @@ describe("email auth API handlers", () => {
       env: {
         ALLOWED_ORIGINS: "https://ungraduedu.eu.cc",
         APP_ENV: "production",
+        AUTH_RATE_LIMIT_KEY_SECRET: "synthetic-rate-limit-key",
         AUTH_SESSION_SECRET: "session-secret-placeholder",
         CSRF_SECRET: "email-csrf-test-secret",
-        NODE_ENV: "test"
+        NODE_ENV: "test",
+        ORIGIN_VERIFY_SECRET: "synthetic-origin-proof",
+        anonymousAntiAbuse: { available: true, verify: () => true }
       },
       rateLimiter: createLayeredRateLimiter({
         mode: "production",
@@ -593,9 +598,12 @@ describe("email auth API handlers", () => {
       env: {
         APP_ENV: "production",
         ALLOWED_ORIGINS: "https://ungraduedu.eu.cc",
+        AUTH_RATE_LIMIT_KEY_SECRET: "synthetic-rate-limit-key",
         CSRF_SECRET: "email-csrf-test-secret",
         EMAIL_CODE_SECRET: "email-code-test-secret",
-        NODE_ENV: "production"
+        NODE_ENV: "production",
+        ORIGIN_VERIFY_SECRET: "synthetic-origin-proof",
+        anonymousAntiAbuse: { available: true, verify: () => true }
       }
     });
 
@@ -1029,6 +1037,7 @@ describe("email auth API handlers", () => {
           AUTH_SESSION_SECRET: sessionSecret,
           CSRF_SECRET: "synthetic-csrf-secret",
           NODE_ENV: "production",
+          ORIGIN_VERIFY_SECRET: "synthetic-origin-proof",
           securityAlertSink: { available: true, emit() {} }
         },
         now: () => new Date("2026-06-27T10:05:00.000Z"),

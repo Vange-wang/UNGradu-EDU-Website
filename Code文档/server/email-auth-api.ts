@@ -24,8 +24,12 @@ import {
   type EmailChallengeReplayGuard,
   type EmailChallengeVerifier
 } from "@/server/security/email-challenge";
-import { createLayeredRateLimiter } from "@/server/security/rate-limit";
+import {
+  createEmailSendRateLimitKeys,
+  createLayeredRateLimiter
+} from "@/server/security/rate-limit";
 import { resolveTrustedRequestKeys } from "@/server/security/request-guard";
+import { normalizeOriginVerificationMode } from "@/server/origin-request-verification";
 
 type EmailAuthApiDependencies = {
   codeGenerator?: () => string;
@@ -33,9 +37,13 @@ type EmailAuthApiDependencies = {
   challengeVerifier?: EmailChallengeVerifier;
   emailCodeCollection: EmailAuthCollection;
   emailDelivery: EmailDelivery;
-  env?: RuntimeEnv & { EMAIL_CODE_SECRET?: string };
+  env?: RuntimeEnv & {
+    EMAIL_CODE_SECRET?: string;
+    ORIGIN_VERIFY_SECRET?: string;
+  };
   now?: () => Date;
   rateLimiter?: ReturnType<typeof createLayeredRateLimiter>;
+  resolveTrustedClientIp?: (request: Request) => string | undefined;
   requireAtomicCodeConsume?: boolean;
   requireChallenge?: boolean;
   runTransaction?: EmailAuthAtomicTransactionRunner;
@@ -49,6 +57,8 @@ type EmailAuthErrors = {
   passwordConfirm?: string;
   request?: string;
 };
+
+const EMAIL_CHALLENGE_VERIFY_TIMEOUT_MS = 5_000;
 
 function statusForEmailFailure(errors: EmailAuthErrors) {
   if (errors.request?.includes("频繁") || errors.request?.includes("次数过多")) {
@@ -71,7 +81,7 @@ function statusForEmailFailure(errors: EmailAuthErrors) {
 }
 
 function challengeFailure(reason: string) {
-  const unavailable = reason === "secret-missing" || reason === "timeout" || reason === "unreachable";
+  const unavailable = reason === "config-missing" || reason === "secret-missing" || reason === "timeout" || reason === "unavailable" || reason === "unreachable";
   return {
     status: unavailable ? 503 : 403,
     result: {
@@ -108,6 +118,7 @@ export function createEmailAuthApiHandlers({
   env = process.env,
   now = () => new Date(),
   rateLimiter,
+  resolveTrustedClientIp,
   requireAtomicCodeConsume = false,
   requireChallenge = false,
   runTransaction,
@@ -136,24 +147,37 @@ export function createEmailAuthApiHandlers({
         request.headers.get("user-agent")?.trim().slice(0, 256),
         request.headers.get("accept-language")?.trim().slice(0, 128)
       ].filter(Boolean).join("|") || "unknown-device";
-      const trustedKeys = resolveTrustedRequestKeys({
-        serverProxyIp:
-          request.headers.get("cf-connecting-ip")?.trim().slice(0, 64) ||
-          env.TRUSTED_PROXY_IP,
-        sessionUserId
-      });
       let limited: Awaited<ReturnType<typeof rateLimiter.check>>;
       try {
-        const accountKey = hashEmail(email.trim().toLowerCase());
-        limited = await rateLimiter.check({
-          accountKey,
-          actionKey,
-          deviceKey: sessionUserId
-            ? trustedKeys.deviceKey
-            : `device:${serverDeviceKey}`,
-          ipKey: trustedKeys.ipKey,
-          sessionKey: sessionUserId ? trustedKeys.sessionKey : undefined
+        const production = env.APP_ENV === "production" || env.NODE_ENV === "production";
+        const trustedProxyIp = actionKey === "email-send-code"
+          ? resolveTrustedClientIp?.(request)?.trim().slice(0, 64)
+          : request.headers.get("cf-connecting-ip")?.trim().slice(0, 64) ||
+            env.TRUSTED_PROXY_IP;
+        const trustedKeys = resolveTrustedRequestKeys({
+          serverProxyIp: trustedProxyIp,
+          sessionUserId
         });
+        const keys = actionKey === "email-send-code"
+          ? createEmailSendRateLimitKeys({
+              email,
+              environmentRef: env.APP_ENV ?? env.NODE_ENV ?? "local",
+              keySecret: env.AUTH_RATE_LIMIT_KEY_SECRET?.trim() ||
+                (production ? "" : "local-synthetic-rate-limit-key"),
+              keyVersion: "v1",
+              trustedProxyIp,
+              userAgent: serverDeviceKey
+            })
+          : {
+              accountKey: hashEmail(email.trim().toLowerCase()),
+              actionKey,
+              deviceKey: sessionUserId
+                ? trustedKeys.deviceKey
+                : `device:${serverDeviceKey}`,
+              ipKey: trustedKeys.ipKey,
+              sessionKey: sessionUserId ? trustedKeys.sessionKey : undefined
+            };
+        limited = await rateLimiter.check(keys);
       } catch {
         return jsonResponse(
           { errors: { request: "限流服务暂不可用，请稍后再试" }, ok: false, value: null },
@@ -195,20 +219,41 @@ export function createEmailAuthApiHandlers({
       return jsonResponse(challengeFailure("secret-missing").result, 503);
     }
 
-    const hostname = (() => {
-      try {
-        return new URL(request.url).hostname;
-      } catch {
-        return "";
-      }
-    })();
-    const challenge = await verifyEmailChallenge({
+    const configuredHostnames = (challengeVerifier.expectedHostnames ?? [])
+      .map((hostname) => hostname.trim().toLowerCase())
+      .filter(Boolean);
+    if (
+      expectedAction === "email_send_code" &&
+      (configuredHostnames.length === 0 || configuredHostnames.includes("*"))
+    ) {
+      const failure = challengeFailure("config-missing");
+      return jsonResponse(failure.result, failure.status);
+    }
+    const hostname = expectedAction === "email_send_code"
+      ? configuredHostnames[0] ?? ""
+      : (() => {
+          try {
+            return new URL(request.url).hostname;
+          } catch {
+            return "";
+          }
+        })();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const timedOut = new Promise<Awaited<ReturnType<typeof verifyEmailChallenge>>>((resolve) => {
+      timeout = setTimeout(
+        () => resolve({ ok: false, reason: "timeout" }),
+        EMAIL_CHALLENGE_VERIFY_TIMEOUT_MS
+      );
+    });
+    const verification = verifyEmailChallenge({
       expectedAction,
       expectedHostname: hostname,
       now: now(),
       token,
       verifier: challengeVerifier
     });
+    const challenge = await Promise.race([timedOut, verification]);
+    if (timeout) clearTimeout(timeout);
 
     if (!challenge.ok) {
       const failure = challengeFailure(challenge.reason);
@@ -220,11 +265,16 @@ export function createEmailAuthApiHandlers({
       if (!challengeReplayGuard || !challenge.expiresAt) {
         return jsonResponse(challengeFailure("unreachable").result, 503);
       }
-      const consumed = await challengeReplayGuard.consume({
-        action: expectedAction,
-        expiresAt: new Date(challenge.expiresAt),
-        token: token?.trim() ?? ""
-      });
+      let consumed: Awaited<ReturnType<EmailChallengeReplayGuard["consume"]>>;
+      try {
+        consumed = await challengeReplayGuard.consume({
+          action: expectedAction,
+          expiresAt: new Date(challenge.expiresAt),
+          token: token?.trim() ?? ""
+        });
+      } catch {
+        consumed = { ok: false, reason: "unavailable" };
+      }
       if (!consumed.ok) {
         const failure = challengeFailure(consumed.reason);
         return jsonResponse(failure.result, failure.status);
@@ -242,6 +292,48 @@ export function createEmailAuthApiHandlers({
 
   return {
     async POST_SEND_CODE(request: Request) {
+      const production = env.APP_ENV === "production" || env.NODE_ENV === "production";
+      const originVerificationMode = normalizeOriginVerificationMode(env.ORIGIN_VERIFY_MODE, {
+        appEnv: env.APP_ENV,
+        nodeEnv: env.NODE_ENV
+      });
+      if (
+        production &&
+        (
+          !env.ALLOWED_ORIGINS?.trim() ||
+          !env.ORIGIN_VERIFY_SECRET?.trim() ||
+          !env.CSRF_SECRET?.trim() ||
+          originVerificationMode !== "enforce"
+        )
+      ) {
+        return Response.json(
+          {
+            errors: { request: "请求保护配置暂不可用，请稍后重试" },
+            ok: false,
+            value: null
+          },
+          {
+            headers: { "Cache-Control": "no-store" },
+            status: 503
+          }
+        );
+      }
+      const securityResponse = guardWriteRequest(
+        request,
+        {
+          ...env,
+          anonymousAntiAbuse: requireChallenge
+            ? {
+                available: Boolean(challengeVerifier),
+                verify: () => true
+              }
+            : env.anonymousAntiAbuse
+        },
+        undefined,
+        { allowAnonymous: true }
+      );
+      if (securityResponse) return passwordLoginGuardFailure(securityResponse);
+
       const body = await readJsonBody<{ challengeToken?: string; email?: string }>(request, {
         allowedKeys: ["challengeToken", "email"],
         schema: {
@@ -253,9 +345,6 @@ export function createEmailAuthApiHandlers({
       if (!body.ok) {
         return body.response;
       }
-
-      const securityResponse = guardWriteRequest(request, env, body.value.email?.trim().toLowerCase());
-      if (securityResponse) return securityResponse;
 
       const challengeResponse = await verifyChallengeForRequest(
         request,

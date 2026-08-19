@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 
 export type EmailChallengeFailureReason =
   | "action-mismatch"
+  | "config-missing"
   | "expired"
   | "hostname-mismatch"
   | "invalid"
@@ -39,8 +40,11 @@ export type EmailChallengeVerifier = {
 
 type PersistentChallengeReplayDocument = {
   action: string;
+  cleanupAfter: Date;
   consumedAt: Date;
+  environmentRef: string;
   expiresAt: Date;
+  keyVersion: string;
   schemaVersion: 1;
 };
 
@@ -79,6 +83,24 @@ type TurnstileSiteverifyResponse = {
   success?: unknown;
 };
 
+const EXACT_HOSTNAME_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+function normalizeExactHostnames(hostnames: readonly string[]) {
+  const normalized = hostnames.map((hostname) => hostname.trim().toLowerCase());
+  if (
+    normalized.length === 0 ||
+    normalized.some((hostname) =>
+      !hostname ||
+      hostname.length > 253 ||
+      hostname.includes("*") ||
+      hostname.split(".").some((label) => !EXACT_HOSTNAME_LABEL.test(label))
+    )
+  ) {
+    return undefined;
+  }
+  return [...new Set(normalized)];
+}
+
 function readReplayDocument(data: unknown[] | Record<string, unknown> | undefined) {
   const value = Array.isArray(data) ? data[0] : data;
   return value && typeof value === "object"
@@ -89,19 +111,27 @@ function readReplayDocument(data: unknown[] | Record<string, unknown> | undefine
 export function createCloudBasePersistentEmailChallengeReplayGuard({
   collectionName,
   database,
+  environmentRef = "shared-auth",
   keySecret,
+  keyVersion = "v1",
   now = () => Date.now()
 }: {
   collectionName?: string;
   database?: PersistentChallengeReplayDatabase;
+  environmentRef?: string;
   keySecret?: string;
+  keyVersion?: string;
   now?: () => number;
 }): EmailChallengeReplayGuard {
   const normalizedCollectionName = collectionName?.trim() ?? "";
+  const normalizedEnvironmentRef = environmentRef.trim();
   const normalizedKeySecret = keySecret?.trim() ?? "";
+  const normalizedKeyVersion = keyVersion.trim();
   const configured = Boolean(
     database?.runTransaction &&
+    normalizedEnvironmentRef &&
     normalizedKeySecret &&
+    /^[A-Za-z0-9_-]{1,16}$/.test(normalizedKeyVersion) &&
     /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(normalizedCollectionName)
   );
 
@@ -121,7 +151,7 @@ export function createCloudBasePersistentEmailChallengeReplayGuard({
       }
 
       const documentId = createHmac("sha256", normalizedKeySecret)
-        .update(`challenge\0${action}\0${normalizedToken}`)
+        .update(`challenge\0${normalizedKeyVersion}\0${normalizedEnvironmentRef}\0${action}\0${normalizedToken}`)
         .digest("base64url");
       try {
         const transactionResult = await database.runTransaction(async (transaction) => {
@@ -130,13 +160,20 @@ export function createCloudBasePersistentEmailChallengeReplayGuard({
           const storedExpiresAt = stored?.expiresAt instanceof Date
             ? stored.expiresAt.getTime()
             : new Date(String(stored?.expiresAt ?? "")).getTime();
-          if (Number.isFinite(storedExpiresAt) && storedExpiresAt > current) {
+          if (
+            stored &&
+            (action === "email_send_code" ||
+              (Number.isFinite(storedExpiresAt) && storedExpiresAt > current))
+          ) {
             return { ok: false as const, reason: "replay" as const };
           }
           await doc.set({
             action,
+            cleanupAfter: new Date(expiresAtMs + 60 * 60_000),
             consumedAt: new Date(current),
+            environmentRef: normalizedEnvironmentRef,
             expiresAt,
+            keyVersion: normalizedKeyVersion,
             schemaVersion: 1
           });
           return { ok: true as const };
@@ -170,13 +207,14 @@ export function createTurnstileEmailChallengeVerifier({
   timeoutMs?: number;
 }): EmailChallengeVerifier {
   const normalizedSecret = secretKey?.trim() ?? "";
-  const allowedHostnames = new Set(
-    expectedHostnames.map((hostname) => hostname.trim().toLowerCase()).filter(Boolean)
-  );
+  const normalizedHostnames = normalizeExactHostnames(expectedHostnames);
+  const allowedHostnames = new Set(normalizedHostnames ?? []);
+  const hostnamesConfigured = Boolean(normalizedHostnames);
 
   return {
     expectedHostnames: [...allowedHostnames],
     async verify(input) {
+      if (!hostnamesConfigured) return { ok: false, reason: "config-missing" };
       if (!normalizedSecret) return { ok: false, reason: "secret-missing" };
       if (input.token.length > 2048) return { ok: false, reason: "invalid" };
 
@@ -305,7 +343,7 @@ export async function verifyEmailChallenge({
     !Number.isFinite(issuedAtMs) ||
     new Date(issuedAtMs).toISOString() !== result.issuedAt ||
     issuedAtMs > nowMs ||
-    nowMs - issuedAtMs > DEFAULT_TOKEN_TTL_MS
+    nowMs - issuedAtMs >= DEFAULT_TOKEN_TTL_MS
   ) {
     return { ok: false, reason: "expired" };
   }

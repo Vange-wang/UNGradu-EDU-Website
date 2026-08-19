@@ -26,6 +26,12 @@ type PasswordActionResult = ApiResult<{
 
 type LoginMode = "code" | "password" | "reset";
 
+const EMAIL_CHALLENGE_RETRY_COOLDOWN_MS = 5_000;
+
+function readMonotonicNow() {
+  return performance.now();
+}
+
 export function completePasswordLogin({
   invalidateTurnstile,
   navigate,
@@ -66,6 +72,7 @@ export function LoginForm({
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [turnstileAttempt, setTurnstileAttempt] = useState(0);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [challengeRetryAvailableAt, setChallengeRetryAvailableAt] = useState(0);
   const [resendAvailableAt, setResendAvailableAt] = useState(0);
   const now = Date.now();
   const secondsUntilResend = useMemo(
@@ -91,11 +98,24 @@ export function LoginForm({
       return;
     }
 
+    if (readMonotonicNow() < challengeRetryAvailableAt) {
+      setFormMessage("请等待 5 秒后重新进行人机验证。");
+      return;
+    }
+
+    if (!turnstileToken) {
+      setFormMessage("请先完成人机验证。");
+      return;
+    }
+
     setIsSending(true);
 
     try {
       const response = await fetch("/api/auth/email/send-code", {
-        body: JSON.stringify({ email: emailValidation.value }),
+        body: JSON.stringify({
+          challengeToken: turnstileToken,
+          email: emailValidation.value
+        }),
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
         method: "POST"
@@ -103,14 +123,24 @@ export function LoginForm({
       const result = await parseApiResponse(response) as SendCodeApiResult;
 
       if (!result.ok) {
+        setChallengeRetryAvailableAt(
+          readMonotonicNow() + EMAIL_CHALLENGE_RETRY_COOLDOWN_MS
+        );
         setFormMessage(result.errors.request ?? "邮件服务暂时不可用，请稍后重新获取验证码。");
         return;
       }
 
       setErrors({});
+      setChallengeRetryAvailableAt(0);
       setResendAvailableAt(Date.now() + result.value.resendAfterSeconds * 1000);
       setFormMessage(`验证码已发送至 ${result.value.emailMasked}，请在 5 分钟内完成登录。`);
+    } catch {
+      setChallengeRetryAvailableAt(
+        readMonotonicNow() + EMAIL_CHALLENGE_RETRY_COOLDOWN_MS
+      );
+      setFormMessage("邮件服务暂时不可用，请稍后重新获取验证码。");
     } finally {
+      resetTurnstile();
       setIsSending(false);
     }
   }
@@ -333,7 +363,7 @@ export function LoginForm({
           </div>
           <button
             className="button secondary"
-            disabled={isSending || secondsUntilResend > 0}
+            disabled={isSending || secondsUntilResend > 0 || !turnstileToken}
             onClick={sendCode}
             type="button"
           >
@@ -344,6 +374,13 @@ export function LoginForm({
                 : "获取验证码"}
           </button>
         </div>
+        <TurnstileWidget
+          action="email_send_code"
+          onTokenChange={setTurnstileToken}
+          retryCooldownMs={5_000}
+          resetSignal={turnstileAttempt}
+          siteKey={turnstileSiteKey}
+        />
         <button className="button primary" type="submit">
           {isLoggingIn ? "登录中..." : "登录 / 注册"}
         </button>
@@ -393,8 +430,9 @@ export function LoginForm({
             <span className="error">{errors.password}</span>
           </div>
           <TurnstileWidget
-            key={turnstileAttempt}
+            action="password_login"
             onTokenChange={setTurnstileToken}
+            resetSignal={turnstileAttempt}
             siteKey={turnstileSiteKey}
           />
           <button
@@ -465,7 +503,7 @@ export function LoginForm({
           </div>
           <button
             className="button secondary"
-            disabled={isSending || secondsUntilResend > 0}
+            disabled={isSending || secondsUntilResend > 0 || !turnstileToken}
             onClick={sendCode}
             type="button"
           >
@@ -475,6 +513,13 @@ export function LoginForm({
                 ? "发送中..."
                 : "获取验证码"}
           </button>
+          <TurnstileWidget
+            action="email_send_code"
+            onTokenChange={setTurnstileToken}
+            retryCooldownMs={5_000}
+            resetSignal={turnstileAttempt}
+            siteKey={turnstileSiteKey}
+          />
           <div className="field">
             <label htmlFor="reset-password">新密码</label>
             <input

@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
-import { createServer } from "node:http";
+import { createServer, request as httpRequest } from "node:http";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -160,6 +160,30 @@ async function reservePort() {
   return address.port;
 }
 
+async function openDevToolsTarget(port: number) {
+  return new Promise<{ webSocketDebuggerUrl?: string }>((resolve, reject) => {
+    const request = httpRequest({
+      hostname: "127.0.0.1",
+      method: "PUT",
+      path: `/json/new?${encodeURIComponent("about:blank")}`,
+      port
+    }, (response) => {
+      let body = "";
+      response.setEncoding("utf8");
+      response.on("data", (chunk) => { body += chunk; });
+      response.on("end", () => {
+        try {
+          resolve(JSON.parse(body) as { webSocketDebuggerUrl?: string });
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+    request.on("error", reject);
+    request.end();
+  });
+}
+
 async function stopProcessTree(child: ChildProcess | undefined) {
   if (!child?.pid || child.exitCode !== null) {
     return;
@@ -221,7 +245,7 @@ describe("approved login visual contract", () => {
     expect(loginForm).toContain("challengeToken: turnstileToken");
     expect(loginForm).toContain("disabled={isLoggingIn || !turnstileToken}");
     expect(loginForm).toContain("<TurnstileWidget");
-    expect(turnstileWidget).toContain('action: "password_login"');
+    expect(turnstileWidget).toContain('action = "password_login"');
     expect(turnstileWidget).toContain('"expired-callback"');
     expect(turnstileWidget).toContain('"error-callback"');
     expect(turnstileWidget).toContain("onTokenChange(\"\")");
@@ -330,11 +354,7 @@ describeWithBrowser("password login Turnstile lifecycle", () => {
 
     try {
       const port = await readDevToolsPort(profileDirectory);
-      const targetResponse = await fetch(
-        `http://127.0.0.1:${port}/json/new?${encodeURIComponent("about:blank")}`,
-        { method: "PUT" }
-      );
-      const target = await targetResponse.json() as { webSocketDebuggerUrl?: string };
+      const target = await openDevToolsTarget(port);
       if (!target.webSocketDebuggerUrl) {
         throw new Error("Chrome 调试页未返回 WebSocket 地址。");
       }
@@ -350,7 +370,7 @@ describeWithBrowser("password login Turnstile lifecycle", () => {
           void cdp?.send("Fetch.failRequest", { errorReason: "Failed", requestId });
           return;
         }
-        const body = Buffer.from(`window.__turnstileEvents=[];window.turnstile={render:function(container,options){window.__turnstileEvents.push("render");window.__turnstileOptions=options;queueMicrotask(function(){options.callback("official-test-token");});return "widget-test";},remove:function(id){window.__turnstileEvents.push("remove:"+id);},reset:function(id){window.__turnstileEvents.push("reset:"+id);}};`).toString("base64");
+        const body = Buffer.from(`window.__turnstileEvents=[];window.__turnstileRenders=[];window.__turnstileOptionsById={};window.__issueTurnstileToken=function(id,options){var token="official-test-token-"+(window.__turnstileRenders.length+1);window.__turnstileOptions=options;window.__turnstileRenders.push({action:options.action,id:id,token:token});queueMicrotask(function(){options.callback(token);});};window.turnstile={render:function(container,options){var id="widget-test-"+(Object.keys(window.__turnstileOptionsById).length+1);window.__turnstileEvents.push("render");window.__turnstileOptionsById[id]=options;window.__issueTurnstileToken(id,options);return id;},remove:function(id){window.__turnstileEvents.push("remove:"+id);delete window.__turnstileOptionsById[id];},reset:function(id){window.__turnstileEvents.push("reset:"+id);var options=window.__turnstileOptionsById[id];if(options){window.__issueTurnstileToken(id,options);}}};`).toString("base64");
         void cdp?.send("Fetch.fulfillRequest", {
           body,
           requestId,
@@ -361,10 +381,27 @@ describeWithBrowser("password login Turnstile lifecycle", () => {
       await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
         source: `{
           const originalFetch = window.fetch.bind(window);
+          window.__testMonotonicNow = 1000;
+          Object.defineProperty(performance, "now", {
+            configurable: true,
+            value: () => window.__testMonotonicNow
+          });
+          window.__emailSendBodies = [];
           window.fetch = (input, init) => {
             const url = typeof input === "string" ? input : input.url;
             if (url.includes("/api/auth/session")) {
               return Promise.resolve(new Response(JSON.stringify({ok:false,value:null,errors:{request:"anonymous"}}), {status:401,headers:{"content-type":"application/json"}}));
+            }
+            if (url.includes("/api/auth/email/send-code")) {
+              const body = JSON.parse(init?.body || "{}");
+              window.__emailSendBodies.push(body);
+              const failed = window.__emailSendBodies.length <= 2;
+              return Promise.resolve(new Response(JSON.stringify(failed
+                ? {ok:false,value:null,errors:{request:"synthetic challenge consumed"}}
+                : {ok:true,value:{emailMasked:"s***@example.test",expiresInSeconds:300,resendAfterSeconds:60},errors:{}}), {
+                status: failed ? 403 : 200,
+                headers:{"content-type":"application/json"}
+              }));
             }
             return originalFetch(input, init);
           };
@@ -372,26 +409,86 @@ describeWithBrowser("password login Turnstile lifecycle", () => {
       });
       await cdp.send("Page.navigate", { url: `${baseUrl}/login` });
       await waitForRuntime(cdp, `Array.from(document.querySelectorAll("button")).some((button) => button.textContent?.includes("账号密码登录"))`);
-      await cdp.send("Runtime.evaluate", {
-        expression: `Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.includes("账号密码登录"))?.click()`
-      });
       await waitForRuntime(cdp, `Array.from(document.querySelectorAll("button")).some((button) => button.textContent?.includes("重新进行人机验证"))`);
-      const alertState = runtimeValue<{ ariaLive: string | null; role: string | null }>(
+      const alertState = runtimeValue<{
+        ariaLive: string | null;
+        disabled: boolean;
+        role: string | null;
+      }>(
         await cdp.send("Runtime.evaluate", {
           expression: `(() => {
             const retry = Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.includes("重新进行人机验证"));
             const alert = retry?.closest(".error");
-            return { ariaLive: alert?.getAttribute("aria-live") ?? null, role: alert?.getAttribute("role") ?? null };
+            return {
+              ariaLive: alert?.getAttribute("aria-live") ?? null,
+              disabled: Boolean(retry?.disabled),
+              role: alert?.getAttribute("role") ?? null
+            };
           })()`,
           returnByValue: true
         })
       );
+      await waitForRuntime(cdp, `Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.includes("重新进行人机验证"))?.disabled === false`);
       await cdp.send("Runtime.evaluate", {
         expression: `Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.includes("重新进行人机验证"))?.click()`
       });
       const rendered = await waitForRuntime<boolean>(
         cdp,
         `window.__turnstileEvents?.includes("render") === true`
+      );
+      const emailAction = await waitForRuntime<string>(
+        cdp,
+        `window.__turnstileRenders?.at(-1)?.action === "email_send_code" && window.__turnstileRenders.at(-1).action`
+      );
+      await cdp.send("Runtime.evaluate", {
+        expression: `(() => {
+          const input = document.querySelector('input[name="email"]');
+          const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+          setter?.call(input, "synthetic@example.test");
+          input?.dispatchEvent(new Event("input", {bubbles:true}));
+        })()`
+      });
+      await cdp.send("Runtime.evaluate", {
+        expression: `Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.includes("获取验证码"))?.click()`
+      });
+      await waitForRuntime(cdp, `window.__emailSendBodies?.length === 1`);
+      await waitForRuntime(cdp, `window.__turnstileRenders?.length >= 2`);
+      await cdp.send("Runtime.evaluate", {
+        expression: `window.__testMonotonicNow = 5999; Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.includes("获取验证码"))?.click()`
+      });
+      await delay(100);
+      const firstBoundaryBefore = runtimeValue<number>(await cdp.send("Runtime.evaluate", {
+        expression: `window.__emailSendBodies.length`,
+        returnByValue: true
+      }));
+      expect(firstBoundaryBefore).toBe(1);
+      await cdp.send("Runtime.evaluate", {
+        expression: `window.__testMonotonicNow = 6000; Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.includes("获取验证码"))?.click()`
+      });
+      await waitForRuntime(cdp, `window.__emailSendBodies?.length === 2`);
+      await waitForRuntime(cdp, `window.__turnstileRenders?.length >= 3`);
+      await cdp.send("Runtime.evaluate", {
+        expression: `window.__testMonotonicNow = 10999; Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.includes("获取验证码"))?.click()`
+      });
+      await delay(100);
+      const secondBoundaryBefore = runtimeValue<number>(await cdp.send("Runtime.evaluate", {
+        expression: `window.__emailSendBodies.length`,
+        returnByValue: true
+      }));
+      expect(secondBoundaryBefore).toBe(2);
+      await cdp.send("Runtime.evaluate", {
+        expression: `window.__testMonotonicNow = 11001; Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.includes("获取验证码"))?.click()`
+      });
+      const emailBodies = await waitForRuntime<Array<{ challengeToken?: string }>>(
+        cdp,
+        `window.__emailSendBodies?.length === 3 && window.__emailSendBodies`
+      );
+      await cdp.send("Runtime.evaluate", {
+        expression: `Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.includes("账号密码登录"))?.click()`
+      });
+      const passwordAction = await waitForRuntime<string>(
+        cdp,
+        `window.__turnstileRenders?.at(-1)?.action === "password_login" && window.__turnstileRenders.at(-1).action`
       );
       await cdp.send("Runtime.evaluate", {
         expression: `window.__turnstileOptions?.["error-callback"]?.()`
@@ -403,7 +500,7 @@ describeWithBrowser("password login Turnstile lifecycle", () => {
       await cdp.send("Runtime.evaluate", {
         expression: `Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.includes("重新进行人机验证"))?.click()`
       });
-      await waitForRuntime(cdp, `window.__turnstileEvents?.includes("reset:widget-test") === true`);
+      await waitForRuntime(cdp, `window.__turnstileEvents?.some((event) => event.startsWith("reset:widget-test-")) === true`);
       await cdp.send("Runtime.evaluate", {
         expression: `window.__turnstileOptions?.["expired-callback"]?.()`
       });
@@ -414,9 +511,16 @@ describeWithBrowser("password login Turnstile lifecycle", () => {
 
       expect(rendered).toBe(true);
       expect(scriptRequestCount).toBe(2);
-      expect(alertState).toEqual({ ariaLive: "assertive", role: "alert" });
+      expect(alertState).toEqual({ ariaLive: "assertive", disabled: true, role: "alert" });
       expect(challengeErrorAlert).toBe(true);
       expect(expiredAlert).toBe(true);
+      expect(emailAction).toBe("email_send_code");
+      expect(passwordAction).toBe("password_login");
+      expect(emailBodies.map((body) => body.challengeToken)).toEqual([
+        "official-test-token-1",
+        "official-test-token-2",
+        "official-test-token-3"
+      ]);
     } finally {
       cdp?.close();
       await stopProcessTree(browserProcess);

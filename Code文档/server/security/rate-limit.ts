@@ -22,6 +22,7 @@ export type ExternalRateLimiter = {
 export type RateLimitResult = { ok: true } | { ok: false; reason: string };
 
 type PersistentRateLimitDocument = {
+  cleanupAfter: Date;
   count: number;
   expiresAt: Date;
   layer: string;
@@ -59,6 +60,44 @@ type RateLimitInput = {
   ipKey: string;
   sessionKey?: string;
 };
+
+export function createEmailSendRateLimitKeys({
+  email,
+  environmentRef,
+  keySecret,
+  keyVersion,
+  trustedProxyIp,
+  userAgent
+}: {
+  email: string;
+  environmentRef: string;
+  keySecret: string;
+  keyVersion: string;
+  trustedProxyIp?: string;
+  userAgent?: string;
+}): RateLimitInput {
+  const normalizedEnvironmentRef = environmentRef.trim();
+  const normalizedKeySecret = keySecret.trim();
+  const normalizedKeyVersion = keyVersion.trim();
+  if (
+    !normalizedEnvironmentRef ||
+    !normalizedKeySecret ||
+    !/^[A-Za-z0-9_-]{1,16}$/.test(normalizedKeyVersion)
+  ) {
+    throw new Error("RATE_LIMIT_KEY_CONFIGURATION_UNAVAILABLE");
+  }
+
+  const pseudonym = (scope: string, value: string) =>
+    `${normalizedKeyVersion}_${createHmac("sha256", normalizedKeySecret)
+      .update(`${scope}\0${normalizedKeyVersion}\0${normalizedEnvironmentRef}\0${value}`)
+      .digest("base64url")}`;
+  const accountKey = pseudonym("account", email.trim().toLowerCase());
+  const ipKey = pseudonym("ip", trustedProxyIp?.trim() || "unknown-proxy");
+  const deviceKey = pseudonym("device", userAgent?.trim() || "unknown-device");
+  const actionKey = pseudonym("action", `email_send_code\0${ipKey}`);
+
+  return { accountKey, actionKey, deviceKey, ipKey };
+}
 
 function readStoredDocument(data: unknown[] | Record<string, unknown> | undefined) {
   const value = Array.isArray(data) ? data[0] : data;
@@ -164,6 +203,7 @@ export function createCloudBasePersistentRateLimiter({
             const rule = resolved[entry.layer];
             if (!rule) throw new Error("RATE_LIMIT_RULE_UNAVAILABLE");
             await entry.doc.set({
+              cleanupAfter: new Date(entry.windowStartedAtMs + rule.windowMs + 60 * 60_000),
               count: entry.count,
               expiresAt: new Date(entry.windowStartedAtMs + rule.windowMs),
               layer: entry.layer,

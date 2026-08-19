@@ -7,7 +7,7 @@ const TURNSTILE_SCRIPT_SRC =
   "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
 type TurnstileRenderOptions = {
-  action: "password_login";
+  action: "email_send_code" | "password_login";
   callback: (token: string) => void;
   "error-callback": () => boolean;
   "expired-callback": () => void;
@@ -25,25 +25,52 @@ declare global {
 }
 
 export function TurnstileWidget({
+  action = "password_login",
   onTokenChange,
+  retryCooldownMs = 0,
+  resetSignal = 0,
   siteKey
 }: {
+  action?: "email_send_code" | "password_login";
   onTokenChange: (token: string) => void;
+  retryCooldownMs?: number;
+  resetSignal?: number;
   siteKey: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const resetSignalRef = useRef(resetSignal);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [scriptAttempt, setScriptAttempt] = useState(0);
   const [scriptReady, setScriptReady] = useState(false);
+  const [retryBlocked, setRetryBlocked] = useState(false);
   const [status, setStatus] = useState<"loading" | "ready" | "verified" | "error">(
     siteKey ? "loading" : "error"
   );
 
+  useEffect(() => {
+    if (window.turnstile) setScriptReady(true);
+  }, []);
+
+  const beginRetryCooldown = useCallback(() => {
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    if (retryCooldownMs <= 0) {
+      setRetryBlocked(false);
+      return;
+    }
+    setRetryBlocked(true);
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null;
+      setRetryBlocked(false);
+    }, retryCooldownMs);
+  }, [retryCooldownMs]);
   const clearToken = useCallback(() => {
     onTokenChange("");
     setStatus("error");
-  }, [onTokenChange]);
+    beginRetryCooldown();
+  }, [beginRetryCooldown, onTokenChange]);
   const retry = useCallback(() => {
+    if (retryBlocked) return;
     onTokenChange("");
     const widgetId = widgetIdRef.current;
     if (widgetId && window.turnstile?.reset) {
@@ -59,7 +86,24 @@ export function TurnstileWidget({
     setScriptReady(false);
     setStatus("loading");
     setScriptAttempt((current) => current + 1);
-  }, [onTokenChange]);
+  }, [onTokenChange, retryBlocked]);
+
+  useEffect(() => () => {
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (resetSignalRef.current === resetSignal) return;
+    resetSignalRef.current = resetSignal;
+    onTokenChange("");
+    const widgetId = widgetIdRef.current;
+    if (widgetId && window.turnstile?.reset) {
+      window.turnstile.reset(widgetId);
+      setStatus("ready");
+      return;
+    }
+    retry();
+  }, [onTokenChange, resetSignal, retry]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -70,7 +114,7 @@ export function TurnstileWidget({
 
     setStatus("ready");
     widgetIdRef.current = turnstile.render(container, {
-      action: "password_login",
+      action,
       callback(token) {
         const normalizedToken = token.trim();
         if (!normalizedToken) {
@@ -97,7 +141,7 @@ export function TurnstileWidget({
         widgetIdRef.current = null;
       }
     };
-  }, [clearToken, onTokenChange, scriptReady, siteKey]);
+  }, [action, clearToken, onTokenChange, scriptReady, siteKey]);
 
   if (!siteKey) {
     return <p className="error" role="alert">人机验证服务暂不可用，请稍后重试。</p>;
@@ -123,7 +167,9 @@ export function TurnstileWidget({
       {status === "error" ? (
         <span aria-live="assertive" className="error" role="alert">
           人机验证已失效，请重试。
-          <button onClick={retry} type="button">重新进行人机验证</button>
+          <button disabled={retryBlocked} onClick={retry} type="button">
+            重新进行人机验证
+          </button>
         </span>
       ) : null}
     </div>

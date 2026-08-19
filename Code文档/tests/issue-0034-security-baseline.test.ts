@@ -82,7 +82,12 @@ function createEmailHandlers(options: {
 
   return {
     handlers: createEmailAuthApiHandlers({
-      challengeVerifier: options.challengeVerifier,
+      challengeVerifier: options.challengeVerifier
+        ? {
+            ...options.challengeVerifier,
+            expectedHostnames: options.challengeVerifier.expectedHostnames ?? ["ungraduedu.eu.cc"]
+          }
+        : undefined,
       codeGenerator: () => "123456",
       emailCodeCollection: codeCollection,
       emailDelivery: {

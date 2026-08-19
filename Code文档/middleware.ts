@@ -48,6 +48,31 @@ export function middleware(request: NextRequest) {
     appEnv: process.env.APP_ENV,
     nodeEnv: process.env.NODE_ENV
   });
+  const isProductionEmailSend =
+    isProduction &&
+    request.method === "POST" &&
+    request.nextUrl.pathname === "/api/auth/email/send-code";
+  const emailGuardConfigurationUnavailable =
+    isProductionEmailSend &&
+    (
+      !process.env.ALLOWED_ORIGINS?.trim() ||
+      !process.env.ORIGIN_VERIFY_SECRET?.trim() ||
+      !process.env.CSRF_SECRET?.trim() ||
+      mode !== "enforce"
+    );
+  if (emailGuardConfigurationUnavailable) {
+    return withContentSecurityPolicy(NextResponse.json(
+      {
+        errors: { request: "请求保护配置暂不可用，请稍后重试" },
+        ok: false,
+        value: null
+      },
+      {
+        headers: { "Cache-Control": "no-store" },
+        status: 503
+      }
+    ));
+  }
   const result = evaluateOriginRequest({
     mode,
     expectedSecret: process.env.ORIGIN_VERIFY_SECRET,

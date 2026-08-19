@@ -6,7 +6,11 @@ import {
 } from "@/server/email-auth";
 import { createEmailDelivery } from "@/server/email-delivery";
 import { createRuntimeEnvWithSessionRevocation } from "@/server/api-utils";
-import { createFailClosedEmailChallengeVerifier } from "@/server/security/email-challenge";
+import {
+  createCloudBasePersistentEmailChallengeReplayGuard,
+  createFailClosedEmailChallengeVerifier,
+  type PersistentChallengeReplayDatabase
+} from "@/server/security/email-challenge";
 import { createRouteRateLimiter } from "@/server/security/rate-limit";
 
 function createHandlers() {
@@ -14,6 +18,13 @@ function createHandlers() {
   const env = createRuntimeEnvWithSessionRevocation(database);
 
   return createEmailAuthApiHandlers({
+    challengeReplayGuard: createCloudBasePersistentEmailChallengeReplayGuard({
+      collectionName: env.AUTH_CHALLENGE_REPLAY_COLLECTION,
+      database: database as PersistentChallengeReplayDatabase,
+      environmentRef: env.APP_ENV ?? env.NODE_ENV ?? "local",
+      keySecret: env.AUTH_CHALLENGE_REPLAY_KEY_SECRET,
+      keyVersion: "v1"
+    }),
     challengeVerifier: createFailClosedEmailChallengeVerifier(),
     emailCodeCollection: database.collection(EMAIL_LOGIN_CODES_COLLECTION),
     emailDelivery: createEmailDelivery(),

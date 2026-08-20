@@ -389,7 +389,18 @@ export function createEmailAuthApiHandlers({
         return body.response;
       }
 
-      const securityResponse = guardWriteRequest(request, env, body.value.email?.trim().toLowerCase());
+      const securityResponse = guardWriteRequest(
+        request,
+        {
+          ...env,
+          anonymousAntiAbuse: {
+            available: Boolean(rateLimiter),
+            verify: () => Boolean(rateLimiter)
+          }
+        },
+        undefined,
+        { allowAnonymous: true }
+      );
       if (securityResponse) return securityResponse;
 
       const rateLimitResponse = await checkRateLimit(

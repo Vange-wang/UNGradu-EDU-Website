@@ -4,7 +4,12 @@ import { parseApiResponse } from "@/features/api/api-client";
 import { createAuthSessionCookie, readAuthSessionFromRequest } from "@/server/auth-session";
 import { createContactProfileApiHandlers } from "@/server/contact-profile-api";
 import { createEmailAuthApiHandlers } from "@/server/email-auth-api";
-import { hashEmail, verifyEmailLoginCode } from "@/server/email-auth";
+import {
+  EMAIL_LOGIN_CODES_COLLECTION,
+  EMAIL_LOGIN_USERS_COLLECTION,
+  hashEmail,
+  verifyEmailLoginCode
+} from "@/server/email-auth";
 import { createLayeredRateLimiter } from "@/server/security/rate-limit";
 import { createCsrfProof } from "@/server/security/request-guard";
 
@@ -162,6 +167,155 @@ async function resetPassword(
 }
 
 describe("email auth API handlers", () => {
+  it("allows a production-like anonymous email-code login to reach code verification without a session CSRF proof", async () => {
+    const emailCodeCollection = createFakeCollection();
+    const userCollection = createFakeCollection();
+    const handlers = createEmailAuthApiHandlers({
+      codeGenerator: () => "123456",
+      emailCodeCollection,
+      emailDelivery: { async send() { return { ok: true as const }; } },
+      env: {
+        ALLOWED_ORIGINS: "https://ungraduedu.eu.cc",
+        APP_ENV: "production",
+        AUTH_RATE_LIMIT_KEY_SECRET: "synthetic-rate-limit-secret-for-tests",
+        AUTH_SESSION_SECRET: "synthetic-session-secret-for-tests",
+        CSRF_SECRET: "synthetic-csrf-secret-for-tests",
+        EMAIL_CODE_SECRET: "synthetic-email-code-secret-for-tests",
+        NODE_ENV: "production",
+        ORIGIN_VERIFY_MODE: "enforce",
+        ORIGIN_VERIFY_SECRET: "synthetic-origin-secret-for-tests",
+        anonymousAntiAbuse: { available: true, verify: () => true },
+        securityAlertSink: { available: true, emit() {} }
+      },
+      now: () => new Date("2026-08-20T10:00:00.000Z"),
+      rateLimiter: createLayeredRateLimiter({
+        mode: "production",
+        external: { check: () => ({ ok: true as const }) }
+      }),
+      requireAtomicCodeConsume: true,
+      runTransaction: async (operation) => operation({
+        collection(name) {
+          if (name === EMAIL_LOGIN_CODES_COLLECTION) return emailCodeCollection;
+          if (name === EMAIL_LOGIN_USERS_COLLECTION) return userCollection;
+          throw new Error(`Unexpected collection: ${name}`);
+        }
+      }),
+      userCollection
+    });
+    const headers = {
+      "content-type": "application/json",
+      origin: "https://ungraduedu.eu.cc"
+    };
+
+    const sent = await handlers.POST_SEND_CODE(
+      new Request("https://ungraduedu.eu.cc/api/auth/email/send-code", {
+        body: JSON.stringify({ email: "student@example.com" }),
+        headers,
+        method: "POST"
+      })
+    );
+    const loggedIn = await handlers.POST_LOGIN(
+      new Request("https://ungraduedu.eu.cc/api/auth/email/login", {
+        body: JSON.stringify({ code: "123456", email: "student@example.com" }),
+        headers,
+        method: "POST"
+      })
+    );
+
+    expect(sent.status).toBe(200);
+    expect(loggedIn.status).toBe(200);
+    expect(loggedIn.headers.get("set-cookie")).toContain("ungradu_auth_session=");
+    await expect(loggedIn.json()).resolves.toMatchObject({
+      ok: true,
+      value: { emailMasked: "s***t@example.com" }
+    });
+  });
+
+  it("keeps invalid production email-code login requests fail closed before account access", async () => {
+    const rateLimitCheck = vi.fn(() => ({ ok: true as const }));
+    const accountGet = vi.fn(async () => ({ data: [] }));
+    const accountSet = vi.fn(async () => ({ updated: 1 }));
+    const userCollection = {
+      doc: vi.fn(() => ({ get: accountGet, set: accountSet }))
+    };
+    const createProtectedHandlers = (
+      securityAlertAvailable: boolean,
+      rateLimitAvailable = true
+    ) =>
+      createEmailAuthApiHandlers({
+        emailCodeCollection: createFakeCollection(),
+        emailDelivery: { async send() { return { ok: true as const }; } },
+        env: {
+          ALLOWED_ORIGINS: "https://ungraduedu.eu.cc",
+          APP_ENV: "production",
+          AUTH_SESSION_SECRET: "synthetic-session-secret-for-tests",
+          CSRF_SECRET: "synthetic-csrf-secret-for-tests",
+          EMAIL_CODE_SECRET: "synthetic-email-code-secret-for-tests",
+          NODE_ENV: "production",
+          ORIGIN_VERIFY_MODE: "enforce",
+          ORIGIN_VERIFY_SECRET: "synthetic-origin-secret-for-tests",
+          securityAlertSink: securityAlertAvailable
+            ? { available: true, emit() {} }
+            : undefined
+        },
+        rateLimiter: rateLimitAvailable
+          ? createLayeredRateLimiter({
+              mode: "production",
+              external: { check: rateLimitCheck }
+            })
+          : undefined,
+        requireAtomicCodeConsume: true,
+        runTransaction: async (operation) => operation({
+          collection: () => createFakeCollection()
+        }),
+        userCollection
+      });
+    const request = (origin: string | undefined, contentType = "application/json") =>
+      new Request("https://ungraduedu.eu.cc/api/auth/email/login", {
+        body: JSON.stringify({ code: "123456", email: "student@example.com" }),
+        headers: {
+          "content-type": contentType,
+          ...(origin ? { origin } : {})
+        },
+        method: "POST"
+      });
+    const protectedHandlers = createProtectedHandlers(true);
+
+    const missingOrigin = await protectedHandlers.POST_LOGIN(request(undefined));
+    const wrongOrigin = await protectedHandlers.POST_LOGIN(request("https://attacker.example"));
+    const nonJson = await protectedHandlers.POST_LOGIN(
+      request("https://ungraduedu.eu.cc", "text/plain")
+    );
+    const unavailableObservability = await createProtectedHandlers(false).POST_LOGIN(
+      request("https://attacker.example")
+    );
+    const unavailableLimiter = await createProtectedHandlers(true, false).POST_LOGIN(
+      request("https://ungraduedu.eu.cc")
+    );
+
+    expect([missingOrigin.status, wrongOrigin.status]).toEqual([403, 403]);
+    expect(nonJson.status).toBe(403);
+    expect(unavailableObservability.status).toBe(503);
+    expect(unavailableLimiter.status).toBe(503);
+    await expect(unavailableObservability.json()).resolves.toMatchObject({
+      errors: { request: "Security observability service is unavailable." },
+      ok: false
+    });
+    for (const response of [
+      missingOrigin,
+      wrongOrigin,
+      nonJson,
+      unavailableObservability,
+      unavailableLimiter
+    ]) {
+      expect(response.headers.get("set-cookie")).toBeNull();
+    }
+    expect(rateLimitCheck).not.toHaveBeenCalled();
+    expect(userCollection.doc).not.toHaveBeenCalled();
+    expect(accountGet).not.toHaveBeenCalled();
+    expect(accountSet).not.toHaveBeenCalled();
+  });
+
   it("returns explicit JSON when a production browser password login has no pre-auth challenge", async () => {
     const userCollection = {
       doc: vi.fn(() => ({

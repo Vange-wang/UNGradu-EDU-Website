@@ -48,6 +48,39 @@ function createFakeCollection(initialValues: Record<string, StoredDocument> = {}
   };
 }
 
+function createCloudBaseTransactionCollection(
+  collection: ReturnType<typeof createFakeCollection>,
+  onUpdate?: (data: StoredDocument) => void
+) {
+  return {
+    doc(docId: string) {
+      const document = collection.doc(docId);
+
+      return {
+        async get() {
+          const data = collection.documents.get(docId);
+          return { data: data ? { ...data, _id: docId } : undefined };
+        },
+        async set(data: StoredDocument) {
+          if ("_id" in data) {
+            throw new Error("不能更新 _id 的值");
+          }
+
+          return document.set(data);
+        },
+        async update(data: StoredDocument) {
+          if ("_id" in data) {
+            throw new Error("不能更新 _id 的值");
+          }
+
+          onUpdate?.(data);
+          return document.update(data);
+        }
+      };
+    }
+  };
+}
+
 function createHandlers(options: {
   code?: string;
   now?: Date;
@@ -228,6 +261,85 @@ describe("email auth API handlers", () => {
     await expect(loggedIn.json()).resolves.toMatchObject({
       ok: true,
       value: { emailMasked: "s***t@example.com" }
+    });
+  });
+
+  it("consumes a CloudBase transaction code document without writing its immutable _id", async () => {
+    const emailCodeCollection = createFakeCollection();
+    const userCollection = createFakeCollection();
+    const codeUpdate = vi.fn();
+    const handlers = createEmailAuthApiHandlers({
+      codeGenerator: () => "123456",
+      emailCodeCollection,
+      emailDelivery: { async send() { return { ok: true as const }; } },
+      env: {
+        ALLOWED_ORIGINS: "https://ungraduedu.eu.cc",
+        APP_ENV: "production",
+        AUTH_RATE_LIMIT_KEY_SECRET: "synthetic-rate-limit-secret-for-tests",
+        AUTH_SESSION_SECRET: "synthetic-session-secret-for-tests",
+        CSRF_SECRET: "synthetic-csrf-secret-for-tests",
+        EMAIL_CODE_SECRET: "synthetic-email-code-secret-for-tests",
+        NODE_ENV: "production",
+        ORIGIN_VERIFY_MODE: "enforce",
+        ORIGIN_VERIFY_SECRET: "synthetic-origin-secret-for-tests",
+        anonymousAntiAbuse: { available: true, verify: () => true },
+        securityAlertSink: { available: true, emit() {} }
+      },
+      now: () => new Date("2026-08-20T10:00:00.000Z"),
+      rateLimiter: createLayeredRateLimiter({
+        mode: "production",
+        external: { check: () => ({ ok: true as const }) }
+      }),
+      requireAtomicCodeConsume: true,
+      runTransaction: async (operation) => operation({
+        collection(name) {
+          if (name === EMAIL_LOGIN_CODES_COLLECTION) {
+            return createCloudBaseTransactionCollection(emailCodeCollection, codeUpdate);
+          }
+          if (name === EMAIL_LOGIN_USERS_COLLECTION) {
+            return createCloudBaseTransactionCollection(userCollection);
+          }
+          throw new Error(`Unexpected collection: ${name}`);
+        }
+      }),
+      userCollection
+    });
+    const headers = {
+      "content-type": "application/json",
+      origin: "https://ungraduedu.eu.cc"
+    };
+
+    const sent = await handlers.POST_SEND_CODE(
+      new Request("https://ungraduedu.eu.cc/api/auth/email/send-code", {
+        body: JSON.stringify({ email: "student@example.com" }),
+        headers,
+        method: "POST"
+      })
+    );
+    const loggedIn = await handlers.POST_LOGIN(
+      new Request("https://ungraduedu.eu.cc/api/auth/email/login", {
+        body: JSON.stringify({ code: "123456", email: "student@example.com" }),
+        headers,
+        method: "POST"
+      })
+    );
+    const loginBody = await loggedIn.json();
+    const storedCode = emailCodeCollection.documents.get(hashEmail("student@example.com"));
+
+    expect(sent.status).toBe(200);
+    expect({
+      body: loginBody,
+      cookie: loggedIn.headers.get("set-cookie"),
+      status: loggedIn.status
+    }).toMatchObject({
+      body: { ok: true, value: { emailMasked: "s***t@example.com" } },
+      cookie: expect.stringContaining("ungradu_auth_session="),
+      status: 200
+    });
+    expect(storedCode).not.toHaveProperty("_id");
+    expect(storedCode?.usedAt).toBe("2026-08-20T10:00:00.000Z");
+    expect(codeUpdate).toHaveBeenCalledExactlyOnceWith({
+      usedAt: "2026-08-20T10:00:00.000Z"
     });
   });
 

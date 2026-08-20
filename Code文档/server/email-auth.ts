@@ -380,8 +380,7 @@ export async function verifyEmailLoginCode({
         if (!currentCode || currentCode.usedAt) {
           return createFailure({ request: "验证码已使用，请重新获取" });
         }
-        await txCodes.doc(emailHash).set({
-          ...currentCode,
+        await patchDocument(txCodes, emailHash, {
           usedAt: now.toISOString()
         });
         return verified;

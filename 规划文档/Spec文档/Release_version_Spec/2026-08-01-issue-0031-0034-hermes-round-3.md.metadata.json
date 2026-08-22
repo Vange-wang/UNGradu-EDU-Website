@@ -1,0 +1,16 @@
+{
+  "source": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-01-issue-0031-0034-数据安全与自主内容管理分阶段-spec.md",
+  "source_sha256": "5B59796EA52A55F5F23E9C46A029A04F4E250A6A92A5BCA4F0D7C5D7BE58344E",
+  "report": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-01-issue-0031-0034-hermes-round-3.md",
+  "report_sha256": "73B2BE5BDB4192A866F0F7B36EE20314B50E105EB3665E0100A5622E8C026E3B",
+  "round": "3/3",
+  "model": "deepseek-v4-pro",
+  "hermes_path": "D:\\miniconda\\Scripts\\hermes.exe",
+  "hermes_version": "Hermes Agent v0.18.2 (2026.7.7.2)",
+  "default_model": "deepseek-v4-flash",
+  "default_model_changed": false,
+  "exit_code": 0,
+  "started_at": "2026-08-01T21:54:56.7861706+08:00",
+  "completed_at": "2026-08-01T21:58:02.4577775+08:00",
+  "canonical_source_unchanged": true
+}

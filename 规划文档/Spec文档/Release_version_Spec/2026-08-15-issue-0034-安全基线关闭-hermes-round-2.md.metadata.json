@@ -1,0 +1,16 @@
+{
+  "source": "C:\\Users\\86166\\AppData\\Local\\Temp\\tmpgcnhz0.tmp",
+  "source_sha256": "9AC45A783D65FC470E2D9CF58B95C8B6CB8AD7871413613CCDC3CD23E18563DD",
+  "report": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-15-issue-0034-安全基线关闭-hermes-round-2.md",
+  "report_sha256": "F31EB33F6AA4A5BDB723B7EE3A66E3A8003006624E70C49D4A71DB388AD763FD",
+  "round": "2/3",
+  "model": "deepseek-v4-pro",
+  "hermes_path": "D:\\miniconda\\Scripts\\hermes.exe",
+  "hermes_version": "Hermes Agent v0.18.2 (2026.7.7.2)",
+  "default_model": "deepseek-v4-flash",
+  "default_model_changed": false,
+  "exit_code": 0,
+  "started_at": "2026-08-15T22:12:37.7401302+08:00",
+  "completed_at": "2026-08-15T22:14:39.5921598+08:00",
+  "canonical_source_unchanged": true
+}

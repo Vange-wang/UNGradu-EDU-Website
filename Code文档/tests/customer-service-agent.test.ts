@@ -41,4 +41,48 @@ describe("tutor customer service agent", () => {
     expect(reply.intent).toBe("pricing");
     expect(reply.answer).toContain("不做支付、抽佣或课时费担保");
   });
+
+  it("keeps a general fee-and-payment question on the pricing boundary", () => {
+    const reply = getTutorCustomerServiceReply("课时费和付款怎么处理？");
+
+    expect(reply.intent).toBe("pricing");
+    expect(reply.answer).not.toContain("请问你是家长/学生端");
+    expect(reply.answer).toContain("具体数额");
+  });
+
+  it("combines study details when the parent question is phrased differently", () => {
+    const reply = getTutorCustomerServiceReply("我想给八年级孩子找英语家教，从哪开始？");
+
+    expect(reply.intent).toBe("parent_need");
+    expect(reply.answer).toContain("科目选择“英语”");
+    expect(reply.answer).toContain("学段/年级选择“初二”");
+    expect(reply.answer).toContain("/parent-needs/new");
+    expect(reply.answer).toContain("公开列表不会展示联系方式");
+  });
+
+  it("answers general complaint and false-information policy without forcing a role", () => {
+    const reply = getTutorCustomerServiceReply("平台怎么处理投诉或虚假信息？");
+
+    expect(reply.intent).toBe("feedback");
+    expect(reply.answer).toContain("/feedback");
+    expect(reply.answer).not.toContain("请问你是家长/学生端");
+  });
+
+  it("asks for role and event state before answering a concrete offline dispute", () => {
+    const reply = getTutorCustomerServiceReply("线下发生纠葛怎么办？");
+
+    expect(reply.intent).toBe("risk_handoff");
+    expect(reply.answer).toContain("请问你是家长/学生端");
+    expect(reply.answer).toContain("事情已经发生了吗");
+    expect(reply.answer).not.toContain("应停止或继续付款");
+  });
+
+  it("uses the knowledge fallback to give related facts instead of a bare miss", () => {
+    const reply = getTutorCustomerServiceReply("初二英语怎么匹配？");
+
+    expect(reply.intent).toBe("fallback");
+    expect(reply.answer).toContain("当前未确认");
+    expect(reply.answer).toContain("科目选择“英语”");
+    expect(reply.answer).toContain("/feedback");
+  });
 });

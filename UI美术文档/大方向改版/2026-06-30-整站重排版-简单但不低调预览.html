@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>整站重排版预览 - 简单但不低调</title>
+    <style>
+      :root {
+        --canvas: #f5fafd;
+        --surface: #ffffff;
+        --ink: #111827;
+        --body: #334155;
+        --muted: #64748b;
+        --hairline: #d8e7f0;
+        --sky: #54b6e8;
+        --sky-deep: #0d6f9e;
+        --sky-soft: #e6f6fe;
+        --yellow: #f5c84b;
+        --yellow-soft: #fff3c4;
+        --navy: #102a43;
+        --shadow: 0 16px 36px rgba(16, 42, 67, 0.09);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        background: var(--canvas);
+        color: var(--ink);
+        font-family:
+          Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+      }
+
+      .topbar {
+        align-items: center;
+        background: var(--surface);
+        border-bottom: 1px solid var(--hairline);
+        display: flex;
+        height: 64px;
+        justify-content: space-between;
+        padding: 0 44px;
+        position: sticky;
+        top: 0;
+        z-index: 3;
+      }
+
+      .brand {
+        align-items: center;
+        color: var(--sky-deep);
+        display: flex;
+        font-size: 20px;
+        font-weight: 850;
+        gap: 10px;
+      }
+
+      .brand-icon {
+        background: linear-gradient(135deg, var(--sky), var(--yellow));
+        border-radius: 10px;
+        height: 28px;
+        width: 28px;
+      }
+
+      .nav {
+        display: flex;
+        gap: 22px;
+        font-size: 14px;
+        font-weight: 750;
+      }
+
+      .nav span:last-child {
+        background: var(--sky-soft);
+        border-radius: 999px;
+        color: var(--sky-deep);
+        padding: 8px 13px;
+      }
+
+      .board {
+        margin: 0 auto;
+        max-width: 1240px;
+        padding: 42px 24px 80px;
+      }
+
+      .screen {
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        margin-bottom: 28px;
+        overflow: hidden;
+      }
+
+      .screen-label {
+        align-items: center;
+        background: #fafdff;
+        border-bottom: 1px solid var(--hairline);
+        color: var(--sky-deep);
+        display: flex;
+        font-size: 13px;
+        font-weight: 900;
+        justify-content: space-between;
+        padding: 13px 18px;
+        text-transform: uppercase;
+      }
+
+      .home {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        min-height: 520px;
+      }
+
+      .home-hero {
+        padding: 58px 52px;
+      }
+
+      .kicker {
+        background: var(--yellow-soft);
+        border: 1px solid rgba(245, 200, 75, 0.55);
+        border-radius: 999px;
+        color: #6c520c;
+        display: inline-flex;
+        font-size: 13px;
+        font-weight: 850;
+        padding: 9px 13px;
+      }
+
+      h1 {
+        font-size: 72px;
+        letter-spacing: 0;
+        line-height: 0.98;
+        margin: 22px 0;
+      }
+
+      .lead {
+        color: var(--body);
+        font-size: 18px;
+        line-height: 1.75;
+        margin: 0;
+        max-width: 560px;
+      }
+
+      .role-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 34px;
+      }
+
+      .role-card {
+        border: 1px solid var(--hairline);
+        border-radius: 14px;
+        padding: 20px;
+      }
+
+      .role-card.primary {
+        background: var(--sky);
+        border-color: var(--sky);
+        color: #fff;
+      }
+
+      .role-card h3,
+      .mini-card h3,
+      .result-card h3,
+      .step-card h3 {
+        margin: 0 0 8px;
+      }
+
+      .role-card p {
+        line-height: 1.55;
+        margin: 0;
+      }
+
+      .home-side {
+        background: var(--navy);
+        color: #fff;
+        display: grid;
+        padding: 42px;
+      }
+
+      .home-side h2 {
+        font-size: 34px;
+        line-height: 1.1;
+        margin: 0 0 22px;
+      }
+
+      .flow-row {
+        display: grid;
+        gap: 14px;
+      }
+
+      .flow-item {
+        background: rgba(255, 255, 255, 0.09);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      .flow-item strong {
+        color: var(--yellow);
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .workbench {
+        display: grid;
+        gap: 22px;
+        grid-template-columns: 280px 1fr;
+        padding: 28px;
+      }
+
+      .filter-panel {
+        background: var(--sky-soft);
+        border-radius: 18px;
+        padding: 22px;
+      }
+
+      .filter-panel h2,
+      .panel h2 {
+        margin: 0 0 16px;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .field span {
+        color: var(--body);
+        font-size: 13px;
+        font-weight: 780;
+      }
+
+      .input {
+        background: #fff;
+        border: 1px solid var(--hairline);
+        border-radius: 8px;
+        color: var(--muted);
+        min-height: 42px;
+        padding: 11px 12px;
+      }
+
+      .button {
+        align-items: center;
+        border-radius: 8px;
+        display: inline-flex;
+        font-size: 14px;
+        font-weight: 850;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 16px;
+      }
+
+      .button.primary {
+        background: var(--sky);
+        color: #fff;
+      }
+
+      .button.secondary {
+        background: #fff;
+        border: 1px solid var(--hairline);
+        color: var(--sky-deep);
+      }
+
+      .content-head {
+        align-items: flex-start;
+        display: flex;
+        gap: 18px;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+
+      .content-head h2 {
+        font-size: 34px;
+        line-height: 1.1;
+        margin: 0 0 8px;
+      }
+
+      .content-head p {
+        color: var(--muted);
+        margin: 0;
+      }
+
+      .result-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .result-card,
+      .mini-card,
+      .step-card,
+      .notice-card {
+        background: var(--surface);
+        border: 1px solid var(--hairline);
+        border-radius: 14px;
+        padding: 20px;
+      }
+
+      .meta {
+        color: var(--sky-deep);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.02em;
+      }
+
+      .result-card p,
+      .mini-card p,
+      .step-card p,
+      .notice-card p {
+        color: var(--body);
+        line-height: 1.65;
+        margin: 0;
+      }
+
+      .form-layout {
+        display: grid;
+        gap: 24px;
+        grid-template-columns: 300px 1fr;
+        padding: 28px;
+      }
+
+      .form-aside {
+        background: var(--navy);
+        border-radius: 18px;
+        color: #fff;
+        padding: 26px;
+      }
+
+      .form-aside h2 {
+        font-size: 32px;
+        line-height: 1.1;
+        margin: 0 0 16px;
+      }
+
+      .step-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 24px;
+      }
+
+      .step-pill {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 999px;
+        padding: 10px 12px;
+      }
+
+      .step-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .option-grid {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .option {
+        background: var(--sky-soft);
+        border: 1px solid rgba(84, 182, 232, 0.34);
+        border-radius: 10px;
+        font-weight: 750;
+        padding: 12px;
+      }
+
+      .chat-layout {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: 220px 1fr 290px;
+        min-height: 520px;
+        padding: 28px;
+      }
+
+      .panel {
+        background: #fff;
+        border: 1px solid var(--hairline);
+        border-radius: 16px;
+        padding: 18px;
+      }
+
+      .chat-main {
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+      }
+
+      .bubble {
+        border-radius: 16px;
+        line-height: 1.55;
+        margin: 12px 0;
+        max-width: 76%;
+        padding: 13px 15px;
+      }
+
+      .bubble.other {
+        background: var(--sky-soft);
+      }
+
+      .bubble.own {
+        background: var(--sky);
+        color: #fff;
+        margin-left: auto;
+      }
+
+      .compose {
+        align-items: center;
+        background: var(--sky-soft);
+        border-radius: 14px;
+        display: grid;
+        gap: 12px;
+        grid-template-columns: 1fr auto;
+        padding: 12px;
+      }
+
+      .dashboard {
+        display: grid;
+        gap: 22px;
+        grid-template-columns: 320px 1fr;
+        padding: 28px;
+      }
+
+      .account-card {
+        background: linear-gradient(160deg, var(--sky), var(--sky-deep));
+        border-radius: 18px;
+        color: #fff;
+        padding: 28px;
+      }
+
+      .account-card h2 {
+        font-size: 32px;
+        line-height: 1.1;
+        margin: 0 0 14px;
+      }
+
+      .mini-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .notice-layout {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: 0.9fr 1.1fr;
+        padding: 28px;
+      }
+
+      .notice-title {
+        background: var(--yellow-soft);
+        border-radius: 18px;
+        padding: 28px;
+      }
+
+      .notice-title h2 {
+        font-size: 38px;
+        line-height: 1.1;
+        margin: 0 0 14px;
+      }
+
+      .notice-stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      @media (max-width: 900px) {
+        .topbar,
+        .nav {
+          align-items: flex-start;
+          flex-direction: column;
+          height: auto;
+        }
+
+        .topbar {
+          gap: 14px;
+          padding: 18px 22px;
+        }
+
+        .home,
+        .workbench,
+        .form-layout,
+        .chat-layout,
+        .dashboard,
+        .notice-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .result-grid,
+        .mini-grid,
+        .role-grid,
+        .option-grid {
+          grid-template-columns: 1fr;
+        }
+
+        h1 {
+          font-size: 48px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon"></span>UNGradu EDU</div>
+      <nav class="nav">
+        <span>需求广场</span>
+        <span>家教信息广场</span>
+        <span>规则说明</span>
+        <span>登录 / 注册</span>
+      </nav>
+    </header>
+
+    <main class="board">
+      <section class="screen">
+        <div class="screen-label"><span>01 / 首页 Gateway</span><span>重新组织首屏入口</span></div>
+        <div class="home">
+          <div class="home-hero">
+            <span class="kicker">东莞大学城本地家教 MVP</span>
+            <h1>找家教，先从靠谱沟通开始</h1>
+            <p class="lead">白底承载信息，天蓝负责行动。家长和大学生老师各走自己的入口，先发布、筛选、聊天，再由双方同意交换联系方式。</p>
+            <div class="role-grid">
+              <div class="role-card primary">
+                <h3>我要找家教</h3>
+                <p>发布孩子情况、科目、预算和大致时间。</p>
+              </div>
+              <div class="role-card">
+                <h3>我要做家教</h3>
+                <p>发布可教科目、学段和课时费规则。</p>
+              </div>
+            </div>
+          </div>
+          <aside class="home-side">
+            <h2>四步完成最小闭环</h2>
+            <div class="flow-row">
+              <div class="flow-item"><strong>01 发布</strong>家长和老师分别发布结构化信息。</div>
+              <div class="flow-item"><strong>02 筛选</strong>按科目、学段、价格和性别查看合适对象。</div>
+              <div class="flow-item"><strong>03 聊天</strong>先在站内确认具体上课情况。</div>
+              <div class="flow-item"><strong>04 同意</strong>双方二次确认后才展示联系方式。</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="screen">
+        <div class="screen-label"><span>02 / 广场 Filter Workbench</span><span>需求广场与家教信息广场共用</span></div>
+        <div class="workbench">
+          <aside class="filter-panel">
+            <h2>筛选条件</h2>
+            <div class="field"><span>科目</span><div class="input">数学</div></div>
+            <div class="field"><span>学段</span><div class="input">初中</div></div>
+            <div class="field"><span>预算 / 课时费</span><div class="input">80 - 140 元/小时</div></div>
+            <div class="field"><span>性别偏好</span><div class="input">不限</div></div>
+            <div class="button primary">应用筛选</div>
+          </aside>
+          <div>
+            <div class="content-head">
+              <div>
+                <h2>需求广场</h2>
+                <p>公开详情不展示联系方式，先通过站内聊天沟通。</p>
+              </div>
+              <div class="button primary">发布需求</div>
+            </div>
+            <div class="result-grid">
+              <article class="result-card"><span class="meta">初二 · 数学</span><h3>松山湖附近，周末可上课</h3><p>预算 100-130 元/小时，希望老师耐心，先补基础。</p></article>
+              <article class="result-card"><span class="meta">小学 · 英语</span><h3>大岭山，偏口语练习</h3><p>预算 80-110 元/小时，公开页不展示联系方式。</p></article>
+              <article class="result-card"><span class="meta">高中 · 物理</span><h3>东城附近，可线上沟通</h3><p>希望先通过站内聊天确认时间和教学方式。</p></article>
+              <article class="result-card"><span class="meta">初三 · 化学</span><h3>中考复习，周六下午</h3><p>系统只做撮合，不承诺教学质量保证。</p></article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen">
+        <div class="screen-label"><span>03 / 发布页 Step Form</span><span>长表单拆成分组任务</span></div>
+        <div class="form-layout">
+          <aside class="form-aside">
+            <h2>发布家教需求</h2>
+            <p>把原来的长表单拆成清楚的填写步骤，减少用户心理负担。</p>
+            <div class="step-list">
+              <div class="step-pill">1. 基础偏好</div>
+              <div class="step-pill">2. 科目与学段</div>
+              <div class="step-pill">3. 预算与时间</div>
+              <div class="step-pill">4. 地址与简介</div>
+            </div>
+          </aside>
+          <div class="step-grid">
+            <article class="step-card"><span class="meta">STEP 01</span><h3>选择所需科目</h3><div class="option-grid"><div class="option">语文</div><div class="option">数学</div><div class="option">英语</div><div class="option">物理</div><div class="option">化学</div><div class="option">生物</div></div></article>
+            <article class="step-card"><span class="meta">STEP 02</span><h3>预算和时间</h3><p>预算区间与可上课时间同组呈现，避免用户来回跳读。</p></article>
+            <article class="step-card"><span class="meta">STEP 03</span><h3>孩子简介</h3><p>提示不填写手机号、微信号或门牌号，保持隐私边界。</p></article>
+            <div class="button primary">发布家教需求</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen">
+        <div class="screen-label"><span>04 / 聊天 Conversation Workspace</span><span>把联系方式交换做成独立状态区</span></div>
+        <div class="chat-layout">
+          <aside class="panel">
+            <h2>会话</h2>
+            <p class="meta">来自：初二数学需求</p>
+            <p>当前只支持基础文字沟通。</p>
+          </aside>
+          <section class="panel chat-main">
+            <div><h2>站内聊天</h2><p class="meta">每 3 秒刷新一次</p></div>
+            <div>
+              <div class="bubble other">您好，我想了解一下孩子目前数学基础。</div>
+              <div class="bubble own">可以，主要是函数和几何比较薄弱。</div>
+              <div class="bubble other">那我们先约一次试沟通，确认适配情况。</div>
+            </div>
+            <div class="compose"><div class="input">输入沟通内容，不要直接填写手机号或微信号</div><div class="button primary">发送</div></div>
+          </section>
+          <aside class="panel">
+            <h2>联系方式交换</h2>
+            <p>未完成双方同意和二次确认前，不展示双方联系方式。</p>
+            <div class="notice-card"><span class="meta">当前状态</span><h3>待发起请求</h3><p>请求后，对方同意才可查看。</p></div>
+            <div class="button primary">请求交换联系方式</div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="screen">
+        <div class="screen-label"><span>05 / 个人中心 Account Dashboard</span><span>从链接列表改成控制台</span></div>
+        <div class="dashboard">
+          <aside class="account-card">
+            <h2>个人页面</h2>
+            <p>当前账号：u***@mail.com。同一个账号可同时使用家长端和大学生端能力。</p>
+          </aside>
+          <div class="mini-grid">
+            <article class="mini-card"><span class="meta">CONTACT</span><h3>联系方式管理</h3><p>维护用于授权交换的手机号和微信号。</p></article>
+            <article class="mini-card"><span class="meta">PARENT</span><h3>我发布的需求</h3><p>查看和维护自己发布的家教需求。</p></article>
+            <article class="mini-card"><span class="meta">TUTOR</span><h3>我发布的家教信息</h3><p>查看和维护自己的大学生家教信息。</p></article>
+            <article class="mini-card"><span class="meta">CHAT</span><h3>我的聊天</h3><p>进入自己参与的站内聊天会话。</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen">
+        <div class="screen-label"><span>06 / 规则与反馈 Notice Pages</span><span>不再是一段孤立文字</span></div>
+        <div class="notice-layout">
+          <div class="notice-title">
+            <h2>平台规则 / 风险反馈</h2>
+            <p>用公告式布局承载边界说明，强调当前 MVP 免费上线，不做支付、抽佣和人工仲裁。</p>
+          </div>
+          <div class="notice-stack">
+            <article class="notice-card"><span class="meta">RULE</span><h3>联系方式保护</h3><p>联系方式必须经双方同意并二次确认后展示。</p></article>
+            <article class="notice-card"><span class="meta">FEEDBACK</span><h3>风险与功能反馈</h3><p>当前阶段仅记录和排查反馈，不承诺即时客服或人工介入处理。</p></article>
+            <article class="notice-card"><span class="meta">MVP</span><h3>免费试运行</h3><p>不做支付、抽佣、成交追踪和评价体系。</p></article>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

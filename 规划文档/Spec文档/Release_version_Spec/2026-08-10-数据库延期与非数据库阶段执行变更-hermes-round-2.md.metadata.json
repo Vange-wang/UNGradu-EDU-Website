@@ -1,0 +1,16 @@
+{
+  "source": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-10-数据库延期与非数据库阶段执行变更-spec.md",
+  "source_sha256": "F91DBF5196224CF11122B79A0776A139EC8F2FC0A45DE613FB39E9A3DD9E77A1",
+  "report": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-10-数据库延期与非数据库阶段执行变更-hermes-round-2.md",
+  "report_sha256": "EAE57992A5B7F58FC0817EAC23C4207245BF1EC36F59FEC60B5DE5930B9C80BC",
+  "round": "2/3",
+  "model": "deepseek-v4-pro",
+  "hermes_path": "D:\\miniconda\\Scripts\\hermes.exe",
+  "hermes_version": "Hermes Agent v0.18.2 (2026.7.7.2)",
+  "default_model": "deepseek-v4-flash",
+  "default_model_changed": false,
+  "exit_code": 0,
+  "started_at": "2026-08-10T02:32:37.9098145+08:00",
+  "completed_at": "2026-08-10T02:35:02.4044560+08:00",
+  "canonical_source_unchanged": true
+}

@@ -1,0 +1,16 @@
+{
+  "source": "C:\\Users\\86166\\AppData\\Local\\Temp\\tmpialqbp.tmp",
+  "source_sha256": "5203E5FCBF4D44CC1409AF53A78732BB19211EA95C8AF450E6366DE374E30D67",
+  "report": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-15-issue-0038-联系方式审核文档债务关闭-hermes-round-2.md",
+  "report_sha256": "72A02E04B29DCB2724231E4DD29915F7C706F9408B1333DF9244CA5340F6862A",
+  "round": "2/3",
+  "model": "deepseek-v4-pro",
+  "hermes_path": "D:\\miniconda\\Scripts\\hermes.exe",
+  "hermes_version": "Hermes Agent v0.18.2 (2026.7.7.2)",
+  "default_model": "deepseek-v4-flash",
+  "default_model_changed": false,
+  "exit_code": 0,
+  "started_at": "2026-08-15T22:18:52.2333582+08:00",
+  "completed_at": "2026-08-15T22:24:30.1471464+08:00",
+  "canonical_source_unchanged": true
+}

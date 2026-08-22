@@ -1,0 +1,16 @@
+{
+  "source": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-10-issue-0036-联系方式快速智能审核-spec.md",
+  "source_sha256": "005EA5F2490DC2E43A134BA0421EFBD357179C90E29A6F2AB560F6F61A97B437",
+  "report": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-10-issue-0036-hermes-round-3.md",
+  "report_sha256": "B3749F4C713C743FCF2510B1F7BE0F917B92EE4265D916947FBA8AFB178AE470",
+  "round": "3/3",
+  "model": "deepseek-v4-pro",
+  "hermes_path": "D:\\miniconda\\Scripts\\hermes.exe",
+  "hermes_version": "Hermes Agent v0.18.2 (2026.7.7.2)",
+  "default_model": "deepseek-v4-flash",
+  "default_model_changed": false,
+  "exit_code": 0,
+  "started_at": "2026-08-10T01:12:19.1238999+08:00",
+  "completed_at": "2026-08-10T01:15:46.3234884+08:00",
+  "canonical_source_unchanged": true
+}

@@ -1,1 +1,10 @@
 /nul
+/node_modules/
+/cloudbaserc.json
+/Code文档/cloudbaserc.json
+/Code文档/data/customer-service/audit-records.jsonl
+/Code文档/data/customer-service/conversation-states.json
+/Code文档/data/customer-service/kb-intake.json
+**/.env
+**/.env.*
+!**/.env.example

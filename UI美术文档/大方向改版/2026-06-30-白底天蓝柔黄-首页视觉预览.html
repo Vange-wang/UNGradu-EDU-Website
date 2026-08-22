@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>白底天蓝柔黄 - 首页视觉预览</title>
+    <style>
+      :root {
+        --canvas: #f7fbfe;
+        --surface-card: #ffffff;
+        --primary-sky: #62b8e8;
+        --primary-sky-soft: #e8f6fd;
+        --primary-sky-ink: #186c93;
+        --accent-yellow: #f3c64d;
+        --accent-yellow-soft: #fff7dc;
+        --ink: #182333;
+        --body: #425466;
+        --muted: #6b7a8c;
+        --hairline: #ddeaf2;
+        --shadow-soft: 0 14px 34px rgba(56, 119, 153, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        background: var(--canvas);
+        color: var(--ink);
+        font-family:
+          Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+      }
+
+      .site-header {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.88);
+        border-bottom: 1px solid var(--hairline);
+        display: flex;
+        justify-content: space-between;
+        min-height: 66px;
+        padding: 0 42px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .brand {
+        align-items: center;
+        color: var(--primary-sky-ink);
+        display: inline-flex;
+        font-size: 20px;
+        font-weight: 820;
+        gap: 10px;
+      }
+
+      .brand-mark {
+        align-items: center;
+        background: var(--primary-sky-soft);
+        border: 1px solid rgba(98, 184, 232, 0.42);
+        border-radius: 999px;
+        display: inline-flex;
+        height: 28px;
+        justify-content: center;
+        width: 28px;
+      }
+
+      .brand-mark::before {
+        background: var(--primary-sky);
+        border-radius: 999px;
+        content: "";
+        height: 12px;
+        width: 12px;
+      }
+
+      .top-nav {
+        align-items: center;
+        display: flex;
+        gap: 22px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .top-nav a {
+        color: var(--body);
+        text-decoration: none;
+      }
+
+      .top-nav .login-link {
+        background: var(--primary-sky-soft);
+        border-radius: 999px;
+        color: var(--primary-sky-ink);
+        padding: 9px 14px;
+      }
+
+      .page {
+        margin: 0 auto;
+        max-width: 1160px;
+        padding: 54px 24px 84px;
+      }
+
+      .hero {
+        align-items: center;
+        display: grid;
+        gap: 44px;
+        grid-template-columns: minmax(0, 1.06fr) minmax(330px, 0.94fr);
+        min-height: 610px;
+      }
+
+      .pill {
+        align-items: center;
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 13px;
+        font-weight: 800;
+        gap: 8px;
+        min-height: 34px;
+        padding: 0 12px;
+      }
+
+      .pill.yellow {
+        background: var(--accent-yellow-soft);
+        border: 1px solid rgba(246, 200, 79, 0.58);
+        color: #6e5412;
+      }
+
+      .pill.blue {
+        background: var(--primary-sky-soft);
+        border: 1px solid rgba(98, 184, 232, 0.36);
+        color: var(--primary-sky-ink);
+      }
+
+      h1 {
+        font-size: clamp(44px, 6.5vw, 76px);
+        font-weight: 780;
+        letter-spacing: 0;
+        line-height: 1.02;
+        margin: 0 0 24px;
+      }
+
+      .hero-copy p {
+        color: var(--body);
+        font-size: 18px;
+        line-height: 1.78;
+        margin: 0;
+        max-width: 620px;
+      }
+
+      .action-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 34px;
+      }
+
+      .button {
+        align-items: center;
+        border-radius: 8px;
+        display: inline-flex;
+        font-size: 15px;
+        font-weight: 800;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 20px;
+        text-decoration: none;
+      }
+
+      .button.primary {
+        background: var(--primary-sky);
+        color: #ffffff;
+      }
+
+      .button.secondary {
+        background: #ffffff;
+        border: 1px solid var(--hairline);
+        color: var(--primary-sky-ink);
+      }
+
+      .hero-panel {
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid var(--hairline);
+        border-radius: 12px;
+        box-shadow: var(--shadow-soft);
+        padding: 24px;
+      }
+
+      .panel-header {
+        align-items: flex-start;
+        display: flex;
+        gap: 14px;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+
+      .panel-header h2 {
+        font-size: 22px;
+        line-height: 1.25;
+        margin: 0;
+      }
+
+      .panel-header p {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 8px 0 0;
+      }
+
+      .mini-badge {
+        background: var(--accent-yellow-soft);
+        border: 1px solid rgba(243, 198, 77, 0.48);
+        border-radius: 999px;
+        color: #5d4812;
+        flex: none;
+        font-size: 12px;
+        font-weight: 900;
+        padding: 8px 10px;
+      }
+
+      .flow-list {
+        display: grid;
+        gap: 14px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .flow-list li {
+        align-items: flex-start;
+        background: var(--primary-sky-soft);
+        border: 1px solid rgba(98, 184, 232, 0.26);
+        border-radius: 8px;
+        display: grid;
+        gap: 12px;
+        grid-template-columns: 34px 1fr;
+        padding: 16px;
+      }
+
+      .step-number {
+        align-items: center;
+        background: var(--primary-sky);
+        border-radius: 999px;
+        color: #ffffff;
+        display: inline-flex;
+        font-size: 13px;
+        font-weight: 900;
+        height: 30px;
+        justify-content: center;
+        width: 30px;
+      }
+
+      .flow-list strong {
+        display: block;
+        font-size: 15px;
+        margin-bottom: 3px;
+      }
+
+      .flow-list span span {
+        color: var(--body);
+        display: block;
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      .section-head {
+        align-items: end;
+        display: flex;
+        justify-content: space-between;
+        margin: 8px 0 20px;
+      }
+
+      .section-title {
+        font-size: 32px;
+        line-height: 1.2;
+        margin: 0;
+      }
+
+      .section-caption {
+        color: var(--muted);
+        font-size: 14px;
+        margin: 0;
+      }
+
+      .grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .feature-card {
+        background: var(--surface-card);
+        border: 1px solid var(--hairline);
+        border-radius: 12px;
+        color: inherit;
+        min-height: 180px;
+        padding: 22px;
+        position: relative;
+        text-decoration: none;
+      }
+
+      .feature-card h3 {
+        font-size: 20px;
+        margin: 16px 0 10px;
+      }
+
+      .feature-card p {
+        color: var(--body);
+        line-height: 1.7;
+        margin: 0;
+      }
+
+      .card-label {
+        color: var(--primary-sky-ink);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      @media (max-width: 820px) {
+        .site-header {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 12px;
+          padding: 16px 20px;
+        }
+
+        .top-nav {
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+
+        .page {
+          padding: 34px 18px 64px;
+        }
+
+        .hero {
+          grid-template-columns: 1fr;
+          min-height: auto;
+        }
+
+        .action-row,
+        .button {
+          width: 100%;
+        }
+
+        .section-head {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand"><span class="brand-mark"></span>东莞家教对接</div>
+      <nav class="top-nav" aria-label="顶部导航">
+        <a href="#">需求广场</a>
+        <a href="#">家教信息广场</a>
+        <a href="#">规则说明</a>
+        <a class="login-link" href="#">登录 / 注册</a>
+      </nav>
+    </header>
+
+    <main class="page">
+      <section class="hero">
+        <div class="hero-copy">
+          <h1>东莞大学城家教对接</h1>
+          <p>
+            面向本地家教供需的自助撮合平台。MVP 先打通发布、筛选、聊天和双向同意交换联系方式的核心闭环。
+          </p>
+          <div class="action-row">
+            <a class="button primary" href="#">我要找家教</a>
+            <a class="button secondary" href="#">我要做家教</a>
+            <a class="button secondary" href="#">个人页面</a>
+          </div>
+        </div>
+
+        <aside class="hero-panel" aria-label="平台流程">
+          <div class="panel-header">
+            <div>
+              <h2>一个轻量但完整的撮合闭环</h2>
+              <p>先把核心路径跑通，联系方式在双方同意后再展示。</p>
+            </div>
+            <span class="mini-badge">MVP</span>
+          </div>
+          <ol class="flow-list">
+            <li>
+              <span class="step-number">1</span>
+              <span>
+                <strong>发布信息</strong>
+                <span>家长发布需求，大学生发布个人家教信息。</span>
+              </span>
+            </li>
+            <li>
+              <span class="step-number">2</span>
+              <span>
+                <strong>筛选详情</strong>
+                <span>双方按科目、学段、价格和性别查看合适对象。</span>
+              </span>
+            </li>
+            <li>
+              <span class="step-number">3</span>
+              <span>
+                <strong>站内沟通</strong>
+                <span>先通过基础文字聊天确认具体上课情况。</span>
+              </span>
+            </li>
+            <li>
+              <span class="step-number">4</span>
+              <span>
+                <strong>双向同意</strong>
+                <span>二次确认后才展示双方存档联系方式。</span>
+              </span>
+            </li>
+          </ol>
+        </aside>
+      </section>
+
+      <section aria-labelledby="entry-title">
+        <div class="section-head">
+          <h2 class="section-title" id="entry-title">MVP 入口</h2>
+          <p class="section-caption">白底承载信息，天蓝引导行动。</p>
+        </div>
+        <div class="grid">
+          <a class="feature-card" href="#">
+            <span class="card-label">PARENT NEEDS</span>
+            <h3>需求广场</h3>
+            <p>大学生浏览家长需求，按科目、学段、预算和性别偏好筛选。</p>
+          </a>
+          <a class="feature-card" href="#">
+            <span class="card-label">TUTOR PROFILES</span>
+            <h3>家教信息广场</h3>
+            <p>家长浏览大学生家教信息，查看可教科目、学段和课时费。</p>
+          </a>
+          <a class="feature-card" href="#">
+            <span class="card-label">FEEDBACK</span>
+            <h3>风险与功能反馈</h3>
+            <p>记录联系方式滥用、虚假信息、骚扰和功能异常反馈。</p>
+          </a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

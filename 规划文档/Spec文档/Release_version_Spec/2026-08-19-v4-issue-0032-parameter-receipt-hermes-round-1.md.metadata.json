@@ -1,0 +1,16 @@
+{
+  "source": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-19-v4-issue-0032-parameter-receipt-candidate.md",
+  "source_sha256": "E831907690C8886440268CEC00B9E62C86436FD595BE380B64B33F737DC312D9",
+  "report": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-19-v4-issue-0032-parameter-receipt-hermes-round-1.md",
+  "report_sha256": "F337BFCD501D7A8410D201D387740A939EB8DB6B254CE33F97EA76AF475C12AD",
+  "round": "1/3",
+  "model": "deepseek-v4-pro",
+  "hermes_path": "D:\\miniconda\\Scripts\\hermes.exe",
+  "hermes_version": "Hermes Agent v0.18.2 (2026.7.7.2)",
+  "default_model": "deepseek-v4-flash",
+  "default_model_changed": false,
+  "exit_code": 0,
+  "started_at": "2026-08-19T01:11:35.4148032+08:00",
+  "completed_at": "2026-08-19T01:16:49.6332733+08:00",
+  "canonical_source_unchanged": true
+}

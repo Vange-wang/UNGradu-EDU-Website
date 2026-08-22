@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>四套视觉方向预览</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      background: #e8eef6;
+      color: #172033;
+    }
+    .shot {
+      width: 1440px;
+      min-height: 980px;
+      padding: 34px;
+      background:
+        radial-gradient(circle at 18% 12%, var(--glow-a), transparent 32%),
+        radial-gradient(circle at 82% 4%, var(--glow-b), transparent 30%),
+        linear-gradient(135deg, var(--bg-a), var(--bg-b));
+      overflow: hidden;
+      position: relative;
+    }
+    .mobile-shot {
+      width: 390px;
+      min-height: 844px;
+      padding: 18px;
+    }
+    .shell {
+      min-height: calc(100% - 0px);
+      border: var(--shell-border);
+      border-radius: var(--radius-xl);
+      background: var(--shell);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+    .nav {
+      height: 76px;
+      padding: 0 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: var(--line);
+      background: var(--nav);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 900; font-size: 20px; }
+    .mark {
+      width: 36px; height: 36px; border-radius: var(--radius-sm);
+      display: grid; place-items: center; color: var(--mark-ink);
+      background: var(--accent); font-weight: 950;
+    }
+    .links { display: flex; gap: 24px; color: var(--muted); font-size: 14px; font-weight: 700; }
+    .nav-actions { display: flex; gap: 10px; align-items: center; }
+    .btn {
+      border: 0; border-radius: var(--radius-sm); padding: 12px 18px;
+      font-weight: 850; font-size: 14px; color: var(--button-ink);
+      background: var(--accent); box-shadow: var(--button-shadow);
+    }
+    .btn.secondary {
+      background: var(--soft); color: var(--accent-strong);
+      box-shadow: none; border: var(--soft-border);
+    }
+    .hero { display: grid; grid-template-columns: 1.08fr .92fr; gap: 28px; padding: 42px 44px 24px; }
+    .kicker { color: var(--accent-strong); font-weight: 900; font-size: 14px; margin-bottom: 14px; }
+    h1 { font-size: var(--display); line-height: .98; letter-spacing: 0; margin: 0 0 20px; color: var(--ink); }
+    .lead { font-size: 18px; line-height: 1.75; color: var(--body); max-width: 680px; margin: 0 0 26px; }
+    .role-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .role-card, .panel, .list-card, .mini-card, .chat-card, .phone-card {
+      border: var(--card-border);
+      border-radius: var(--radius-lg);
+      background: var(--card);
+      box-shadow: var(--card-shadow);
+    }
+    .role-card { padding: 22px; min-height: 150px; }
+    .role-card strong { display: block; font-size: 22px; color: var(--ink); margin-bottom: 10px; }
+    .role-card p { color: var(--body); line-height: 1.65; margin: 0 0 18px; }
+    .hero-side { display: grid; gap: 16px; }
+    .panel { padding: 22px; }
+    .panel-title { display:flex; justify-content:space-between; gap: 12px; align-items:center; margin-bottom: 16px; }
+    .panel-title strong { font-size: 19px; }
+    .tag { border-radius: 999px; padding: 7px 11px; background: var(--tag); color: var(--tag-ink); font-weight: 900; font-size: 12px; }
+    .steps { display: grid; gap: 12px; }
+    .step { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; color: var(--body); }
+    .num { height: 34px; border-radius: var(--radius-xs); display:grid; place-items:center; background: var(--accent); color: var(--button-ink); font-weight: 950; }
+    .market { display: grid; grid-template-columns: 280px 1fr 330px; gap: 20px; padding: 12px 44px 44px; }
+    .filter { padding: 20px; background: var(--filter); border: var(--card-border); border-radius: var(--radius-lg); }
+    .filter h2, .section h2 { margin: 0 0 14px; font-size: 22px; color: var(--ink); }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 9px; }
+    .chip { border-radius: 999px; padding: 9px 12px; background: var(--chip); color: var(--chip-ink); font-weight: 750; font-size: 13px; }
+    .field { margin-top: 14px; padding: 13px; border-radius: var(--radius-xs); background: var(--input); border: var(--input-border); color: var(--muted); font-weight: 700; }
+    .list { display: grid; gap: 14px; }
+    .list-card { padding: 18px; display:grid; grid-template-columns: 1fr auto; gap: 12px; }
+    .list-card h3 { margin: 0 0 8px; font-size: 20px; color: var(--ink); }
+    .meta { color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .price { color: var(--accent-strong); font-weight: 950; font-size: 18px; }
+    .side-stack { display: grid; gap: 14px; }
+    .mini-card { padding: 18px; }
+    .mini-card strong { display:block; font-size: 17px; margin-bottom: 9px; color: var(--ink); }
+    .mini-card p { margin: 0; line-height: 1.65; color: var(--body); }
+    .chat-card { padding: 18px; display: grid; gap: 12px; }
+    .message { max-width: 82%; padding: 12px 14px; border-radius: var(--bubble-radius); background: var(--bubble); color: var(--body); line-height: 1.55; }
+    .message.me { justify-self: end; background: var(--accent); color: var(--button-ink); }
+    .contact-state { padding: 14px; border-radius: var(--radius-sm); background: var(--notice); color: var(--notice-ink); font-weight: 780; line-height: 1.55; }
+    .mobile-shot .shell { border-radius: 28px; }
+    .mobile-shot .nav { height: 62px; padding: 0 18px; }
+    .mobile-shot .links, .mobile-shot .nav-actions .secondary { display: none; }
+    .mobile-shot .brand { font-size: 17px; }
+    .mobile-shot .mark { width: 30px; height: 30px; }
+    .mobile-shot .hero { display: block; padding: 24px 18px 16px; }
+    .mobile-shot h1 { font-size: 34px; line-height: 1.05; margin-bottom: 14px; }
+    .mobile-shot .lead { font-size: 14px; line-height: 1.7; margin-bottom: 18px; }
+    .mobile-shot .role-grid { grid-template-columns: 1fr; }
+    .mobile-shot .role-card { min-height: auto; padding: 16px; }
+    .mobile-shot .role-card strong { font-size: 18px; }
+    .mobile-shot .hero-side { margin-top: 14px; }
+    .mobile-shot .market { display: block; padding: 0 18px 22px; }
+    .mobile-shot .filter { margin-bottom: 14px; padding: 15px; }
+    .mobile-shot .list-card { grid-template-columns: 1fr; padding: 15px; }
+    .mobile-shot .side-stack { margin-top: 14px; }
+    .mobile-shot .panel { padding: 16px; }
+    .mobile-shot .chat-card { min-height: 260px; }
+    .style-a {
+      --bg-a:#dff7e9; --bg-b:#f7fff9; --glow-a:rgba(88,208,137,.46); --glow-b:rgba(242,255,209,.75);
+      --shell:rgba(255,255,255,.62); --shell-border:1px solid rgba(255,255,255,.76); --nav:rgba(255,255,255,.54);
+      --ink:#123129; --body:#36554d; --muted:#668079; --accent:#35c982; --accent-strong:#087447; --button-ink:#06251a;
+      --soft:rgba(255,255,255,.58); --soft-border:1px solid rgba(15,117,74,.18); --line:1px solid rgba(65,135,97,.16);
+      --card:rgba(255,255,255,.54); --card-border:1px solid rgba(255,255,255,.72); --card-shadow:0 20px 60px rgba(22,94,62,.14);
+      --shadow:0 28px 90px rgba(31,107,75,.22); --button-shadow:0 14px 30px rgba(53,201,130,.28);
+      --radius-xl:34px; --radius-lg:26px; --radius-sm:16px; --radius-xs:12px; --display:62px;
+      --tag:#ecffd8; --tag-ink:#31610d; --filter:rgba(232,255,240,.62); --chip:#efffed; --chip-ink:#1e6145;
+      --input:rgba(255,255,255,.58); --input-border:1px solid rgba(19,116,73,.14); --bubble:#eefbf2; --bubble-radius:18px 18px 18px 6px;
+      --notice:#f4ffe8; --notice-ink:#245d28; --mark-ink:#05251a;
+    }
+    .style-b {
+      --bg-a:#08213a; --bg-b:#eafcff; --glow-a:rgba(22,205,223,.34); --glow-b:rgba(146,255,231,.54);
+      --shell:rgba(255,255,255,.84); --shell-border:1px solid rgba(13,91,116,.18); --nav:rgba(240,255,255,.86);
+      --ink:#082035; --body:#2b4b5d; --muted:#66808d; --accent:#11c6d7; --accent-strong:#00758c; --button-ink:#052229;
+      --soft:#e9fbff; --soft-border:1px solid rgba(5,129,148,.16); --line:1px solid rgba(2,97,123,.12);
+      --card:rgba(255,255,255,.9); --card-border:1px solid rgba(0,151,172,.16); --card-shadow:0 18px 44px rgba(0,72,104,.15);
+      --shadow:0 30px 85px rgba(3,42,73,.28); --button-shadow:0 16px 28px rgba(17,198,215,.26);
+      --radius-xl:22px; --radius-lg:18px; --radius-sm:12px; --radius-xs:9px; --display:58px;
+      --tag:#09243d; --tag-ink:#91fff1; --filter:#e6fbff; --chip:#d9f9ff; --chip-ink:#07566a;
+      --input:#f8feff; --input-border:1px solid rgba(0,112,142,.16); --bubble:#eafcff; --bubble-radius:14px 14px 14px 4px;
+      --notice:#08243d; --notice-ink:#cafff3; --mark-ink:#052229;
+    }
+    .style-c {
+      --bg-a:#eef3ff; --bg-b:#f8edff; --glow-a:rgba(94,132,255,.45); --glow-b:rgba(196,103,255,.34);
+      --shell:#f5f7ff; --shell-border:1px solid rgba(110,118,190,.16); --nav:#f8f9ff;
+      --ink:#18204b; --body:#4f5680; --muted:#747aa2; --accent:linear-gradient(135deg,#4776ff,#9b5cff); --accent-strong:#4f46e5; --button-ink:#fff;
+      --soft:#eef1ff; --soft-border:1px solid rgba(93,94,199,.18); --line:1px solid rgba(100,107,181,.12);
+      --card:#f7f8ff; --card-border:1px solid rgba(255,255,255,.9); --card-shadow:10px 10px 24px rgba(104,111,166,.18), -10px -10px 24px rgba(255,255,255,.9);
+      --shadow:18px 18px 60px rgba(101,108,170,.22), -18px -18px 60px rgba(255,255,255,.88); --button-shadow:0 18px 32px rgba(93,86,229,.28);
+      --radius-xl:30px; --radius-lg:24px; --radius-sm:18px; --radius-xs:14px; --display:60px;
+      --tag:#fff2c7; --tag-ink:#7a4d00; --filter:#f4f6ff; --chip:#ebeefe; --chip-ink:#4c55aa;
+      --input:#f9faff; --input-border:1px solid rgba(96,106,189,.12); --bubble:#eef1ff; --bubble-radius:20px 20px 20px 8px;
+      --notice:#eeeaff; --notice-ink:#3b2e8f; --mark-ink:#fff;
+    }
+    .style-d {
+      --bg-a:#fff341; --bg-b:#6ce7ff; --glow-a:rgba(255,95,31,.46); --glow-b:rgba(17,17,17,.12);
+      --shell:#fffdf2; --shell-border:4px solid #101010; --nav:#fffdf2;
+      --ink:#101010; --body:#222; --muted:#555; --accent:#ff5f1f; --accent-strong:#101010; --button-ink:#101010;
+      --soft:#ffffff; --soft-border:3px solid #101010; --line:3px solid #101010;
+      --card:#ffffff; --card-border:3px solid #101010; --card-shadow:8px 8px 0 #101010;
+      --shadow:12px 12px 0 #101010; --button-shadow:5px 5px 0 #101010;
+      --radius-xl:24px; --radius-lg:18px; --radius-sm:12px; --radius-xs:10px; --display:60px;
+      --tag:#101010; --tag-ink:#fff341; --filter:#baff4d; --chip:#fff341; --chip-ink:#101010;
+      --input:#ffffff; --input-border:3px solid #101010; --bubble:#fff341; --bubble-radius:18px 18px 18px 2px;
+      --notice:#101010; --notice-ink:#fff; --mark-ink:#101010;
+    }
+    .style-d h1 { text-shadow: 4px 4px 0 #fff; }
+    .illustration {
+      height: 128px; border: var(--card-border); border-radius: var(--radius-lg);
+      background:
+        linear-gradient(120deg, transparent 56%, rgba(255,255,255,.42) 57%),
+        var(--accent);
+      box-shadow: var(--card-shadow);
+      position: relative; overflow: hidden; margin-top: 14px;
+    }
+    .illustration::before {
+      content:"找老师"; position:absolute; left:22px; top:22px; font-size:28px; font-weight:950; color:var(--button-ink);
+    }
+    .illustration::after {
+      content:"做家教"; position:absolute; right:20px; bottom:18px; padding:10px 14px; border-radius:999px; background:var(--card); border:var(--card-border); font-weight:950;
+    }
+  </style>
+</head>
+<body>
+  <template id="desktop-template">
+    <div class="shell">
+      <div class="nav">
+        <div class="brand"><div class="mark">家</div><span>家教对接</span></div>
+        <div class="links"><span>找老师</span><span>做家教</span><span>规则</span><span>反馈</span></div>
+        <div class="nav-actions"><button class="btn secondary">登录 / 注册</button><button class="btn">发布需求</button></div>
+      </div>
+      <section class="hero">
+        <div>
+          <div class="kicker">双方同意后再交换联系方式</div>
+          <h1>让家长和大学生家教更快对上合适需求</h1>
+          <p class="lead">平台先帮助双方展示需求、筛选信息、站内沟通和记录意向。公开页面不展示联系方式，也不承诺认证、担保或交易服务。</p>
+          <div class="role-grid">
+            <div class="role-card"><strong>家长 / 学生找老师</strong><p>填写科目、学段、区域和期望时间，先在站内沟通，再决定是否交换联系方式。</p><button class="btn">发布找老师需求</button></div>
+            <div class="role-card"><strong>大学生做家教</strong><p>提交可教科目、上课方式、空闲时间和自我介绍，等待合适需求主动咨询。</p><button class="btn secondary">发布家教信息</button></div>
+          </div>
+        </div>
+        <div class="hero-side">
+          <div class="panel">
+            <div class="panel-title"><strong>本次撮合流程</strong><span class="tag">MVP 试运行</span></div>
+            <div class="steps">
+              <div class="step"><div class="num">1</div><div><b>发布信息</b><br>家长发需求，老师发资料。</div></div>
+              <div class="step"><div class="num">2</div><div><b>广场筛选</b><br>按科目、区域、上课方式查找。</div></div>
+              <div class="step"><div class="num">3</div><div><b>站内沟通</b><br>先聊目标、时间和预算。</div></div>
+              <div class="step"><div class="num">4</div><div><b>同意交换</b><br>双方确认后才显示联系方式。</div></div>
+            </div>
+          </div>
+          <div class="illustration"></div>
+        </div>
+      </section>
+      <section class="market">
+        <aside class="filter">
+          <h2>需求广场筛选</h2>
+          <div class="chip-row"><span class="chip">小学数学</span><span class="chip">初中英语</span><span class="chip">线上课</span><span class="chip">周末</span></div>
+          <div class="field">区域：海淀 / 朝阳 / 线上</div>
+          <div class="field">预算：80-150 元/小时</div>
+          <div class="field">状态：可沟通</div>
+        </aside>
+        <div class="list">
+          <div class="list-card"><div><h3>初二数学，周末线下巩固基础</h3><div class="meta">家长需求 · 北京海淀 · 每周 1-2 次 · 希望大学生家教耐心讲题</div></div><div class="price">120/小时</div></div>
+          <div class="list-card"><div><h3>英语口语陪练，线上晚间沟通</h3><div class="meta">学生需求 · 线上 · 晚 8 点后 · 先站内确认学习目标</div></div><div class="price">90/小时</div></div>
+          <div class="list-card"><div><h3>大学生家教：数学 / 物理</h3><div class="meta">老师资料 · 可教初高中 · 支持线上与地铁沿线线下</div></div><div class="price">100 起</div></div>
+        </div>
+        <div class="side-stack">
+          <div class="mini-card"><strong>个人中心</strong><p>管理我的需求、我的家教信息、我的聊天和联系方式。公开页不会展示手机号或微信。</p></div>
+          <div class="chat-card">
+            <strong>站内沟通</strong>
+            <div class="message">您好，我想了解周末是否方便试聊学习目标？</div>
+            <div class="message me">可以，先在这里确认科目和时间。</div>
+            <div class="contact-state">联系方式状态：双方同意后可交换。当前未公开。</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </template>
+  <template id="mobile-template">
+    <div class="shell">
+      <div class="nav">
+        <div class="brand"><div class="mark">家</div><span>家教对接</span></div>
+        <div class="nav-actions"><button class="btn">发布</button></div>
+      </div>
+      <section class="hero">
+        <div class="kicker">先沟通，再交换联系方式</div>
+        <h1>找老师和做家教都从站内开始</h1>
+        <p class="lead">发布需求、浏览广场、站内聊天。手机号和微信不会出现在公开页面。</p>
+        <div class="role-grid">
+          <div class="role-card"><strong>我要找老师</strong><p>填写科目、学段、区域和时间。</p><button class="btn">发布需求</button></div>
+          <div class="role-card"><strong>我要做家教</strong><p>填写可教科目、空闲时间和介绍。</p><button class="btn secondary">发布资料</button></div>
+        </div>
+      </section>
+      <section class="market">
+        <aside class="filter">
+          <h2>广场筛选</h2>
+          <div class="chip-row"><span class="chip">初中英语</span><span class="chip">线上</span><span class="chip">周末</span></div>
+        </aside>
+        <div class="list">
+          <div class="list-card"><div><h3>初二数学基础巩固</h3><div class="meta">海淀 · 周末 · 先站内沟通</div></div><div class="price">120/小时</div></div>
+          <div class="list-card"><div><h3>大学生家教：数学物理</h3><div class="meta">可线上 · 可线下 · 双方同意后交换联系方式</div></div><div class="price">100 起</div></div>
+        </div>
+        <div class="side-stack">
+          <div class="chat-card">
+            <strong>聊天详情</strong>
+            <div class="message">我想先确认上课时间。</div>
+            <div class="message me">可以，周六下午方便。</div>
+            <div class="contact-state">当前联系方式未公开</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </template>
+  <script>
+    const styles = [
+      ["style-a-green-glass-desktop", "style-a", "desktop-template", "绿色玻璃拟态"],
+      ["style-a-green-glass-mobile", "style-a mobile-shot", "mobile-template", "绿色玻璃拟态"],
+      ["style-b-cyan-coach-desktop", "style-b", "desktop-template", "青蓝玻璃卡片"],
+      ["style-b-cyan-coach-mobile", "style-b mobile-shot", "mobile-template", "青蓝玻璃卡片"],
+      ["style-c-blue-purple-neumorphism-desktop", "style-c", "desktop-template", "蓝紫渐变轻拟态"],
+      ["style-c-blue-purple-neumorphism-mobile", "style-c mobile-shot", "mobile-template", "蓝紫渐变轻拟态"],
+      ["style-d-bold-illustration-desktop", "style-d", "desktop-template", "高对比插画潮玩"],
+      ["style-d-bold-illustration-mobile", "style-d mobile-shot", "mobile-template", "高对比插画潮玩"]
+    ];
+    for (const [id, cls, tpl] of styles) {
+      const root = document.createElement("main");
+      root.id = id;
+      root.className = `shot ${cls}`;
+      root.appendChild(document.getElementById(tpl).content.cloneNode(true));
+      document.body.appendChild(root);
+    }
+  </script>
+</body>
+</html>

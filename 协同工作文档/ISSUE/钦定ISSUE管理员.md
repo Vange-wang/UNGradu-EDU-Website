@@ -1,6 +1,6 @@
 ﻿# 钦定 ISSUE 管理员
 
-更新日期：2026-06-25
+更新日期：2026-08-11
 
 适用对象：后续被指定为“ISSUE 管理员”的 Agent 会话线程。
 
@@ -9,13 +9,16 @@
 | 字段 | 内容 |
 | --- | --- |
 | Agent 名称 | ISSUE 管理员 Agent |
+| Agent 版本 | v2.3.2 |
 | 专业身份 | Issue Documentation / Issue 状态维护负责人 |
-| 会话 ID | `019efca8-c8bf-76a1-a4a7-90c7b0469f6e` |
+| 会话 ID | `019fefa7-af55-75c3-9cea-da6e548d7002` |
+| 线程标题 | `ISSUE管理员v2.3.2` |
+| 模型配置 | `gpt-5.6-luna / max` |
 | 责任定位 | 登记、编号、归档、通知、状态维护和闭环追踪 Issue |
 | 负责文档 | `协同工作文档/ISSUE/` 下的 Issue 文档 |
 | 工作日志 | `协同工作文档/ISSUE/ISSUE管理员工作记录.md` |
 | 产出目录 | `协同工作文档/ISSUE/Issue_List/`、`协同工作文档/ISSUE/Open_Issue/`、`协同工作文档/ISSUE/Close_Issue/` |
-| 当前状态 | 已注册，等待正式 Issue 输入 |
+| 当前状态 | v2.3.2 已正式绑定，为当前 ISSUE 管理员入口；workflow 为 `WORKFLOW_ACTIVE`，不是完成态 |
 
 ## 1.1 别名识别
 
@@ -169,6 +172,16 @@ Git 提交是 Issue 闭环的一部分。
 ## 12. 当前接入状态
 
 - ISSUE 管理员 Agent 已完成身份注册。
-- 会话 ID 已绑定为 `019efca8-c8bf-76a1-a4a7-90c7b0469f6e`。
-- 当前尚未接收正式 Issue 包。
-- 后续收到 Issue 时，优先建立 `Issue_List` 总表和对应 Open/Close Issue 文件。
+- 当前版本：ISSUE 管理员 Agent v2.3.2。
+- 当前唯一会话 ID 为 `019fefa7-af55-75c3-9cea-da6e548d7002`，线程标题为 `ISSUE管理员v2.3.2`，模型配置为 `gpt-5.6-luna / max`。
+- 旧会话 ID `019fad18-e126-75a1-948a-055914cad0ab`（v2.3.0）已改为历史归档，不再接收新任务。
+- 历史会话 ID：`019f70ed-54b6-77b3-88a4-aa78c7600087`（v2.2.0）、`019f2319-3809-73c2-81de-1899fc3b92a3`（v2.1.0）与 `019f0d74-8e93-7242-b6fb-910d8e2e7d71`，均仅作归档，不再接收新任务。
+- 当前 workflow：`WORKFLOW_ACTIVE`，不是 `WORKFLOW_COMPLETE`。
+- 当前 Active Open 精确为：`ISSUE-0031`、`ISSUE-0032`、`ISSUE-0034`、`ISSUE-0035`、`ISSUE-0036`、`ISSUE-0038`、`ISSUE-0040`、`ISSUE-0041`、`ISSUE-0042`、`ISSUE-0043`、`ISSUE-0044`、`ISSUE-0045`。
+- 状态分别保持：`0031 open / USER_CONFIRMATION_PENDING`；`0032 open / USER_CONFIRMATION_PENDING`；`0034 open / TECH_REVIEW_PASS`；`0035 open / NON_BLOCKING_DOCUMENT_REVIEW`；`0036 open / USER_CONFIRMATION_PENDING`；`0038 open / NON_BLOCKING_DOCUMENT_REVIEW`。
+- 本批新增状态：`0040`、`0041`、`0042`、`0043`、`0044`、`0045` 均为 `open / NON_BLOCKING_DOCUMENT_REVIEW`；仅登记 V3-V7 Hermes Round 1 的 NON_SERIOUS 与直接缺失验收项，不改变原 Issue 状态。
+- `ISSUE-0020` 已由 `open / EXTERNAL_BLOCKED` 迁移为 `closed / WORKFLOW_COMPLETE`（仅 Issue 自身）；Contract B 仍为 `HARD_CUT_FUNCTIONAL_PASS_WITH_EXECUTION_DEVIATION`，CloudBase DeployId=`055`，Worker 短版本=`e72e0119`，七项残余风险均登记为 `ACCEPTED_RESIDUAL_RISK`。
+- `ISSUE-0020` 的关闭不改写为完全合规或真实反向回滚已演练，不扩展为项目总 workflow 完成；数据库与涉及付费的动作继续延期。
+- 本次重绑定不执行 Issue canonical 或 Issue 总表状态流转；不得将重绑定写成 Issue 关闭、部署或业务验收。
+- ISSUE-0044 已追加 V6 Hermes Round 2 的 N-08，状态仍为 open / NON_BLOCKING_DOCUMENT_REVIEW；Round 2 的 S-03 保持由 Document QA 处理，未降级。
+- 唯一下一步：项目总负责人等待 Document QA 完成 S-03 等 SERIOUS 整改后执行 V6 Hermes Round 3；Active Open 仍精确为 12 项，不新增编号。

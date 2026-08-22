@@ -1,0 +1,16 @@
+{
+  "source": "C:\\Users\\86166\\AppData\\Local\\Temp\\tmprckjx2.tmp",
+  "source_sha256": "259AC105D0020BCF77A841E34A6AEFC8CFD25F290803F0C908361E8B5B7FCFB2",
+  "report": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-15-issue-0036-联系方式审核关闭-hermes-round-2.md",
+  "report_sha256": "E429C6D46D1ADE039729CB86AC2AD8B444A89B434A40592509EF23428D683001",
+  "round": "2/3",
+  "model": "deepseek-v4-pro",
+  "hermes_path": "D:\\miniconda\\Scripts\\hermes.exe",
+  "hermes_version": "Hermes Agent v0.18.2 (2026.7.7.2)",
+  "default_model": "deepseek-v4-flash",
+  "default_model_changed": false,
+  "exit_code": 0,
+  "started_at": "2026-08-15T22:15:14.9958498+08:00",
+  "completed_at": "2026-08-15T22:18:17.4171246+08:00",
+  "canonical_source_unchanged": true
+}

@@ -27,6 +27,17 @@ describe("customer service knowledge delivery docs", () => {
     expect(content).toContain("风险与功能反馈");
   });
 
+  it("ships the active v2.2 knowledge source with identity and fallback rules", () => {
+    const content = readDoc("ungradu-customer-service-knowledge-base-v2.md");
+
+    expect(content).toContain("CS-KB-UNGRADU-V2.2-2026-08-13");
+    expect(content).toContain("最高优先级身份确认规则");
+    expect(content).toContain("不能只回复“没有找到确切答案”");
+    expect(content).toContain("初二属于初中年级");
+    expect(content).toContain("平台当前不提供在线支付");
+    expect(content).toContain("/feedback");
+  });
+
   it("ships a Dify system prompt that protects privacy and escalation boundaries", () => {
     const content = readDoc("ungradu-customer-service-system-prompt.md");
 
@@ -52,5 +63,8 @@ describe("customer service knowledge delivery docs", () => {
     expect(tests).toContain("智能客服");
     expect(tests).toContain("不担保");
     expect(tests).toContain("不仲裁");
+    expect(setup).toContain("CS-KB-UNGRADU-V2.2-2026-08-13");
+    expect(setup).toContain("不调用 GPT、Dify API 或其他模型");
+    expect(setup).toContain("CloudBase Run");
   });
 });

@@ -6,8 +6,11 @@
 
 - MVP 业务范围固定入口：`规划文档/Spec文档/2026-06-19-mvp-家教对接平台-spec.md`
 - MVP 发布前收口固定入口：`规划文档/Spec文档/MVP_version_Spec/2026-06-24-mvp-发布前收口与架构治理-spec.md`
+- 发布阶段 S1 完成与 S2+ 后续规划固定入口：`规划文档/Spec文档/Release_version_Spec/2026-06-29-release-s1-发布阶段-spec.md`
 
 说明：`MVP_version_Spec/` 用于存放 MVP 相关版本 Spec 与核验材料；根目录保留 2026-06-19 MVP Spec 固定入口，保证历史里程碑、AGENTS 和开发员交接文档中的引用继续可读。
+
+说明：`Release_version_Spec/` 用于存放正式发布、生产试运行、发布收口、运行观察和公开推广前评审相关 Spec。当前口径为：S1 已完成，后续从 S2 开始规划。
 
 ## 推荐结构
 

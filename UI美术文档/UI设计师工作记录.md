@@ -1009,3 +1009,1034 @@
 - 本 UI 复验不阻塞后续既定门禁，但不代表生产、配置、Issue 或业务方验收通过。
 - 生产未触碰。
 - 唯一下一步：项目总负责人接收本 UI 复验结论，并按既有职责链继续其余独立产品 / Issue / 部署门禁；任何生产动作仍需单独授权与证据。
+
+## 2026-07-29
+
+### UI 设计师 Agent v2.3.0 正式重绑定与预览连续性接管
+
+类型：会话迁移 / 角色重新注册 / 预览冻结方案接续
+
+维护文件：
+
+- `协同工作文档/AGENT身份注册信息/UI设计师Agent-019fad1d-872b-7271-8c8b-6d4b87e3dd4f.md`
+- `协同工作文档/AGENT身份注册信息/UI设计师Agent-019f70ed-f088-77e1-8bdc-bede547e5231.md`
+- `协同工作文档/AGENT身份注册信息/AGENT注册状态总览.md`
+- `协同工作文档/协同工作总览.md`
+- `UI美术文档/钦定UI设计师.md`
+- `UI美术文档/UI设计师Agent身份注册信息.md`
+- `UI美术文档/UI设计师工作记录.md`
+
+绑定与连续性：
+
+- 根据业务方正式授权，将会话 ID `019fad1d-872b-7271-8c8b-6d4b87e3dd4f`、线程标题 `UI设计师v2.3.0` 绑定为当前唯一 UI 设计师入口。
+- 旧线程 `019f70ed-f088-77e1-8bdc-bede547e5231` 已完成本轮预览并达到 `UI_PREVIEW_READY`，现仅作 v2.2.0 历史归档，不再接收新任务。
+- 已确认并接续两张临时预览：
+  - `C:\Users\86166\AppData\Local\Temp\site-ux-preview-20260729-001\site-ux-preview-desktop-1536x1152.png`
+  - `C:\Users\86166\AppData\Local\Temp\site-ux-preview-20260729-001\site-ux-preview-mobile-390x1120.png`
+
+业务方冻结方案：
+
+- 业务方已选择方案 B，`BUSINESS_PREVIEW_CONFIRMATION` 已通过。
+- 个人中心头图仍在五个功能框的卡片区域上方。
+- 五卡区域内部，`我的聊天` 位于最上方第一行并横跨两列；下面四张卡按 `2 × 2` 对齐。
+- 移动端将 `我的聊天` 排在第一，其余卡片单列。
+- 聊天卡使用低饱和 `#C9D3C5`。
+- 统一导航桌面高度 `72px`、移动端高度 `64px`；最左返回键保留舒适 margin。
+
+workflow 与门禁：
+
+- 当前状态：`WORKFLOW_ACTIVE / CONTINUE_TRACKING`。
+- 已通过：旧线程 `UI_PREVIEW_READY`；方案 B 的 `BUSINESS_PREVIEW_CONFIRMATION`。
+- 未通过：代码实现、开发验证、受影响回归、v2.3.0 本线程独立 UI 复核、生产桌面/移动端复测、业务方最终验收、相关 Issue 闭环。
+- 唯一下一步：项目总负责人将冻结方案路由给当前注册代码开发员执行限定实现与验证；开发回执完成后，本线程进行独立 UI 复核。
+
+权限与范围：
+
+- 本次仅维护业务方明确授权的 7 份 UI 注册与连续性文件。
+- 未修改业务代码、测试、Spec 或 Issue canonical。
+- 未运行 npm、Git mutation 或部署命令，未创建任务或 subagent。
+
+### ISSUE-0024 / ISSUE-0025 / ISSUE-0028 独立 UI 复核
+
+任务 ID：`SITE-UX-INDEPENDENT-REVIEW-20260729-001`
+
+类型：独立 UI 复核 / `UI_REWORK_REQUIRED`
+
+目标与边界：
+
+- 复核工作树：`D:\codex_project\家教对接website-V2-nav-profile-20260729`
+- 分支：`V2-unified-navigation-responsive-profile-20260729`
+- 复核时 `HEAD`：`980421613fc5b15ea36d031beeadb0c97c02429b`，与给定基线一致。
+- 仅只读检查未提交实现；未修改代码、测试、Issue、Spec、部署或分支，未执行 Git mutation。
+- 浏览器截图仅在复核会话中采集和回传；受本任务写入边界约束，未另行落盘截图文件。
+
+复核方法与视口：
+
+- 使用已构建本地产物，通过 `127.0.0.1` 临时只读服务检查；未访问生产账号或生产数据。
+- 通过应用内 Browser 检查匿名首页、登录页、返回箭头交互和截图。
+- 应用内 Browser 的只读页面脚本环境不提供 `fetch`，因此个人中心改用全新无痕系统 Chrome 上下文和仅本机非敏感临时会话复核；未安装缺失的 Playwright 浏览器。
+- 核心视口：`1280×800`、`1920×1080`、`390×844`。
+- 路由矩阵：`/`、`/login`、`/rules`、`/customer-service`、`/feedback`、`/parent-needs/new`、`/tutor-profiles/new`、`/parent-needs`、`/tutor-profiles`、`/profile`；在 `1280×800` 和 `390×844` 各检查一次。
+
+冻结验收逐条结论：
+
+1. `PASS`：首页返回箭头为 0；其余 9 个适用内页均恰有 1 个 `aria-label="返回首页"` 箭头，位于 Header 内，Header 外为 0。登录页已实际点击该箭头并返回首页，返回后箭头为 0。
+2. `UI_REWORK_REQUIRED`：Header 高度和返回键几何符合冻结值，但移动端辅助导航发生隐藏横向溢出和文字裁切。桌面 Header 为 `72px`，返回键 `x=24 / 48×48`；移动 Header 为 `64px`，返回键 `x=12 / 40×40`；黄色品牌方块和 `UNGradu EDU` 均可见。偏差详见下方完整返工批次。
+3. `PASS`：登录页在 `1280×800`、`1920×1080`、`390×844` 均无文档级横向溢出，输入框、验证码与按钮矩形均位于登录卡片内部。`1280×800` 时卡片 `x=649, width=552`，控件范围约为 `x=696–1154`；`1920×1080` 时卡片 `x=976.5, width=688.5`，控件约为 `x=1023.5–1618`；`390×844` 时卡片 `x=14, width=347`，控件约为 `x=37–338`。
+4. `PASS`：首页 `1280×800` 两列卡片等宽，单卡宽约 `267.5px`；`1920×1080` 单卡宽约 `454.5px`；左右边界一致。`390×844` 为单列、单卡宽约 `347px`，无文档级横向溢出。
+5. `PASS`：个人中心头图 / 账户管理头部区域仍在五卡区域上方。`1920×1080` 时头部区域底部约 `409.203px`，卡片区顶部约 `451.203px`；`我的聊天` 为第一张卡，`x≈685.234, y≈451.203, width≈692.766`，`grid-column: 1 / -1`，背景实测 `rgb(201, 211, 197)`，即 `#C9D3C5`；下方四卡为两行、每行两张。`390×844` 时头部区域底部约 `981.047px`，卡片区顶部约 `1023.047px`；五卡均为单列 `x=16, width=358`，聊天卡第一。粗黑描边、硬阴影和排版风格保持一致。
+6. `PASS_WITH_FINDING`：三个必检视口及上述页面已完成截图或 DOM 几何记录；唯一视觉偏差为第 2 条移动 Header 辅助导航隐藏横向溢出。
+
+完整 UI 返工批次：
+
+- `SERIOUS-1 / 移动 Header 隐藏横向滚动与文字裁切`：`390px` 下 `.site-header .top-nav` 使用 `overflow-x: auto` 且隐藏滚动条，内容宽度超过可见区域。
+- 首页 `.top-nav` 为 `clientWidth=179, scrollWidth=209`，隐藏溢出 `30px`；初始截图中“规则”被截断。手势横移到 `scrollLeft=30` 后“规则”可见，但左侧登录文字反被裁切。
+- 登录页为 `clientWidth=131, scrollWidth=209`，隐藏溢出 `78px`。
+- 个人中心为 `clientWidth=146, scrollWidth=261`，隐藏溢出 `115px`。
+- 该实现与已确认移动预览中仅保留返回箭头（内页）和品牌的视觉方向，以及“移动不挤压 / 不溢出”的冻结要求不一致；隐藏手势还带来导航可发现性和无障碍风险。
+
+最小返工要求：
+
+1. 在 `≤720px` 消除隐藏横向溢出和截断标签，同时保留 `64px` Header、`x=12 / 40×40` 返回箭头以及完整可见的品牌方块和品牌文字。
+2. 优先按已确认移动预览仅显示返回箭头（内页）和品牌；若保留辅助导航，必须改为明确、可发现、可访问的紧凑菜单，并先取得业务方对该偏离方案的确认，不得继续使用无提示的横向滚动。
+3. 增补或扩展渲染几何断言：`390px` 下可见 `.top-nav` 必须满足 `scrollWidth <= clientWidth`；若采用冻结预览方案，则移动端不渲染或隐藏该辅助导航。首页、登录页、个人中心截图均不得出现文字裁切。
+4. 返工后重跑 10 路由在 `1280×800` 与 `390×844` 的矩阵，并复核首页、登录页、个人中心在 `1920×1080` 的回归。
+
+残余风险与外部门禁：
+
+- 本地数据环境未配置真实 CloudBase / 运行时数据，`/api/feedback`、`/api/parent-needs`、`/api/tutor-profiles` 在本次临时服务返回 `500`。该环境问题未改变本轮 Header 和布局几何事实，但对应数据态视觉仍需在具备合法测试夹具的后续环境复核。
+- 保留上游已知非 UI 门禁：全量测试 `254/255`，唯一失败源于隔离工作树缺少 5 份范围外、未跟踪的 S2 运维文档；不得通过复制或伪造文档绕过。
+- 未 commit、未 push、未 deploy；当前不允许进入 commit / push 准备。
+
+最终结论：
+
+- `UI_REWORK_REQUIRED`。
+- 当前 workflow：`WORKFLOW_ACTIVE / UI_REWORK_REQUIRED`。
+- 未通过门禁：移动 Header 返工、返工后开发验证、本线程独立 UI 复验、全量测试外部夹具阻塞、commit / push、部署 / 生产证据、相关 Issue 闭环及业务方最终验收。
+- 唯一下一步：原代码开发员在同一目标工作树 / 分支按上述完整批次修复移动 Header，并回传新的 `390px` 首页、登录页、个人中心截图与 DOM 几何及规定回归结果；随后由本 UI 线程执行定向独立复验。
+
+### 移动 Header 返工定向 UI 复验
+
+任务 ID：`SITE-UX-UI-RECHECK-20260729-001`
+
+类型：上一批唯一失败点及受影响回归复验 / `UI_PASS`
+
+目标与边界：
+
+- 复验工作树：`D:\codex_project\家教对接website-V2-nav-profile-20260729`
+- 分支：`V2-unified-navigation-responsive-profile-20260729`
+- 复验时 `HEAD`：`980421613fc5b15ea36d031beeadb0c97c02429b`。
+- 本轮仅复验 `390×844` 首页、登录页、个人中心 Header，以及 `1280×1080` 个人中心 B 方案受影响回归；未重新扩大原验收范围。
+- 未修改代码、测试、Issue、Spec、部署或分支，未执行 npm 或 Git mutation；唯一写入为本 UI 工作记录。
+
+事实来源与复验方法：
+
+- 已读取开发返工差异和 `SITE-UX-REWORK-20260729-001` 开发记录；移动断点 `≤720px` 的 `.top-nav` 现为 `display: none`，并复位为 `overflow-x: visible`、`scrollbar-width: auto`，桌面规则未改变。
+- 已逐张检查开发提供的四张实际截图：
+  - `C:\Users\86166\AppData\Local\Temp\site-ux-rework-20260729-001\390-home-header.jpg`
+  - `C:\Users\86166\AppData\Local\Temp\site-ux-rework-20260729-001\390-login-header.jpg`
+  - `C:\Users\86166\AppData\Local\Temp\site-ux-rework-20260729-001\390-profile-header.jpg`
+  - `C:\Users\86166\AppData\Local\Temp\site-ux-rework-20260729-001\1280-profile-b-layout.jpg`
+- 使用当前 `.next` 已构建产物和 `127.0.0.1` 临时只读服务进行独立真实渲染复验。
+- 首页和登录页使用应用内 Browser；个人中心因需要认证且该 Browser 无临时会话注入接口，使用全新无痕系统 Chrome 和仅本机非敏感签名会话复验。未访问真实账号、真实数据或生产环境。
+- 独立复验截图仅在浏览器会话中采集和回传，未新增落盘文件。
+
+定向复验数据：
+
+1. `390×844` 首页：
+   - 页面与 Body `scrollWidth/clientWidth=375/375`，无文档级横向溢出。
+   - Header `64px`；返回箭头为 `0`。
+   - `.top-nav` 为 `display=none`、`clientWidth=0`、`scrollWidth=0`、`overflow-x=visible`、`scrollbar-width=auto`，不存在裁切或隐藏横向滚动。
+   - 品牌方块为 `x=12, 36×36`；`UNGradu EDU` 为 `x=56–169.015625`，完整可见。
+2. `390×844` 登录页：
+   - 页面与 Body `scrollWidth/clientWidth=375/375`。
+   - Header `64px`；唯一返回箭头为 `x=12, 40×40`。
+   - `.top-nav` 同样为 `display=none`、`0/0`、`overflow-x=visible`、`scrollbar-width=auto`。
+   - 品牌方块为 `x=60, 36×36`；品牌文字为 `x=104–217.015625`，完整可见。
+   - 已实际点击返回箭头，URL 返回 `/`，首页返回箭头恢复为 `0`。
+3. `390×844` 个人中心：
+   - 页面与 Body `scrollWidth/clientWidth=390/390`。
+   - Header `64px`；唯一返回箭头为 `x=12, 40×40`。
+   - `.top-nav` 为 `display=none`、`clientWidth=0`、`scrollWidth=0`、`overflow-x=visible`、`scrollbar-width=auto`。
+   - 品牌方块为 `x=60, 36×36`；品牌文字为 `x=104–217.015625`，完整可见。
+4. `1280×1080` 个人中心受影响回归：
+   - 页面 `scrollWidth/clientWidth=1280/1280`；Header `72px`。
+   - 桌面 `.top-nav` 仍显示，`clientWidth=scrollWidth=555`，未发生桌面导航回归。
+   - `我的聊天` 仍为五卡第一张，`x=365.234375, y=451.203125, width=692.765625`，`grid-column: 1 / -1`，背景 `rgb(201, 211, 197)`，即 `#C9D3C5`。
+   - 下方四卡保持 `2×2`：第一行 `y=609.203125`、第二行 `y=789.984375`；左右卡宽分别约 `339.375 / 339.390625px`。
+- 四个独立渲染页面均具有正确页面身份和有效 DOM，未出现框架错误覆盖层；定向复验期间 console error / warn 与 page error 均为 0。
+
+结论与门禁：
+
+- 上一批 `SERIOUS-1 / 移动 Header 隐藏横向滚动与文字裁切` 已按冻结移动参考修复，并通过独立真实浏览器定向复验。
+- 严重 UI 问题：0。
+- 非严重 UI 问题：0。
+- 最终结论：`UI_PASS`。
+- UI 门禁允许进入限定的 commit / push 准备；本结论不等于已授权或已执行 commit、push、部署、Issue 关闭或业务方最终验收。
+- 当前 workflow：`WORKFLOW_ACTIVE / CONTINUE_TRACKING`。
+
+残余门禁：
+
+- 完整 `npm test` 并发执行时仍有两个真实 Chrome 用例因 `bad port` 未进入断言；开发员以单 worker 定向重跑这两个文件后为 `2 files / 6 tests` 全过。该并发运行稳定性仍作为非 UI 工程门禁保留。
+- S2 范围外、未跟踪运维文档夹具仍失败，禁止复制、伪造文档或放宽测试绕过。
+- commit / push 尚未执行；部署、生产桌面 / 移动端复测、相关 Issue 闭环和业务方最终验收均未通过。
+
+唯一下一步：
+
+- 项目总负责人接收本次 `UI_PASS`，按既有职责链路由原代码开发员进入同一分支的限定 commit / push 准备，并继续保留上述完整测试、S2 外部夹具、部署、Issue 和业务方门禁。
+
+### 个人中心左侧账户框 UI 返工预览
+
+任务：`SITE-UX` 连续 UI 返工 / 业务方预览确认前方案
+
+状态：`UI_REWORK_PENDING_USER_PREVIEW`
+
+目标与冻结边界：
+
+- 业务方否定当前桌面截图中左侧整块纯黑账户面板的视觉效果；本轮只重新设计该账户信息框。
+- 保留已确认方案 B：右侧五卡区域内，`我的聊天` 最上方独占整行；下方四卡 `2×2`；聊天卡维持低饱和 `#C9D3C5`。
+- 不改变功能、信息架构、隐私含义或页面功能入口；不修改代码、测试、Spec、Issue、分支、部署。
+
+业务方确认预览：
+
+- 原实际截图（问题参考）：`C:\Users\86166\AppData\Local\Temp\site-ux-rework-20260729-001\1280-profile-b-layout.jpg`
+- 新桌面方案预览（仅用于确认）：`C:\Users\86166\.codex\generated_images\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\exec-084826b8-862c-4f38-b569-1dc28fe97745.png`
+- 预览由原截图的局部视觉编辑生成；右侧卡片、导航与中文文字仅作布局和色彩方向展示。正式实现必须继续以现有页面文案与结构为唯一事实源，不得从预览图转录生成文字。
+
+推荐方案 A：暖米白账户卡
+
+- 以暖米白 `#FFF9E8` 取代纯黑整块背景，保留粗黑描边和硬阴影，使左栏仍是独立账户模块，但不再压过黄绿页面和灰绿聊天卡。
+- 账号信息保持最高层级：近黑文字 `#1B1B1A`；说明文字用橄榄灰 `#586250`；当前账号标签使用柔黄 `#F4DA6B`。
+- 统计信息采用浅灰绿 `#E7EEE6`；三条隐私提示依次使用淡黄 `#FFF1A8`、柔鼠尾草绿 `#D9E7D5`、浅杏 `#FFD1B3`；退出登录使用暖白 `#FFFDF7`。
+- 这样将黑色限制为文字、描边和阴影，而非大面积填充；与 `#C9D3C5` 聊天卡构成安静、可读的中性层级。
+
+代码开发员可执行规格（仅在业务方确认后生效）：
+
+1. 桌面左侧账户框宽度保持当前栏位，不调整右侧五卡网格、头图或页面主列比例；建议内边距 `24px`，模块间距 `12px`，隐私提示之间 `10px`。
+2. 外框：背景 `#FFF9E8`、`3px solid #1B1B1A`、圆角 `24px`、硬阴影 `4px 4px 0 #1B1B1A`；禁止在该框内使用黑色整面填充或渐变。
+3. 当前账号标签：背景 `#F4DA6B`、`2px solid #1B1B1A`、圆角胶囊；账号数字 `44–48px / 1.03`、字重 `900`、颜色 `#1B1B1A`；说明文本 `16px / 1.55`、颜色 `#586250`。
+4. 两项统计：同一浅灰绿容器 `#E7EEE6`，`2px solid #1B1B1A`，圆角 `14px`；两栏等宽，中央分隔使用 `1px solid #C5CEC2`；数字仍为近黑并保持可读性。
+5. 三条隐私提示均为整行圆角胶囊，高度不低于 `34px`，文字近黑、`2px` 黑描边；顺序和现有隐私语义不变，色序依次为 `#FFF1A8`、`#D9E7D5`、`#FFD1B3`。
+6. 退出登录：背景 `#FFFDF7`、`3px solid #1B1B1A`、圆角 `14px`，最小高度 `48px`；保持清晰点击态，但不得通过新增功能改变行为。
+7. 移动端说明：账户框仍使用同一色板和层级，宽度随单列容器收缩，内边距降至 `18–20px`；账号数字可降至 `36–40px`，所有提示保持单列并避免裁切。移动 Header、聊天第一和其余卡片单列冻结规则不变。
+
+门禁与唯一下一步：
+
+- 本预览不是 `UI_PASS`、实现批准或验收结论；当前阻塞仅为业务方对方案 A 的视觉确认。
+- 未通过门禁：`BUSINESS_PREVIEW_CONFIRMATION_PENDING`、后续限定实现、开发验证、本线程独立 UI 复核、测试 / Issue / 部署 / 业务方最终验收。
+- 唯一下一步：业务方确认方案 A，或明确给出对色彩 / 层级 / 密度的修订意见；确认后由原代码开发员在既有分支按上述规格实施，随后回到本 UI 线程独立复核。
+
+### 个人中心左侧账户框方案 A 独立 UI 复核
+
+任务：`SITE-UX` 连续 UI workflow / 业务方已确认方案 A 后的实际实现
+
+类型：独立 UI 复核 / `UI_PASS`
+
+目标提交与范围：
+
+- 工作树：`D:\codex_project\家教对接website-V2-nav-profile-20260729`
+- 分支：`V2-unified-navigation-responsive-profile-20260729`
+- 已核验 `HEAD` 与目标提交一致：`b743695633edd5927caf0541eda6ddd48d409b81`（`fix: refine profile account panel`），工作树 clean，并已关联 `origin/V2-unified-navigation-responsive-profile-20260729`。
+- 本轮只复核方案 A 的左侧账户框及其对 1280 / 390 个人中心、方案 B 五卡布局与既有导航修复的受影响回归；未修改代码、测试、Issue、Spec、分支或部署。唯一写入为本 UI 工作记录。
+
+独立证据：
+
+- 已实际查看：
+  - `C:\Users\86166\AppData\Local\Temp\site-ux-profile-account-panel-20260729\1280-profile-account-panel.png`
+  - `C:\Users\86166\AppData\Local\Temp\site-ux-profile-account-panel-20260729\390-profile-account-panel.png`
+- 已读取目标提交差异：仅修改 `Code文档/app/globals.css`、`Code文档/tests/site-ux-implementation.test.ts` 与开发员工作记录；未触及功能、路由、认证或信息架构。
+- 已核对实现与冻结规格：暖米白 `#FFF9E8` 外框、近黑 `#1B1B1A` 的 `3px` 描边和 `4px 4px 0` 硬阴影、`24px` 圆角、`#E7EEE6` 统计容器、`#FFF1A8` / `#D9E7D5` / `#FFD1B3` 三条提示、`#FFFDF7` 退出按钮、移动端 `20px` 内边距和纵向统计分隔均已在 CSS 与截图中对应。
+- 已读取开发测试证据：账户框契约 `1 file / 7 tests` 通过；与站点刷新测试定向联跑 `2 files / 15 tests` 通过；typecheck、lint、build 均为 exit `0`。
+
+冻结验收结论：
+
+1. `PASS`：1280 截图中左侧账户框已由纯黑整块改为暖米白主面，黑色仅用于文字、描边和硬阴影；视觉重量与黄绿页面及 `#C9D3C5` 聊天卡协调。
+2. `PASS`：账号标签、真实账号 `13800138000`、账户说明、`5` 个功能入口与 `2` 种身份场景、三条隐私提示及退出登录均保留且可读。桌面账号因现有栏宽换行为两行，但数字完整、无裁切；移动端数字完整显示于单行。
+3. `PASS`：1280 与 390 截图未见账户框、提示胶囊、统计容器、按钮或 Header 的横向裁切。390 页面保持返回键、品牌方块与完整 `UNGradu EDU` 文本，未恢复隐藏横向导航。
+4. `PASS`：右侧方案 B 未回归：`我的聊天` 仍为首张整行灰绿卡，以下四卡在桌面为 `2×2`；移动端卡片区继续单列、聊天在首位。
+5. `PASS`：导航桌面 / 移动高度和返回键视觉均未见明显回归；本轮差异也未修改 Header 规则。
+
+残余门禁与结论：
+
+- 严重 UI 偏差：0；无需新开或重开 UI Issue。
+- 最终结论：`UI_PASS`。本 UI 门禁不再阻塞该账户框实现的后续流程。
+- 仍不得误报全量绿灯：开发员完整 `npm test` 记录为 `62 files / 256 tests` 通过且另有 `1` 个 S2 外部运维文档夹具失败；历史真实 Chrome 布局用例并发 `bad port` 为已知间歇性外部残余，本次未复现但未宣告永久消除。
+- 本结论不代表生产部署、相关 Issue 闭环、生产复测或业务方最终验收通过。
+- 当前 workflow：`WORKFLOW_ACTIVE / CONTINUE_TRACKING`。
+- 唯一下一步：项目总负责人接收本次 `UI_PASS`，在不掩盖 S2 夹具与历史 Chrome 残余的前提下继续 Issue、部署 / 生产证据和业务方最终验收门禁。
+
+### 个人页顶部 Hero 高度压缩 UI 规格确认
+
+任务：`SITE-UX` 连续 UI workflow / `UI_MICRO_REWORK`
+
+日期：`2026-07-30`
+
+状态：`UI_SPEC_READY`
+
+目标与不可变范围：
+
+- 参考截图：`C:\Users\86166\AppData\Local\Temp\codex-clipboard-fab387aa-0018-4b18-b272-b45a297eae29.png`。
+- 仅压缩个人页导航栏下方 Hero 的纵向占用；保留“个人中心”标签、标题、说明、黄绿背景渐变和右侧黄色圆形装饰。
+- 不改变账户信息框、右侧方案 B 五卡布局、聊天首行跨整行、四卡 2×2 / 移动单列、功能和信息层级。
+- 不修改代码；本记录只提供可执行 CSS 验收规格。
+
+推荐 CSS 验收规格：
+
+桌面（`min-width: 721px`，目标 1280 / 1920）：
+
+- `.dplus-profile-page .workspace-header`：`min-height: 164px`；`padding: 18px 32px 16px`；`margin-bottom: 16px`；保持相对定位层级和原背景渐变，不新增实色面板。
+- `.dplus-profile-page .workspace-header > div`：使用纵向内容组，`display: grid`，`gap: 6px`；内容组最大宽度建议 `calc(100% - 112px)`，给右侧装饰留安全区。
+- 标签保留现有视觉样式；不要额外增加上下 margin。
+- `.dplus-profile-page .workspace-header .section-title`：`font-size: clamp(32px, 3.4vw, 38px)`、`line-height: 1.05`、`margin: 0`。
+- `.dplus-profile-page .workspace-header p`：`font-size: 16px`、`line-height: 1.45`、`margin: 2px 0 0`；保持现有说明文字完整显示。
+- `.dplus-profile-page .wide-panel::before`：仅个人页覆盖为 `width/height: 68px`、`border: 3px solid var(--dplus-ink)`、`box-shadow: 4px 4px 0 var(--dplus-ink)`、`right: 32px`、`top: 24px`；保留原黄色填充和轻微旋转，不改变聊天页装饰。
+
+移动端（`max-width: 720px`，目标 390 / 844）：
+
+- `.dplus-profile-page .workspace-header`：`min-height: 148px`；`padding: 14px 16px 16px`；`margin-bottom: 12px`。
+- `.dplus-profile-page .workspace-header > div`：`display: grid`、`gap: 4px`、`max-width: calc(100% - 72px)`，确保文字组不进入圆形装饰区。
+- `.dplus-profile-page .workspace-header .section-title`：`font-size: clamp(32px, 9vw, 36px)`、`line-height: 1.05`、`margin: 0`；不得通过负 margin 抢高度。
+- `.dplus-profile-page .workspace-header p`：`font-size: 14px`、`line-height: 1.45`、`margin: 2px 0 0`；允许自然换行，不得 `overflow: hidden` 或省略。
+- `.dplus-profile-page .wide-panel::before`：`width/height: 56px`、`border: 3px solid var(--dplus-ink)`、`box-shadow: 4px 4px 0 var(--dplus-ink)`、`right: 16px`、`top: 18px`；保留黄色填充和轻微旋转。
+
+验收几何与失败条件：
+
+- 目标是相对当前截图明显减少 Hero 首屏占用；桌面 Hero 外框高度不得超过 `164px`，移动不得超过 `148px`，除非自然文本换行需要额外高度。
+- 标签、标题、说明和圆形装饰四者均必须完整可见；文字不能被圆形覆盖，说明不能被裁切或省略。
+- Hero 与账户卡 / 右侧 B 方案之间保留桌面 `16px`、移动 `12px` 的清晰分隔，不得压到卡片边框或硬阴影。
+- 1280 / 1920 桌面与 390 移动截图均应确认：背景渐变未改变、装饰未消失、账户卡未移动、聊天首行与四卡结构未回归。
+- 若任何视口出现标题或说明裁切、装饰压字、Hero 高度超过目标且无自然换行依据，返回原代码开发员进行同一批次返工；UI 线程不自行修改代码。
+
+唯一下一步：
+
+- 状态保持 `UI_SPEC_READY`；项目总负责人将上述规格交给原代码开发员，在既有分支完成限定 CSS 实现和 1280 / 1920 / 390 几何截图验证，随后回到本 UI 线程进行独立复核。
+
+### 个人页顶部 Hero 压缩实际实现独立 UI 复核
+
+任务：`SITE-UX` 连续 UI workflow / Hero micro-rework
+
+类型：独立 UI 复核 / `UI_REWORK_REQUIRED`
+
+状态：`UI_REWORK_REQUIRED`
+
+目标提交与证据：
+
+- 目标提交：`ad14ab9fd218a0a8da9b9884bde741b5d6996eb7`
+- 已实际查看三张截图：
+  - `C:\Users\86166\AppData\Local\Temp\site-ux-profile-hero-20260730-001\1280-profile-hero.png`
+  - `C:\Users\86166\AppData\Local\Temp\site-ux-profile-hero-20260730-001\1920-profile-hero.png`
+  - `C:\Users\86166\AppData\Local\Temp\site-ux-profile-hero-20260730-001\390-profile-hero.png`
+- 已读取提交 CSS 差异和开发员证据：Hero 桌面 `164px`、移动 `148px`；定向 `16/16`、typecheck、lint、build 通过；无横向溢出；S2 外部夹具失败和历史 Chrome `bad-port` 残余保留。
+
+通过项：
+
+- 桌面与移动 Hero 高度已达到 `164px / 148px` 目标，首屏占用明显降低。
+- 标签、标题、说明和黄色圆形均未裁切；圆形未压住说明文字，背景渐变和装饰保留。
+- 账户框方案 A、右侧 B 方案、聊天首行整行、四卡 2×2 / 移动单列及 Header 未见结构回归。
+- 页面未见横向溢出或内容被 Hero 边界截断。
+
+唯一 UI 偏差：
+
+- 三张截图中的“个人中心”标签均被拉伸为标题组宽度的长胶囊，而不是原有的紧凑层级标签。1280 / 1920 桌面标签明显横跨标题组；390 移动也占据过宽横向空间。
+- 提交差异新增 `.dplus-profile-page .workspace-header > div { display: grid; ... }`，但未为该网格内 `.eyebrow` 设置 `justify-self: start` / `width: fit-content`。CSS Grid 默认 stretch 是该视觉偏差的直接原因。
+- 这不是裁切或功能故障，但削弱“标签 → 标题 → 说明”的层级，并使压缩后的 Hero 仍显得不够精炼，因此不能直接通过本轮 UI 门禁。
+
+一次性最小返工要求：
+
+1. 仅约束 Hero 内标签：`.dplus-profile-page .workspace-header > div .eyebrow { justify-self: start; width: fit-content; }`；不得改变账户卡、右侧 B 方案、背景渐变、圆形尺寸或 Hero 高度。
+2. 保持桌面 `min-height: 164px`、移动 `min-height: 148px`、既定 padding / gap / 圆形尺寸和文字规则不变。
+3. 增补一条静态或渲染几何契约，确保 1280、1920、390 下 Hero 标签实际宽度接近内容宽度，不得等于标题组整列宽度；随后重出三张截图。
+
+当前门禁与唯一下一步：
+
+- 当前 workflow：`WORKFLOW_ACTIVE / UI_REWORK_REQUIRED`。
+- 未通过门禁：Hero 标签层级返工、返工后 UI 独立复核；部署、生产复测、Issue 闭环和业务方最终验收仍未通过。
+- 唯一下一步：原代码开发员在同一分支按上述最小批次修复 Hero 标签对齐，回传 1280 / 1920 / 390 新截图及受影响回归证据；随后本 UI 线程进行定向复验。
+
+### 个人页 Hero 标签自然宽度 R2 独立 UI 复核
+
+- 任务：`SITE-UX-UI_RECHECK_R2`；角色：UI 设计师 v2.3.0；结论：`UI_PASS`。
+- 复核基线：分支 `V2-unified-navigation-responsive-profile-20260729`，提交 `73db16089b36b28c451790564689db6933c7d0cd`。本轮发现开发员提供的三张 PNG 更新时间早于该提交，因此未将旧 PNG 作为本轮修复证据；改用当前构建产物的本机临时匿名会话重新渲染并测量，未持久化新截图文件。
+- 1280×800：Hero `164px`，`个人中心` 标签 `82px`（`justify-self:start`、`width:82px`），Header `72px`，文案与圆形完整，页面宽度 `scrollWidth/clientWidth=1280/1280`。
+- 1920×1080：Hero `164px`，标签 `82px`，Header `72px`，文案与圆形完整，页面宽度 `1920/1920`。
+- 390×844：Hero `148px`，标签 `82px`，Header `64px`，说明文字完整换行、圆形无冲突，页面宽度 `390/390`。
+- 回归确认：账户框方案 A 保持暖米白/浅灰绿提示/暖白退出层级；右侧方案 B 的“我的聊天”仍为首行整行、下方四卡 2×2；移动端聊天首位、其余单列；聊天卡背景 `#C9D3C5`；无横向溢出或 Hero 裁切。
+- 开发证据保留：定向 `2 files / 16 tests`、typecheck、lint、build 通过；全量仅既有 S2 外部运维文档夹具失败（`62/63 files`、`257/258 tests`），历史 Chrome `bad-port` 本轮未复现但不宣称全量门禁清零。
+- 当前 workflow：`WORKFLOW_ACTIVE / CONTINUE_TRACKING`。未通过门禁：S2 外部夹具、部署/生产复测、Issue 闭环及业务方最终验收；本轮无新的 UI 阻塞或返工项。
+- 唯一下一步：项目总负责人继续跟进剩余非 UI 门禁与业务方验收；无需追加 UI 返工。
+
+### 生产版本 037 独立 UI 验收
+
+- 任务：`VANGE｜生产 037 独立 UI 验收`；生产入口：`https://ungraduedu.eu.cc`；版本/提交：037 / `73db16089b36b28c451790564689db6933c7d0cd`。
+- 结论：`VERDICT=UI_PASS`。本轮只评价 ISSUE-0024/0025/0028 冻结范围；未修改代码、Issue、部署或生产数据。
+- 独立桌面 DOM（浏览器实际视口因滚动条为 `1425px` 内容宽）：首页 Header `72px`，首页两张核心发布卡等宽 `347.5px`；`scrollWidth=clientWidth=1425`。个人页 Hero `980×164px`，Header `72px`，标签自然宽 `82px` / `justify-self:start`，页面无横向溢出。
+- 独立桌面个人页卡片：账户框背景 `rgb(255,249,232)` 对应 `#FFF9E8`；聊天卡 `692.7578×144px`、`grid-column:1 / -1`、背景 `rgb(201,211,197)` 对应 `#C9D3C5`；其余四卡各约 `339.38×166.30px`，保持 2×2。
+- 独立移动 DOM（新生产标签页，显式 390×844）：`innerWidth=390`、`clientWidth=scrollWidth=375`；Header `64×375px`；Hero `343×148px`；标签 `82px`；聊天卡首位、五卡单列、每卡宽 `343px`；聊天背景仍为 `#C9D3C5`，无横向溢出。
+- 登录移动：Chrome 连续跨页导航触发 Statsig 网络超时，停止继续重试；采用总负责人提供的同版本可复核证据：390×844 下 `clientWidth=scrollWidth=375`、Header `64px`、完整页无横向溢出。该项明确标注为上游生产证据，未冒充本轮独立 DOM 测量。
+- 视觉确认：账户框非黑色且层级清晰；Hero 压缩后标题/说明/黄色圆形未裁切；B 方案聊天首行整行、四卡下方 2×2 / 移动单列；导航返回键与品牌区符合上游生产几何证据；无发现 UI 偏差。
+- ISSUE 门禁：本轮不阻塞 ISSUE-0024、ISSUE-0025、ISSUE-0028。生产部署、Issue canonical 闭环及业务方最终验收仍由总负责人继续跟进；workflow 保持 `WORKFLOW_ACTIVE / CONTINUE_TRACKING`。
+- 唯一下一步：总负责人继续完成剩余生产/业务验收门禁；UI 无新增返工项。
+
+### 站内聊天区域放大方案（只读设计）
+
+- 任务：`VANGE｜站内聊天区域放大方案，只读设计，不实现`；角色：UI 设计师 v2.3.0；状态：`UI_DESIGN_READY`。
+- 目标：解决生产 037 大屏右侧空白与中列消息区偏窄，同时保持左侧会话状态、中央消息/输入和右侧联系方式交换的可读性；不改变返回路径、信息架构或业务功能。
+
+#### 方案 A（推荐）：1600px 流体工作区 + 中列保底
+
+容器使用 `max-width: min(1600px, calc(100vw - 64px))`，桌面三列使用 `minmax(240px, .22fr) minmax(620px, 1fr) minmax(300px, .24fr)`，gap `24px`（1280 以下降为 `16px`）。
+
+| 视口 | 工作区宽度 | 左会话 | 中央聊天 | 右联系方式 | 主体高度 | 消息区 | 输入区 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1280 | 1216 | 257 | 631 | 280 | 720 | 500 | 116 |
+| 1440 | 1376 | 292 | 717 | 319 | 760 | 540 | 124 |
+| 1920+ | 1600（封顶） | 341 | 839 | 372 | 840 | 620 | 132 |
+
+中央聊天最小宽度 `620px`，目标宽度约 `631/717/839px`；消息气泡保留 `max-width: min(620px, 70%)`，输入区保持整行操作按钮。优点是最大限度消除大屏右侧浪费，并且三列仍有稳定侧栏；代价是 1280 桌面侧栏会比当前略窄，需依赖侧栏文字自然换行。
+
+#### 方案 B：1400px 温和放大 + 侧栏比例固定
+
+容器封顶 `1400px`，三列 `minmax(250px, .24fr) minmax(600px, 1fr) minmax(300px, .26fr)`，gap `20px`。1280/1440/1920+ 中央聊天目标约 `600/704/704px`，主体高度 `700/740/780px`，消息区 `480/520/560px`，输入区 `112/120/124px`。改动风险低、侧栏更宽，但 1920+ 仍会留下明显外围空白。
+
+#### 方案 C：中心优先 1680px + 固定侧栏轨道
+
+容器封顶 `1680px`，列为 `280px minmax(640px, 1fr) 340px`，gap `24px`。1280/1440/1920+ 中央聊天约 `616/776/1016px`，主体高度 `720/760/860px`，消息区 `500/560/640px`，输入区 `116/124/136px`。消息阅读最舒适，但 1280 下两侧轨道占比偏高；1920+ 需限制气泡与输入内容最大行长，避免阅读疲劳。
+
+#### 公共响应式与验收规范
+
+- `981–1199px`：保留三列但将中央列优先；若中央列将低于 `560px`，切换单列，顺序保持“会话状态 → 中央聊天 → 联系方式交换”。
+- `≤980px`：单列，所有工作区子项 `min-width:0; width:100%`，中央主体不得产生横向滚动。
+- `390px`：内容宽度遵循现有 `calc(100% - 32px)`（生产 clientWidth 375 时约 `343px`）；主聊天高度 `min(760px, calc(100dvh - 16px))`，消息区 `clamp(320px, 44dvh, 520px)`，输入区自然高度不低于 `112px`；按钮可换行但不溢出。
+- 验收覆盖 1280、1440、1920、390：工作区边界一致；中央聊天达到表中最小/目标宽度；消息区可滚动且输入区完整；左右侧栏标题、状态、联系方式交换说明不裁切；`scrollWidth=clientWidth`；粗黑描边、硬阴影、D+ 黄绿纸张/橙色消息气泡保持。
+
+- 推荐结论：采用方案 A。唯一需业务方确认的问题：是否批准“工作区最大 1600px、中央聊天最小 620px、1280 以下必要时转单列”的放大基线；确认后再交由代码开发员实现与验证。
+
+### ISSUE-0029 独立 UI 复核（commit 4704ad1）
+
+- 任务：`VANGE｜独立 UI 复核｜commit 4704ad1436cb89c97373b987afbb58cc1be2e66e`；状态：`UI_REWORK_REQUIRED`。
+- 复核基线：分支 `V2-unified-navigation-responsive-profile-20260729`，目标 commit `4704ad1436cb89c97373b987afbb58cc1be2e66e`。已核对开发员 6 files / 47 tests、typecheck、lint、build 及全量唯一 S2 外部夹具失败证据。
+- 独立静态证据：`Code文档/app/globals.css` 中 `.dplus-chat-page .conversation-main` 为 `height: clamp(854px, calc(100vh + 48px), 1000px)`；因此 1280×800 与 1440×900 的桌面主聊天面板最低均为 `854px`，明显高于已冻结的约 `720/760px` 目标，首屏输入区会被推到视口下方，属于“主区过高”风险。
+- 独立本地渲染限制：匿名临时会话访问 `/chats/demo` 返回“聊天不可访问/未找到该会话”，无法取得真实消息数据下的完整聊天截图；因此不把缺少会话夹具的页面当作视觉通过。Header 在同一目标构建中可测得桌面 `72px`、390px `64px`、页面无横向溢出；开发员 Chrome/CDP 证据显示三列/单列切换与消息滚动契约通过。
+- 通过项（基于代码与开发证据）：工作区最大 `1600px`；中央列 `minmax(620px,1fr)`；桌面三列、981–1199 及 ≤980 单列规则存在；移动消息区 `326–506px`、输入区最小 `118px`；Header 视觉尺寸未发现回归。
+- 唯一发现：桌面主聊天面板高度下限 `854px` 与冻结目标冲突，1280×800 尤其会造成输入区不在首屏可见范围。需由原代码开发员将高度收敛到冻结表（建议 1280/1440/1920+ 约 `720/760/840px`），并重新复核输入区可见性与消息区滚动。
+- 门禁：阻塞 `ISSUE-0029`；不阻塞 `ISSUE-0024`（Header 返回键的 aria-label/href 行为变更未发现视觉回归）。
+- 唯一下一步：原代码开发员修正桌面主区高度并回传 1280/1440/1920/390 实际 DOM/截图证据，随后 UI 设计师定向复核；本轮不改代码、Issue 或部署。
+
+### ISSUE-0029 主区高度定向 UI 复验（commit c24171c）
+
+- 任务：`VANGE｜UI_FAIL 定向复验｜commit c24171ce9f6e1511f7d35901ea08a04a14bc4780`；角色：UI 设计师 v2.3.0；结论：`VERDICT=UI_PASS`。
+- 复验基线：分支 `V2-unified-navigation-responsive-profile-20260729`，HEAD 与远端分支均为 `c24171ce9f6e1511f7d35901ea08a04a14bc4780`；工作树核对时无未提交改动。本轮仅复验原严重项与受影响回归，未修改代码、Issue、分支或部署。
+- 独立真实 Chrome/CDP 渲染测试 `tests/chat-layout-browser.test.ts`：`1 file / 5 tests` 全过；短消息与 80 条长消息下主区、消息区、输入区几何保持一致，长消息仅增加消息列表内部 `scrollHeight`。
+- 1280×800：主区 `720px`、消息区 `500px`、输入区 `116px`、中央列约 `649.45px`；三列；输入区完整包含在主区内，消息区先于输入区且可内部滚动；`document scrollWidth/viewportWidth=1280/1280`；Header `72px`。
+- 1440×900：主区 `760px`、消息区 `540px`、输入区 `124px`、中央列约 `739.06px`；三列；无输入遮挡或横向溢出；Header `72px`。
+- 1920×1080：主区 `840px`、消息区 `620px`、输入区 `132px`、中央列约 `828.66px`；工作页宽度封顶 `1600px`、三列保留；输入区完整包含、消息区内部滚动；无横向溢出；Header `72px`。
+- 390×844：单列，消息区 `500px`、输入区 `116px`、主列 `358px`；`scrollWidth/viewportWidth=390/390`；Header `64px`。390×600 压缩视口：单列，消息区 `320px`、输入区 `116px`，主区底部与输入区底部均未超过 `600px` 可视视口。
+- 受影响回归契约 `tests/chat-layout-css.test.ts` 与 `tests/site-ux-implementation.test.ts`：`2 files / 13 tests` 全过；桌面/移动分栏、消息滚动、统一 Header `72/64px`、返回键几何及移动辅助导航无视觉回归。提交差异未触及 Header 样式。
+- 工具限制：尝试通过本地实际聊天路由追加目视检查时，页面控制连续超时；按既有约束停止重试并关闭本地服务。最终判断基于本轮独立运行、可重复的隔离真实 Chrome 渲染与 DOM 几何，不将无法取得的页面截图虚构为证据。
+- 剩余问题：本轮未发现 UI 严重偏差或新增返工项。完整测试仍保留既有 S2 范围外运维文档夹具失败；该项不是 UI 失败，也未在本轮误报为全绿。
+- 门禁影响：本轮 UI 结论不再阻塞 `ISSUE-0029`；不阻塞 `ISSUE-0024`。是否更新 Issue canonical、提交/部署或进入生产验收由对应负责人按 workflow 门禁执行。
+- 唯一下一步：项目总负责人核对本次 `UI_PASS` 证据后，继续推进 ISSUE-0029 的后续 Issue/部署/生产与业务方验收门禁；UI 无需追加返工。
+
+### 038 生产聊天页 UI 返工设计（输入裁切 / 内间距 / 左侧黑块 / 装饰叠压）
+
+- 任务：`038生产 UI 返工设计｜第二个问题`及追加问题 3；角色：UI 设计师 v2.3.0；状态：`UI_DESIGN_READY / IMPLEMENTATION_PENDING`。
+- 只读输入：生产业务截图
+  - `C:\Users\86166\AppData\Local\Temp\codex-clipboard-ad7bb48c-07d4-42b2-9aba-62757e0ddab4.png`：输入框与发送按钮在中央聊天外框底部溢出、裁切。
+  - `C:\Users\86166\AppData\Local\Temp\codex-clipboard-fdb74ba7-2fbf-48e4-8cb2-af667f780ec9.png`：左侧会话状态为大面积纯黑底。
+  - `C:\Users\86166\AppData\Local\Temp\codex-clipboard-65061a85-4942-45f6-a863-17e95273b2c3.png`：黄色圆形与“返回我的聊天”按钮交错叠压。
+- c241 结构证据：`.dplus-chat-page .wide-panel { overflow:hidden }`；黄色圆形由 `.wide-panel::before` 绝对定位；中央主区桌面仅 `2px` padding，消息区和 composer 同时使用固定高度；composer 仅 `8px` padding；左侧 `.conversation-context` 被统一规则设为 `var(--dplus-ink)` 大黑底。上述组合与生产截图中的裁切、贴边和黑块事实一致。
+
+#### 方案比较与推荐
+
+- 方案 A（推荐）：左侧暖米白 `#FFF9E8`，两张统计块分别用低饱和灰绿 `#DFE7DA`、暖沙色 `#F3E7C5`；中央继续纸张白；右侧浅灰绿。与个人页已通过的账户卡 A 方案和聊天入口 `#C9D3C5` 协调，层级最稳定。
+- 方案 B：左侧整卡使用 `#D9E3D3`，统计块改暖米白。整体更绿，但左侧与右侧联系方式卡的区分会变弱。
+- 方案 C：左侧纯白，标题区使用黄色横条，统计块灰绿。黑色面积最少，但 D+ 黄绿纸张感和卡片层级弱于 A。
+- 冻结推荐：采用方案 A。纯黑只保留 `#111111` 文字、3–4px 描边和 4–7px 硬阴影；任何单张侧栏不得再用纯黑大底。
+
+#### 桌面布局与外部间距
+
+- 页面工作区继续封顶 `1600px`；1280 / 1440 / 1920+ 内容宽分别约 `1216 / 1376 / 1600px`。不改变三列信息架构。
+- 三列 gap：1280 为 `16px`，1440 为 `20px`，1920+ 为 `24px`；列宽目标：
+
+| 视口 | 左侧状态卡 | 中央聊天 | 右侧交换卡 | 中央主区 clientHeight | 消息区 clientHeight | composer clientHeight |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1280×800 | 248–260px | 620–650px | 286–300px | 720px | ≥500px | 116–124px |
+| 1440×900 | 280–292px | 717–740px | 316–334px | 760px | ≥540px | 124–132px |
+| 1920×1080 | 320–340px | 829–850px | 350–372px | 840px | ≥620px | 132–140px |
+
+- 中央 `.conversation-main` 必须使用 `box-sizing:border-box; display:grid; grid-template-rows:auto minmax(0,1fr) auto; min-height:0; overflow:hidden`。桌面内部 padding `12px`，三行 gap `10px`；头部压缩到 `48–54px`，不得用消息区或 composer 负 margin 抵消间距。
+- `.message-list` 改为网格弹性行：`height:auto; min-height:0; overflow-y:auto`；桌面 padding `16px`，边框 `3px`，圆角 `20–22px`。不得同时以固定列表高度把 composer 推出主区。
+- 主区上下左右所有内模块至主区内边缘的可见净距不得少于 `10px`；消息区与 composer 的边框间距为 `10px`。硬阴影可落在预留净距内，但不得越过主区裁切边界。
+
+#### Composer 与按钮防裁切规格
+
+- 桌面 composer：两列 `minmax(0,1fr) 96px`，gap `12px`，padding `10px 12px 12px`，圆角 `18–20px`，背景 `#FFFDF7`，边框 `3px #111111`。输入 textarea 桌面高度 `62–72px`、`min-width:0; width:100%`。
+- 发送按钮桌面宽 `92–96px`、高不低于 `52px`；移动高不低于 `48px`。保留 3px 黑边与 4px 硬阴影，并在右、下各保留至少 `4px` shadow clearance；按钮 border box 到 composer 右/下内边缘的净距不得少于 `8px`。
+- composer 的 border box 到中央主区右/下内边缘的净距不得少于 `10px`；按钮及其硬阴影到中央主区右/下内边缘不得少于 `8px`。
+- 验收 DOM 几何：`buttonRect.right + 4 <= composerContentRight`、`buttonRect.bottom + 4 <= composerContentBottom`、`composerRect.right <= mainContentRight`、`composerRect.bottom <= mainContentBottom`；四式任一失败即 `UI_REWORK_REQUIRED`。
+- 禁止用 `overflow:hidden` 直接遮掉按钮或阴影来伪造“未溢出”；禁止用缩小按钮点击区换取通过。
+
+#### 左侧会话状态卡方案 A
+
+- 外卡：背景 `#FFF9E8`；4px `#111111` 描边；桌面 `7px 7px 0 #111111` 硬阴影、移动 `5px 5px 0`；桌面 padding `22px` / gap `14px`，移动 padding `14–16px` / gap `10px`。
+- “会话状态”标签继续使用黄绿标签；标题 `#111111`；说明文字 `#50554D`。账号、会话类型、消息数和交换请求数的真实文案不改变。
+- 两张统计块：第一张 `#DFE7DA`，第二张 `#F3E7C5`；3px 黑边，无大面积黑底；桌面 min-height `96px` / padding `14px`，移动 min-height `74px` / padding `10px`。数字 `28–32px`、说明 `13–14px`。
+- 纯黑填充面积只允许出现在文字、边框和阴影，不得形成超过侧栏可视面积约一成的连续黑色面。
+
+#### 黄色圆形与“返回我的聊天”分离
+
+- 聊天页禁用当前 `.wide-panel::before` 的绝对定位圆形；改由 `.workspace-header::after` 作为正常 CSS Grid item，或使用等价的独立装饰元素。禁止圆形与按钮使用互相独立的 `position:absolute` 坐标。
+- 桌面 header 网格：`minmax(0,1fr) 78–82px auto`，column-gap `24px`；圆形占中间独立轨道，按钮占最右轨道。圆形与按钮可视 border box 最小水平净距 `20px`，推荐 `24px`。
+- 390 移动：header 为两行网格；第一行“标题组 / 56px 圆形”，第二行按钮跨两列并右对齐。两行 gap `12px`；圆形与按钮最小垂直净距 `12px`。按钮不得覆盖圆形硬阴影。
+- 四视口验收：圆形与按钮的 `getBoundingClientRect()` 不相交；桌面水平距离 `>=20px`，移动垂直距离 `>=12px`；两者均完整位于 header padding box 内，且 `z-index` 不用于制造视觉叠压。
+
+#### 390×844 移动规格
+
+- 页面左右 padding `16px`，内容宽 `358px`，`scrollWidth=clientWidth`。
+- 工作区保持单列和原信息顺序；模块 gap `14px`。左侧状态卡允许将两张统计块并排为 2 列，但会话标签、标题、说明仍完整占整行。
+- 中央主区 `height:clamp(560px,calc(100dvh - 120px),680px)`；padding `10px`、gap `10px`；消息区 `320–520px`。
+- composer 移动改为单列，min-height `154px`、max-height `176px`，padding `10px 12px 14px`；textarea 高 `72px`；发送按钮宽 `calc(100% - 4px)`，不得横向挤出。
+- 390×600 键盘压缩回归仍必须满足 composer 与按钮底部不超过可视视口，输入聚焦后不得恢复桌面两列或产生横向滚动。
+
+#### 预览与证据
+
+- 可交互预览：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\chat-038-ui-rework-preview.html`
+- 四视口 PNG：
+  - `...\chat-038-ui-rework-1280x800.png`
+  - `...\chat-038-ui-rework-1440x900.png`
+  - `...\chat-038-ui-rework-1920x1080.png`
+  - `...\chat-038-ui-rework-390x844.png`
+- 移动 composer 防裁切细节：`...\chat-038-ui-rework-390x844-composer.png`
+- 预览为视觉关系和配色交接，不代替实际实现 DOM 验收；实现后仍需在四档视口测量并截图。
+
+#### 不可变约束、门禁与唯一下一步
+
+- 不改变聊天业务规则、联系方式交换规则、真实文案、三列信息职责、移动单列顺序、返回路径、Header 几何或 c241 已通过的工作区最大宽度与中央列下限。
+- 保留 D+ 粗黑描边、硬阴影、黄绿纸张背景和橙色主按钮；禁止大面积纯黑底、输入裁切、模块贴边和装饰/按钮叠压。
+- 当前为 `UI_DESIGN_READY / IMPLEMENTATION_PENDING`，不得回报 `UI_PASS`。代码实现、测试、部署、生产复测和业务方最终验收均未通过。
+- 唯一下一步：原代码开发员在现有 workflow / 分支按推荐方案 A 完成最小 CSS/布局返工，回传 1280×800、1440×900、1920×1080、390×844 真实页面截图及 DOM 几何；随后本 UI 线程独立复核。
+
+### 038 问题 2–3 实现独立 UI 复核（commit fd581cfe）
+
+- 任务：`独立UI复核｜commit fd581cfe`；角色：UI 设计师 v2.3.0；结论：`UI_PASS`。
+- 复核基线：分支 `V2-unified-navigation-responsive-profile-20260729`，HEAD / 远端均为 `fd581cfe8bacd0c4edb78c71fe55a494443e3a4b`；检查时目标工作树干净。本轮只评价 038 问题 2–3，未修改代码、Issue、分支或部署。
+- 已逐张实际查看开发证据目录 `C:\Users\86166\AppData\Local\Temp\site-ux-038-final-20260730` 的 1280×800、1440×900、1920×1080、390×844、390×600 主视图及 composer 细节共 10 张 PNG。
+- 独立浏览器路径：本机真实 `/chats/demo` 因没有测试登录会话跳转至登录页；页面标题与登录 DOM 正常、无 console error/warn，但不能把该登录页冒充聊天渲染证据。随后使用仓库隔离真实 Chrome/CDP 聊天夹具独立执行 `tests/chat-layout-browser.test.ts` 与 `tests/chat-layout-css.test.ts`，结果 `2 files / 12 tests` 全过。
+- 独立截图目录：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\chat-038-fd581cfe-independent`；五档主视图与 composer 细节共 10 张，已定向目视核对桌面和移动输入区。
+
+#### 独立 DOM 几何
+
+| 视口 | 中央宽 | 主区 clientHeight | 消息区 | composer | 主区内缩 | row gap | 列数 | 圆形/返回间距 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1280×800 | 648.97px | 720px | 508px | 116px | 15px | 10px | 3 | 24px |
+| 1440×900 | 735.06px | 760px | 540px | 124px | 15px | 10px | 3 | 24px |
+| 1920×1080 | 830.11px | 840px | 620px | 132px | 15px | 10px | 3 | 24px |
+| 390×844 | 358px | 674px | 394px | 170px | 13px | 10px | 1 | 32.30px |
+| 390×600 | 374px | 586px | 324px | 170px | 13px | 10px | 1 | 32.30px |
+
+- 五档均为 `composeButtonContained=true`、`composeContained=true`；发送按钮右/下 4px 硬阴影完整位于 composer content box 内，composer 完整位于主框 content box 内。
+- 390×600 输入聚焦压缩视口中：主区底部 `600px`、composer 底部 `587px`、按钮底部 `570px`；输入与按钮未被固定 Header 或主框裁切。
+- 五档均满足 `documentScrollWidth=viewportWidth`、`pageScrollWidth=pageClientWidth`；桌面三列、移动单列，移动顺序保持标题/返回动作 → 会话状态 → 中央消息 → 联系方式交换。
+- 长消息从 3 条增至 80 条时，主区、消息区、composer 尺寸不变，仅消息列表内部 `scrollHeight` 增加；消息区与 composer 之间保留 10px gap。
+
+#### 配色、层级与叠压结论
+
+- 左栏背景实测 `rgb(255,249,232)`（`#FFF9E8`）；两张统计块分别为 `rgb(223,231,218)`（`#DFE7DA`）和 `rgb(243,231,197)`（`#F3E7C5`）；右栏为 `#DFE7DA`。符合方案 A，无大面积纯黑底。
+- 黑色仅保留文字、3–4px 描边和硬阴影；桌面与移动截图中信息层级清晰，未出现原生产截图的“一坨黑”。
+- 当前聊天页已禁用 `.wide-panel::before` 绝对定位装饰，改为独立 `.chat-header-decoration` 网格项。五档均为 `decorationContained=true`、`headerActionContained=true`、`decorationOverlapsHeaderAction=false`；桌面净距 24px、移动约 32.30px。
+- 发送输入区、消息区与中央主框之间存在稳定内缩和 10px 模块间距；开发截图和独立截图均未见输入框、发送按钮、按钮阴影或 composer 边框贴底裁切。
+
+#### 门禁与唯一下一步
+
+- 本轮未发现必须返修项；038 问题 2–3 的实现通过独立 UI 门禁。
+- 本结论不等于 Issue canonical 闭环、部署完成或生产/业务方验收通过；实际生产 038/后续版本仍需对应负责人部署并在真实数据会话复测。
+- 唯一下一步：项目总负责人接收本次 `UI_PASS`，继续推进对应 Issue、部署、生产五档复测及业务方最终验收；UI 无新增返工。
+
+### V2 最小 UI 返工规范（聊天头部 / 首页 CTA / 反馈侧栏 / 通用 Hero / 首页节奏）
+
+- 任务：`UI返工规范｜复用V2，不改代码`及追加问题 5–6；角色：UI 设计师 v2.3.0；状态：`UI_DESIGN_READY / IMPLEMENTATION_PENDING`。
+- 本轮仅形成视觉规范、预览和验收数据；未修改业务代码、测试、Issue canonical、Spec、分支或部署。
+- 业务截图事实：
+  - `C:\Users\86166\AppData\Local\Temp\codex-clipboard-85e403ee-fbfb-46f1-8ad4-e27db681574e.png`：聊天消息区标题、说明和“联系方式未授权”徽章过度拥挤。
+  - `C:\Users\86166\AppData\Local\Temp\codex-clipboard-9a96b4ef-9899-4ad3-b775-850bb5d13b41.png`：首页“我要找家教 / 我要做家教”最终可见框体不等宽、不等高。
+  - `C:\Users\86166\AppData\Local\Temp\codex-clipboard-3a7094e3-a29e-4e59-a098-c5f384982e31.png`：反馈页左侧仍为大面积纯黑底。
+  - `C:\Users\86166\AppData\Local\Temp\codex-clipboard-c8d69051-8ff4-4452-b71f-b075fdbfec08.png`、`4d2b9de8-bc26-4aaa-932c-05b69baa48ef.png`、`3daa32a2-8512-4fe5-9ed1-e95d1c0a4746.png`、`4f2f6ba4-efc6-400a-9fe4-1a3b85301a2b.png`、`7301d73c-2556-491c-ba88-ebc90a5c583a.png`、`de0bbe22-9671-4d05-94b9-5a2200123062.png`、`67a74281-5c05-49cd-9dee-1bd94594a8af.png`：发布、详情、聊天 Hero 与“智能客服”紧凑参照。
+  - `C:\Users\86166\AppData\Local\Temp\codex-clipboard-7c5e13cb-bcde-49f3-838d-6845e9ca37c9.png`：首页卖点区到双发布卡之间空白过大。
+
+#### 方案比较与冻结推荐
+
+- 方案 A（推荐）：聊天头部改响应式网格；双 CTA 共用一个尺寸契约；反馈侧栏沿用个人页已接受的暖米白、灰绿、暖沙色板；Hero 按普通、详情、聊天三种内容量形成同密度紧凑变体。
+- 方案 B：状态徽章并入说明行、反馈侧栏整卡灰绿。占高略小，但状态识别和左右侧栏区分变弱。
+- 方案 C：状态徽章浮动右上、反馈侧栏纯白。代码改动可能更少，但容易再次产生拥挤/遮挡，并削弱 D+ 层级。
+- 冻结采用方案 A；不改变任何真实文案、功能、信息架构、返回路径、聊天三列/移动单列结构或业务规则。
+
+#### 四视口核心验收数据
+
+| 视口 | 聊天消息头部 | 文案/徽章净距 | CTA 可见尺寸 | 反馈侧栏 padding / gap | 普通 Hero | 详情 Hero | 聊天 Hero | 首页 Hero→卡区 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1280×800 | 56px | ≥16px | 等宽 × 60px | 22px / 12px | 164px | 196px | 164px | 20px |
+| 1440×900 | 60px | ≥20px | 等宽 × 64px | 24px / 14px | 164px | 196px | 164px | 20px |
+| 1920×1080 | 60px | ≥24px | 等宽 × 64px | 24px / 16px | 172px | 204px | 168px | 24px |
+| 390×844 | 92px，两行 | 8px | 等宽 × 56px | 14px / 10px | 156–188px | 212–236px | 180–204px | 16px |
+
+- 聊天头部桌面为 `minmax(0,1fr) auto`；标题组 `gap:4px`，标题 `22px/1.1`、说明 `13px/1.4`，徽章高 `40–42px` 且不换行。390×844 文案组与徽章分两行、徽章右对齐；390×600 输入聚焦回归可用 `72px` 紧凑两列，但说明仍必须可见、消息区不得低于 `320px`。调整后消息区继续满足 1280 / 1440 / 1920 的 `500 / 540 / 620px` 下限，不得挤压 composer。
+- 双 CTA 使用相同 `width:100%`、box sizing、字体、行高和内边距，并由卡片 `grid-template-rows:auto 1fr auto` 固定在同一底部轨道。可见外框宽高差和文字中心 Y 差均 `≤1px`；验收必须测最终可见像素，不能用 DOM 等宽掩盖 native static 切片不等宽。
+- 反馈侧栏外卡 `#FFF9E8`，四条原说明完整保留并依次使用 `#DFE7DA / #F3E7C5 / #C9D3C5 / #FFF1A8`；黑色只用于文字、4px 描边和硬阴影，连续纯黑填充面不得超过侧栏可视面积约一成。
+- 通用 Hero 以“智能客服”信息密度为参照：普通变体含标签/标题/说明，详情变体再含提示条/返回动作，聊天变体再含圆形/返回动作。桌面标题组 gap `6–8px`，返回动作到文案组 `≥24px`；移动动作独立下一行。长文案桌面优先不超过两行、移动不超过三行；超过时按行高自然增长，不裁切，也不得用无内容 `min-height` 恢复 280–400px 大块。
+- 聊天黄色圆形和按钮必须是正常 Grid item：桌面 `minmax(0,1fr) 64–72px auto`，水平净距 `≥20px`；390 第一行标题组/48px 圆形、第二行按钮跨列，垂直净距 `≥12px`；任何视口不得相交。
+- 首页间距以最后一行卖点文字可见底边到双 CTA 卡外框顶边测量，四档目标 `20 / 20 / 24 / 16px`，容差 `±4px`；通过消除标题块无内容高度和重复 margin 实现，不用负 margin 重叠。
+
+#### 交接文件与预览
+
+- 完整可执行规范：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\v2-ui-rework-spec-20260730.md`
+- 响应式预览源：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\v2-ui-rework-chat-cta-feedback-hero.html`
+- 聊天头部 / CTA / 反馈侧栏四档预览：
+  - `...\v2-ui-rework-1280x800.png`
+  - `...\v2-ui-rework-1440x900.png`
+  - `...\v2-ui-rework-1920x1080.png`
+  - `...\v2-ui-rework-390x844.png`
+- Hero / 首页节奏四档预览：
+  - `...\v2-ui-rework-1280x800-hero-home.png`
+  - `...\v2-ui-rework-1440x900-hero-home.png`
+  - `...\v2-ui-rework-1920x1080-hero-home.png`
+  - `...\v2-ui-rework-390x844-hero-home.png`
+- 预览为视觉关系与尺寸交接，不是实际页面实现证据。四档真实页面仍须满足 `scrollWidth=clientWidth`、无裁切、无横向溢出。
+
+#### 门禁与唯一下一步
+
+- 当前不能回报 `UI_PASS`；代码实现、定向测试、独立 UI 复核、部署、生产复测与业务方最终验收均未通过。
+- 唯一下一步：原代码开发员在现有 SITE-UX workflow / V2 分支按方案 A 完成最小样式与布局实现，回传 1280×800、1440×900、1920×1080、390×844 的真实页面截图与 DOM 几何；随后由本 UI 线程独立复核。
+
+### 聊天消息区不得缩小：桌面高度冲突裁决
+
+- 任务：`紧急设计冲突裁决｜消息区不得缩小`；角色：UI 设计师 v2.3.0；状态：`UI_SPEC_AMENDED / IMPLEMENTATION_PENDING`。
+- 冲突事实：新消息头采用 1280 为 `56px`、1440 / 1920 为 `60px` 后，如继续使用旧主区 clientHeight `720 / 760 / 840px`、composer clientHeight `116 / 124 / 132px` 和既有 padding / gap，消息区 clientHeight 会降至约 `500 / 528 / 600px`，低于已经冻结的 `508 / 540 / 620px`。业务方“聊天框不得再次缩小”的要求优先。
+
+#### 方案比较与裁决
+
+- 方案 A（冻结采用）：保持内部 padding、10px row gap、composer 和头部尺寸不变，仅把桌面主区 CSS border-box 高度分别增加 `8 / 12 / 20px`。增量小、计算可复核，不破坏上一轮解决的呼吸间距和 composer 完整性。
+- 方案 B（否决）：把主区上下 padding 或两个 row gap 合计压缩 `8–20px`。虽然可维持旧主区高度，但会重新产生内框贴边，与 038 已通过的视觉修复冲突。
+- 方案 C（否决）：压缩 composer 或输入按钮。会削弱输入可用性并破坏 composer 完整门禁，不可接受。
+
+#### 不可变精确参数
+
+| 视口 | `.conversation-main` CSS 高度 | 主区 clientHeight | 消息头 | composer clientHeight / CSS 高度 | 消息区 clientHeight 下限 | 相对旧主区 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1280×800 | `734px` | `728px` | `56px` | `116 / 122px` | `508px` | `+8px` |
+| 1440×900 | `778px` | `772px` | `60px` | `124 / 130px` | `540px` | `+12px` |
+| 1920×1080 | `866px` | `860px` | `60px` | `132 / 138px` | `620px` | `+20px` |
+
+- 计算以当前 3px 主框 / 消息框描边为准：`消息区 clientHeight = 主区 clientHeight - 16px 主区纵向 padding - 消息头 - composer CSS border-box 高度 - 20px 两个 row gap - 6px 消息框上下描边`。
+- 1280：`728 - 16 - 56 - 122 - 20 - 6 = 508`。
+- 1440：`772 - 16 - 60 - 130 - 20 - 6 = 540`。
+- 1920：`860 - 16 - 60 - 138 - 20 - 6 = 620`。
+- `.conversation-main` 继续使用 `box-sizing:border-box`、纵向 padding `8px`、横向 padding `12px`、row gap `10px`；`.message-list { min-height:0; overflow-y:auto }`；composer、textarea、发送按钮及其 4px 阴影规格全部保持。
+- 高度增量只允许作用于三列桌面工作区，建议以 `min-width:1200px` 约束；不得泄漏到 981–1199 条件单列或 ≤980 移动规则。390×844 / 390×600 的单列、消息区和 composer 契约保持原值。
+- 本次裁决不改变紧凑 Hero：发布 `164 / 164 / 172px`、详情 `196 / 196 / 204px`、聊天 `164 / 164 / 168px` 继续冻结；Hero 与主聊天区分别计算，禁止通过恢复 Hero 巨高来补偿主区。
+
+#### 验收与门禁
+
+- 四项必须同时成立：消息区 clientHeight 达到 `≥508 / ≥540 / ≥620px`；composer 及按钮阴影完整收进主框；消息区和 composer 之间仍为 `10px`；1280×800 不出现输入区遮挡或横向溢出。
+- 当前仍为 `IMPLEMENTATION_PENDING`，本裁决不是 `UI_PASS`。部署、生产复测和业务方最终验收均未通过。
+- 唯一下一步：原代码开发员按上述三档 CSS 高度做桌面限定的最小调整，回传 1280×800、1440×900、1920×1080 的主区 / 消息区 / composer DOM 几何及完整截图；随后由本 UI 线程定向复核。
+
+### V2 UI 问题 2–6 与聊天兼容高度独立复核（commit 47e4d13d）
+
+- 任务：`独立UI复核｜commit 47e4d13d`；角色：UI 设计师 v2.3.0；结论：`UI_PASS`。
+- 复核基线：分支 `V2-unified-navigation-responsive-profile-20260729`，本地 HEAD、远端分支与目标均为 `47e4d13d7bf914589d488c6f08ed489b58b61518`；开始复核时目标工作树干净。本轮未修改代码、测试、Issue、分支或部署。
+- 已逐张查看开发证据目录 `C:\Users\86166\AppData\Local\Temp\site-ux-fd581cfe-rework-20260730` 的四档综合 UI、聊天主视图、composer 细节及 390×600 键盘压缩证据。
+- 本轮另行生成独立 Chrome/CDP 截图与 JSON：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-review-47e4d13d-independent`。独立运行 `ui-rework-browser + chat-layout-browser` 为 `2 files / 10 tests` 全过；与 CSS / implementation 回归合并运行 `4 files / 24 tests` 全过。
+
+#### 内置浏览器真实页面核对
+
+- 本地开发预览使用当前 commit 与已安装依赖，不安装新依赖。1440×900 首页真实 DOM：两个 CTA 均 `289.5×64px`，宽差 `0`、高差 `0`、文字相对按钮中心差 `0`；Hero 到卡区 `20px`；document `1425/1425`，无横向溢出。
+- 390×844 首页真实 DOM：两个 CTA 均 `299×56px`，宽差 `0`、高差 `0`、文字中心差 `0`；Hero 到卡区 `16.078125px`；document `375/375`，无横向溢出。
+- 1440 反馈页真实 DOM：左栏 `#FFF9E8`，四提示为 `#DFE7DA / #F3E7C5 / #C9D3C5 / #FFF1A8`，真实四段文案完整；390 下左栏宽 `343px`、document `375/375`，无大面积黑底或横向溢出。
+- 首页“风险与功能反馈”真实入口点击后进入 `/feedback`，页面标题与提交区域正常；上述页面浏览器 console 无相关 error/warn，也无框架错误覆盖层。
+- 发布页真实路由因匿名状态停留在“正在读取登录状态”，未把该加载页当成 Hero 通过证据；普通/详情/聊天 Hero 由同 commit 的隔离真实 Chrome 夹具和重新生成截图独立覆盖。
+
+#### 四视口综合 UI 几何
+
+| 视口 | 聊天头 | 分行/间距 | CTA 高度与三项差值 | 首页 gap | 普通 / 详情 / 聊天 Hero |
+| --- | ---: | --- | --- | ---: | --- |
+| 1280×800 | 56px | 桌面两列，16px gap，不相交 | 60px；宽/高/文字中心差均 0 | 19.8125px | 164 / 196 / 164px |
+| 1440×900 | 60px | 桌面两列，20px gap，不相交 | 64px；三项差均 0 | 19.8125px | 164 / 196 / 164px |
+| 1920×1080 | 60px | 桌面两列，24px gap，不相交 | 64px；三项差均 0 | 23.8125px | 172 / 204 / 168px |
+| 390×844 | 92px | 标题说明与徽章两行，8px gap，不相交 | 56px；三项差均 0 | 16.078125px | 172 / 224 / 192px |
+
+- 1280 / 1440 / 1920 聊天头最小内部净距约 `4.78 / 8.78 / 8.78px`；标题、说明与状态徽章目视清晰，无裁切或互相叠压。390 状态徽章独立第二行，标题与说明完整。
+- 四档反馈左栏均为暖米白，四条提示色顺序正确；黑色仅用于文字、描边和硬阴影。
+- 普通、详情、聊天 Hero 均落入冻结高度；长文案未裁切，移动详情按钮换行后仍完整。聊天黄色圆形与返回按钮为独立网格项，桌面净距 `24px`、移动 `40px`，均不相交。
+
+#### 聊天主区与 composer
+
+| 视口 | 列数 | 中央宽 | 主区 clientHeight | 消息区 clientHeight | composer clientHeight | row gap | 横溢 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1280×800 | 3 | 648.97px | 728px | 508px | 116px | 10px | 无 |
+| 1440×900 | 3 | 735.06px | 772px | 540px | 124px | 10px | 无 |
+| 1920×1080 | 3 | 830.11px | 860px | 620px | 132px | 10px | 无 |
+| 390×844 | 1 | 358px | 674px | 360px | 170px | 10px | 无 |
+| 390×600 | 1 | 374px | 586px | 324px | 170px | 10px | 无 |
+
+- 五档均为 `composeContained=true`、`composeButtonContained=true`，发送按钮与 4px 阴影完整位于 composer 内，composer 完整位于主框内。
+- 长消息仅增加消息列表内部 `scrollHeight`；主框、消息区和 composer 几何不变，消息列表保持内部滚动。
+- 桌面三列与移动单列顺序正确；左栏暖米白与灰绿/暖沙统计卡保持，无大面积黑底；所有档位 document/page `scrollWidth <= clientWidth`。
+
+#### 结论、残余门禁与唯一下一步
+
+- 本轮冻结范围没有必须返修项；`UI_PASS`，不阻塞该 commit 继续进入后续产品/Issue/部署准备。
+- 上游完整测试仍保留既有 S2 外部运维文档夹具失败；该项不构成本轮 UI 失败，也未误报为全绿。
+- 本结论不等于 Issue canonical 闭环、生产部署、生产多视口复测或业务方最终验收通过。
+- 唯一下一步：项目总负责人接收本次 `UI_PASS`，继续推进产品/Issue、部署、生产四视口复测和业务方最终验收；UI 无新增返工。
+
+### 业务方否决旧 Hero 口径后的精确五页总预览（2026-07-30）
+
+- 角色：UI 设计师 v2.3.0；任务状态：`UI_PREVIEW_READY / BUSINESS_PREVIEW_CONFIRMATION_PENDING`。本轮不是 `UI_PASS`，未修改代码、测试、分支、Issue 或部署。
+- 业务方否决上一版“相近高度 / 三类高度”后，范围最终严格锁定为五页：① `/parent-needs/new`；② `/tutor-profiles/new`；③ `/parent-needs/[id]`；④ `/tutor-profiles/[id]`；⑤ `/chats/[id]`。首页双 CTA 为独立第六项，不计入五页高度矩阵；未扩入登录、注册、个人中心、反馈等其他页面。
+- 已于实际 `https://ungraduedu.eu.cc/customer-service` 独立读取 `.customer-service-info-strip` 四视口 DOM：1280×800 外框 `1180.53×164.16px`；1440×900 `1329.97×132.41px`；1920×1080 `1816×135.69px`；390×844 `347×306.59px`。桌面边框 3px、padding `18px 32px`、gap 26px、可见内容上下外留白均 21px；390 边框 2px、padding 18px、gap 12px、上下外留白 20px；四档均无横向溢出。
+- 五页桌面直接逐视口复用智能客服对应实测总视觉高度：1280 `164.16px`、1440 `132.41px`、1920 `135.69px`；不另设近似档位。390 采用相同 18px padding / 12px gap / 信息密度与自然换行，`height:auto`，不得为追求同高裁切内容。
+- `/chats/[id]` 黄色圆形与“返回我的聊天”保持两个正常流 grid/flex item，最小净距 22px，不使用绝对定位叠压；移动端允许隐藏装饰或保留独立占位，动作按钮完整占一行。
+- 首页 1440 实测基准：卡片 `347.5×276.42px`、内容宽 `289.5px`；右卡标题 top `64.09px`、副标题 top `128.58px`；左卡按钮 top `188.42px`、高 64px。预览采用固定四行坐标：标签 `24/18px`；标题 `64.09/37.4px`、字号/行高 `34/37.4px` 且两标题单行；副标题 `128.58/25.65px`、`19/25.65px`；按钮 `188.42/64px`。两卡各行 top/height 差均 0px。
+- 390 CTA 保持现有已对齐节奏：卡片 `347×206px`；标签 top 22px；标题 top 50.78px、`32/35.2px` 单行；副标题 top 90.77px、`19/25.65px`；按钮 top 127.2px、高 56px；两卡差均 0px。
+
+#### 预览产物
+
+- 可点击 HTML 索引：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\site-ux-exact-hero-preview-20260730\index.html`
+- 精确测量表：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\site-ux-exact-hero-preview-20260730\measurements.md`
+- 五页 1440 桌面截图：`1440-parent-needs-new.png`、`1440-tutor-profiles-new.png`、`1440-parent-needs-detail.png`、`1440-tutor-profiles-detail.png`、`1440-chat-detail.png`
+- 首页 CTA 1440 桌面截图：`1440-home-cta.png`
+- 390 合并移动图：`390-mobile-contact-sheet.png`
+- 唯一下一步：业务方一次性确认该严格五页 Hero 与首页 CTA 预览；确认前维持 `BUSINESS_PREVIEW_CONFIRMATION_PENDING`，不得进入代码实现。确认后由原代码开发员按同一五页 + CTA 矩阵实现并生成真实页面最终截图，再由本 UI 线程逐页独立签字。
+
+### 五页 Hero 与首页 CTA 业务方预览确认及视觉边界冻结（2026-07-30）
+
+- 角色：UI 设计师 v2.3.0；业务方门禁：`BUSINESS_PREVIEW_CONFIRMED`。本次仅登记冻结口径，不是 `UI_PASS`，未修改代码、测试、分支、Issue 或部署。
+- 业务方确认五页 Hero 高度方案正确，严格五页仍仅为：① `/parent-needs/new`；② `/tutor-profiles/new`；③ `/parent-needs/[id]`；④ `/tutor-profiles/[id]`；⑤ `/chats/[id]`。
+- 五页冻结实现范围：只调整顶部整块总视觉高度，使其在桌面对应视口与智能客服实测高度精确一致，即 1280 为 `164.16px`、1440 为 `132.41px`、1920 为 `135.69px`；390 使用已确认的同等信息密度自然换行、不裁切规则。除高度与为容纳内容所必需的几何排布外，现有视觉样式全部保持。
+- 业务方确认首页两个发布入口的四行布局与逐行对齐正确。冻结实现范围：只调整标签、标题、副标题、按钮的行布局；两个标题保持单行；左右同名行的 top/height 差应 `≤1px`。首页双入口仍是独立第六项，不计入五页 Hero 高度矩阵。
+- 预览图只作为布局几何参考，严禁把预览中为表达结构而使用的字体、字号风格、颜色、描边、阴影、圆角、框体、背景或其他简化视觉替换进实际代码；实际实现必须继续使用当前页面既有 D+ 视觉语言与组件样式。
+- 当前 workflow：`CONTINUE_TRACKING / IMPLEMENTATION_PENDING`。已通过的是业务方预览确认；代码实现、开发验证、同矩阵真实页面截图、UI 独立逐页复核、部署/生产复测及业务方最终验收均未通过。
+- 唯一下一步：项目总负责人将本冻结口径交回原代码开发员，仅实施上述五页高度几何与首页双入口行布局；实现后按同一严格五页 + 首页 CTA 矩阵生成真实页面证据，再由本 UI 线程独立复核。
+
+### 3ec414b7 业务确认范围独立 UI 诊断（2026-07-30）
+
+- 角色：UI 设计师 v2.3.0；目标 commit：`3ec414b73976fd38f79c65187fb54a87f7169eee`；分支：`V2-unified-navigation-responsive-profile-20260729`；复核时 HEAD 与目标一致，目标工作树干净。
+- 本轮结论：`UI_REWORK_REQUIRED / WAITING_NEW_COMMIT`。该结论只针对 `3ec414b7` 的范围与视觉观察，不是最终 `UI_PASS`；上游产品已对同一提交给出 `PRODUCT_FAIL`，开发正在最小返工，最终独立 UI 结论必须等待新 commit。
+- 本轮只读检查 commit diff、开发工作记录、开发截图与 DOM JSON；另在同一 commit 独立重跑真实 Next 页面视觉契约 `ui-preview-confirmed-actual-browser.test.ts`，结果 `1 file / 1 test` 通过，并重新生成当前状态的截图与 DOM 证据。未修改代码、测试、分支、Issue 或部署。
+
+#### 独立证据
+
+- 独立证据目录：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-review-3ec414b7-independent`
+- 五页 1440 实际截图：`1440-parent-needs-new.png`、`1440-tutor-profiles-new.png`、`1440-parent-needs-detail.png`、`1440-tutor-profiles-detail.png`、`1440-chat-detail.png`
+- 首页 1440 实际截图：`1440-home-cta.png`
+- 390 合并实际图：`390-combined.png`
+- 几何原始数据：`dom-measurements.json`
+- 返回循迹、反馈文案与聊天 CSS 定向回归：`navigation-trail.test.ts`、`navigation-trail-integration.test.ts`、`feedback-page-copy.test.ts`、`chat-layout-css.test.ts`，独立运行 `4 files / 18 tests` 全过。
+
+#### 几何事实
+
+- 五页在 1280×800 均为 `164.15625px`，1440×900 均为 `132.40625px`，1920×1080 均为 `135.6875px`，与智能客服冻结实测值一致；各容器 `overflowY=0`，页面 `documentScrollWidth <= documentClientWidth`。
+- 390 自然高度：两发布页 `150.875px`，两详情页 `237.46875px`，聊天页 `231.625px`；五页均 `overflowY=0`、无横向溢出，合并图内文案、提示、按钮与聊天装饰完整。
+- 首页四行 `rowTopDeltas=[0,0,0,0]`，两标题均为单行；1440 两卡颜色、描边、硬阴影、圆角与既有 D+ 画风目视仍存在。
+
+#### 阻塞返工项
+
+1. 五页并非“只调整顶部整块高度”。新增 `.publish-copy`、`.detail-hero .market-copy`、`.workspace-header > div` 的 Grid 列布局、`align-items`、`column-gap`、eyebrow/title margin 及三类 `padding-block`，将标签与标题横向重排并改变内部间距，超出 `BUSINESS_PREVIEW_CONFIRMED` 的最小边界。必须撤回未经确认的内部布局改动，仅保留获准的高度几何。
+2. 首页允许四行固定轨道、标题单行与逐行对齐，但 `.home-entry-card h2 { font-size:40px; }` 同时覆盖了既有桌面 44px 与移动 32px。390 合并图可见移动标题被放大；这属于未获授权的生产字体尺寸变化。必须恢复既有桌面/移动标题字号，只保留行布局和单行约束。
+3. 截图目视未发现颜色、描边、阴影、圆角或框体被替换成简化预览画风，但几何通过不能抵消上述范围越界，因此本提交不得进入部署或最终 UI 通过。
+
+#### 受影响回归与限制
+
+- 共享 Header 与 48px 返回箭头在五张独立 1440 页面截图中可见；导航循迹定向 18 项中相关测试通过，commit 未修改 Header/返回 href 或业务 JSX。
+- 聊天主体的暖米白/灰绿侧栏、绿色消息头、粗描边与硬阴影未见回退；本提交对聊天顶部内部布局的额外 Grid 重排仍属于阻塞项 1。
+- 反馈页不在本次严格五页 + CTA 截图矩阵内；commit diff 未触及反馈选择器或页面代码，反馈文案回归通过，但本轮没有新增反馈页视觉截图，不能把该有限证据扩大为新的全页视觉签字。
+- 上游报告的 `10 files / 51 tests`、typecheck/lint/build 通过未在本 UI 线程全量重跑；本轮独立证据仅为上述真实页面 `1/1` 与定向回归 `18/18`。
+- 独立截图与 DOM 证据在 `23:06` 完成，早于开发员 `23:07` 开始的本地返工修改；当前工作树仍以 `3ec414b7` 为 HEAD，但已出现开发员进行中的 CSS/契约测试未提交改动。该脏工作树不属于本次 `3ec414b7` 结论，也不得作为新版本复核证据。
+- 唯一下一步：原代码开发员完成产品已启动的最小返工并提供新 commit；新 commit 仅需按同一五页 1440、390 合并图和首页 CTA 证据做定向复核，不再扩大截图矩阵。
+
+### 五页 Hero“最小内部间距例外”业务预览（2026-07-30）
+
+- 角色：UI 设计师 v2.3.0；状态：`UI_PREVIEW_READY / BUSINESS_PREVIEW_CONFIRMATION_PENDING`。本轮只制作效果图并登记 UI 连续性，不是代码实现或 `UI_PASS`。
+- 严格范围仅为：① `/parent-needs/new`；② `/tutor-profiles/new`；③ `/parent-needs/[id]`；④ `/tutor-profiles/[id]`；⑤ `/chats/[id]`。首页 CTA 不在本轮预览范围。
+- 五页 1440 顶部外框总高统一保持智能客服实测 `132.41px`。预览以 `3ec414b7` 正式页面截图作底，仅覆盖顶部 Hero；共享 Header、页面主体和其他区域保持实际截图原样，未使用上一版简化线框画风。
+- 所有预览继续使用正式 D+ 视觉：原字体族、生产字号、字重、文案、颜色、3px 黑色描边、硬阴影、圆角、框体、详情返回按钮、聊天黄色圆形与返回按钮均不变。
+
+#### 预览仅允许的间距与几何例外
+
+- 两个发布页：针对 2px 溢出，仅将 `padding-block:16px → 15px`；标题组顺序和原垂直排布不变。
+- 两个详情页：针对 22px 溢出，仅将 `padding-block:16px → 5px`；标签与生产字号标题并排到同一标题行、水平净距 16px，标签下边距与标题外边距归零；说明与提示条仍各自占完整下一行，右侧返回按钮不动。
+- 聊天页：针对 15px 溢出，仅将 `padding-top/bottom:12/12px → 4/5px`；标签与生产字号标题并排到同一标题行、净距 16px，说明保持完整下一行；黄色圆形和“返回我的聊天”列不动。
+- 上述例外只用于回收已确认的 `2 / 22 / 15px` 纵向溢出，不授权更改其他间距、视觉样式或页面结构。
+
+#### 预览产物
+
+- 五页 1440 合并图：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-min-spacing-exception-20260730\1440-five-page-contact-sheet.png`
+- 需求详情 1440 放大图：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-min-spacing-exception-20260730\1440-parent-needs-detail-zoom.png`
+- 聊天页 1440 放大图：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-min-spacing-exception-20260730\1440-chat-detail-zoom.png`
+- 简短标注：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-min-spacing-exception-20260730\spacing-notes.md`
+- 预览源仅为 UI 产物：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-min-spacing-exception-20260730\preview.html`
+- 项目代码工作树仍保留开发员先前开始的 3 个未提交返工文件；本 UI 线程未修改、清理、暂存或覆盖这些改动。
+- 唯一下一步：业务方确认或否决该 2/22/15px 最小间距例外预览；确认前不得让开发员把该例外写入代码，也不得报告 `UI_PASS`。
+
+### 发布页标题与说明重叠预览返工（2026-07-30）
+
+- 角色：UI 设计师 v2.3.0；状态：`UI_PREVIEW_READY / BUSINESS_PREVIEW_CONFIRMATION_PENDING`。业务方已否决上一版两个发布页的垂直堆叠预览；本条以修正后的发布页预览替代上一条中的两个发布页画面，详情页、家教详情页与聊天页方案保持不变。
+- 两个发布页 `/parent-needs/new`、`/tutor-profiles/new` 改为绿色标签与生产 `46px` 大标题同一标题行，水平间距 `16px`；标签下边距与标题外边距归零。说明文字独占下一行，网格净距 `6px`；`padding-block` 仍仅由 `16px` 收至 `15px`。
+- 正式 D+ 视觉保持不变：字体族、字号、字重、文案、颜色、3px 黑色描边、硬阴影、圆角与框体均沿用上一版生产预览；五页 1440 Hero 外框总高均为 `132.41px`。
+- 独立 DOM 几何：`/parent-needs/new` 标题 bottom `219.16px`、说明 top `225.16px`，净距 `6px`；`/tutor-profiles/new` 标题 bottom `409.16px`、说明 top `415.16px`，净距 `6px`。五页 Hero 内受测标签、标题、说明、提示、按钮和装饰均为 `contained=true`。
+
+#### 修正预览产物
+
+- 两个发布页 1440 放大对比图：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-min-spacing-exception-20260730\1440-publish-pages-zoom-comparison.png`
+- 修正后的五页 1440 合并图：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-min-spacing-exception-20260730\1440-five-page-contact-sheet.png`
+- DOM/像素标注：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-min-spacing-exception-20260730\dom-pixel-measurements.json`
+- 修正说明：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-min-spacing-exception-20260730\spacing-notes.md`
+- 本轮仅改 UI 预览目录与本工作记录；未修改项目代码、测试、Issue、分支或部署，开发员工作树中的既有 3 个未提交文件保持原状。
+- 唯一下一步：业务方确认或否决修正后的两个发布页标题行预览；确认前不得进入代码实现，不得报告 `UI_PASS`。
+
+### 五页 Hero 最小间距例外预览业务确认（2026-07-31）
+
+- 角色：UI 设计师 v2.3.0；业务方门禁已通过，当前状态登记为 `BUSINESS_PREVIEW_CONFIRMED / IMPLEMENTATION_PENDING`。本次仅冻结已确认预览口径，不是代码实现或 `UI_PASS`。
+- 严格五页为：① `/parent-needs/new`；② `/tutor-profiles/new`；③ `/parent-needs/[id]`；④ `/tutor-profiles/[id]`；⑤ `/chats/[id]`。两个发布页、两个详情页和聊天页均允许“绿色标签 + 生产字号大标题”位于同一标题行，说明独立占下一行。
+- 1440 视口五页顶部外框总视觉高度统一为 `132.41px`；两个发布页标题与说明的 DOM 净距必须 `≥6px`；五页标签、标题、说明、提示、按钮和装饰必须全部位于外框内，即 `contained=true`。
+- 预览中的黑色路由标签、黄色分隔区和测量说明仅用于标注与比较，严禁写入代码或上线。
+- 除上述获准的 Hero 内部几何与高度外，生产字体族、字号、字重、文案、颜色、框体、描边、阴影、圆角以及页面其他区域必须保持不动；不得把预览辅助画面或简化视觉替换进正式页面。
+- 未通过门禁仍包括：代码实现、开发验证、真实页面五页截图与 DOM 证据、UI 独立复核、后续产品/Issue 门禁、部署、生产复测和业务方最终验收。
+- 本轮仅追加 UI 设计师工作记录；未修改代码、测试、Issue、分支或部署，也未提前给出 `UI_PASS`。
+- 唯一下一步：项目总负责人将该冻结口径交回原代码开发员实施；开发员提交真实页面五页截图与 DOM 几何证据后，再由本 UI 线程进行独立复核。
+
+### 1011257d 五页最小间距与首页 CTA 最终独立 UI 复核（2026-07-31）
+
+- 角色：UI 设计师 v2.3.0；目标 commit：`1011257ddbdf3522a8251a3fd0a319c971752446`；分支：`V2-unified-navigation-responsive-profile-20260729`。复核时 HEAD 与目标一致，开发工作树干净。
+- 结论：`UI_PASS`。本轮冻结范围没有必须返修项，不阻塞该 commit 进入后续产品复核与集成准备；本结论不等于产品门禁、Issue 关闭、推送、部署、生产复测或业务方最终验收通过。
+- 已逐张目视检查真实 1440 截图：`/parent-needs/new`、`/tutor-profiles/new`、`/parent-needs/[id]`、`/tutor-profiles/[id]`、`/chats/[id]`，以及首页 CTA 1440 图和 390 合并图。未见标题/说明重叠、内容裁切、横向溢出或生产 D+ 视觉被替换。
+
+#### 独立几何与视觉证据
+
+- 证据目录：`C:\Users\86166\AppData\Local\Temp\site-ux-approved-followup-20260731\final-evidence`
+- 五页桌面实测总高分别为：1280×800 `164.15625px`、1440×900 `132.40625px`、1920×1080 `135.6875px`，与对应智能客服冻结高度一致；三档五页 `overflowY=0` 且 `documentScrollWidth <= documentClientWidth`。
+- 三档桌面五页绿色标签与生产字号标题水平净距均为 `16px`，说明均不与标题行相交；两个发布页标题行与说明净距均为 `6px`。390 五页采用自然高度，说明无重叠，横纵向溢出均为 0。
+- 首页 CTA DOM：1280 与 1440 两卡四行 `rowTopDeltas=[0,0,0,0]`、横向越界均为 0、标题均为 `44px` 且单行；390 标题均为 `32px` 且单行，四行 top 差均为 0。另在当前已构建页面以 1280×800 独立浏览器复核，左右卡标签、标题、副标题、按钮的 top/height 差均为 0，页面横向溢出为 0。
+- 目视确认正式字体、字重、文案、颜色、框体、3px 粗描边、硬阴影、圆角及页面其他 D+ 视觉仍在；commit 样式 diff 仅涉及获准的 Hero 高度/内距/同标题行布局、发布页 6px 行距和首页可用宽度/列间距，没有新增颜色、框体、描边、阴影或圆角替换。
+- 预览专用黑色路由标签、黄色分隔区和测量说明只出现在证据拼图包装层；目标 commit 的正式 `app`/组件源码中未发现对应预览标注或文案。
+
+#### 回归、限制与后续门禁
+
+- 独立运行 `navigation-trail.test.ts`、`navigation-trail-integration.test.ts`、`feedback-page-copy.test.ts`、`chat-layout-css.test.ts`，结果 `4 files / 18 tests` 全部通过。
+- 反馈页 1440 独立浏览器目视保持暖米白浅色左栏、四色低饱和提示、粗描边与硬阴影，无大面积纯黑底和横向溢出；Header 返回箭头仍存在。commit 未修改 Header、返回路径、反馈或聊天业务组件。
+- 匿名直接访问聊天详情会按现有权限规则跳转登录，因此本线程未用生产账号进入真实会话；聊天页结论基于当前 commit 的 1440 fixture 实际截图、四视口 DOM JSON、CSS diff与独立聊天契约回归。截图中左栏浅色方案、消息头、composer、黄色圆形与返回按钮均未见回退。
+- 上游报告的 `5 files / 28 tests`、typecheck、lint 与带非敏感占位变量的 build 未在本 UI 线程全量重跑；本线程新增的独立运行证据为上述 18/18 与本地 1280/反馈浏览器检查。该限制不影响本轮冻结视觉事实，但不得误报为全量工程门禁由 UI 再次验证。
+- 本轮只追加 UI 设计师工作记录；未修改代码、Issue、分支或部署。
+- 唯一下一步：项目总负责人接收本次 `UI_PASS`，将 `1011257d` 交产品经理按同一冻结范围做最终独立产品复核；全部后续门禁通过后再由原责任角色推进推送与部署。
+
+### 041 主页 CTA 呼吸区与个人中心 Hero 独立 UI 四视口复核（2026-07-31）
+
+- 角色：UI 设计师 v2.3.0；目标 commit：`bb9aa614157dd5c2024fe0b2f2efdc28fdde5231`；分支：`V2-unified-navigation-responsive-profile-20260729`。复核时 HEAD 与目标一致；项目目录存在大量既有无关脏改动，均已保留，目标 `Code文档/app` 与 `Code文档/tests` 不含未提交改动。
+- 结论：`UI_PASS`。范围仅为首页两张发布入口 CTA 的底部呼吸区与 `/profile` 顶部 Hero；无必须返修项，不阻塞该本地候选 commit 进入后续门禁。本结论不等于推送、部署、生产复测、Issue 关闭或业务方最终验收。
+
+#### 四视口证据与结论
+
+- 证据目录：`C:\Users\86166\AppData\Local\Temp\site-ux-041-implementation-green`。已逐张目视检查 1280×800、1440×900、1920×1080、390×844 的 CTA 与 Profile Hero 截图，并解析 `dom-measurements.json`。
+- CTA：四档两卡标签、标题、副标题、按钮的 `rowTopDeltas` 均为 `[0,0,0,0]`，无横向越界或裁切；按钮到底部内边界的呼吸区为桌面 `22px`、移动 `20px`，两卡按钮 top、高度、底部净距和卡高一致。视觉上按钮不贴边，留白均匀；生产标题保持桌面 `44px`、移动 `32px`，字体/字重/颜色、卡框、粗描边、硬阴影和圆角未变化。
+- `/profile` Hero：1280 高 `164px`，1440 高 `132.40625px`，1920 高 `135.6875px`，390 高 `148px`；与已冻结的紧凑顶部体系一致。四档均无横向或纵向溢出；文字内容边界和黄色圆形装饰边界均完整在可用区域内，未见挤压、裁切或层级冲突。
+- commit diff 仅新增 CTA 的窄桌面纵向对齐/60px 按钮轨道，以及个人中心 Hero 在 ≥1340 宽度的已确认紧凑高度和 `4px/5px` 上下内距；未修改字体、字号、字重、颜色、文案、框体、描边、阴影、圆角或装饰选择器。
+
+#### 残余风险与唯一下一步
+
+- 本线程未重新运行 npm、typecheck、lint、build 或浏览器测试；这些工程门禁需沿用代码开发员提交的当前证据并由后续责任角色判定。UI 结论基于当前 commit diff、四视口真实截图、可解析 DOM JSON及独立视觉核对；不外推为生产事实。
+- 本轮仅追加 UI 工作记录；未修改代码、测试、Issue、Git 状态或部署。
+- 唯一下一步：项目总负责人接收本次 `UI_PASS`，继续安排该候选 commit 的产品/工程门禁与后续推送、部署、生产四视口复核。
+
+### 生产 042 返工设计预览：个人中心 Hero 框体与首页 CTA 横向内距（2026-07-31）
+
+- 角色：UI 设计师 v2.3.0；状态：`UI_PREVIEW_READY / BUSINESS_PREVIEW_CONFIRMATION_PENDING`。生产 042 的业务方截图否决了候选 `bb9aa614157dd5c2024fe0b2f2efdc28fdde5231` 在本轮两个范围上的实际效果：首页 CTA 右侧贴边、左右可见内距失衡；`/profile` 顶部仍是无框的大块留白。本条仅形成供业务方确认的视觉预览，不是代码实现、生产验收或 `UI_PASS`。
+- 已读取现有 D+ 视觉基线：智能客服信息条使用 `rgba(255,253,247,.84)` 奶油白、`3px` 深色边框、`22px` 圆角与硬阴影；首页 CTA 沿用 `4px` 粗描边、`22px` 圆角和 `7px` 硬阴影。预览只复用这套现有框体语言，不更改生产字体、字号、字重、文案、色彩、卡片、描边、阴影、圆角、按钮高度或其他页面。
+
+#### 个人中心 Hero 方案
+
+- A（推荐）：仅 `/profile` 根页的顶部改为独立 `#FFF9E8` 奶油白 Hero 框；文字在左、黄色圆形在框内右侧；`3px` 深色边框、`22px` 圆角、`6px` 硬阴影。1440 外框总高为 `132.41px`，与当前智能客服紧凑顶部对应视口一致；390 为 `148px`，圆形 `56px`。
+- B（对比）：保留 A 的框体，但黄色圆形向右半嵌出。视觉更活跃，却依赖页面外侧留白且更有小屏裁切风险，不推荐。
+- C（对比）：保留框体但移除硬阴影。层级过轻，与现有 D+ 粗描边/硬阴影体系不够一致，不推荐。
+
+#### 首页 CTA 横向修正候选
+
+- 两张 CTA 的按钮在卡片内水平居中，左右可见净距严格相等：1440 桌面 `32px / 32px`，390 移动 `20px / 20px`；按钮高度维持桌面 `64px`、移动 `56px`。本轮只调整按钮横向几何，禁止改动其余文字、卡片和按钮视觉样式。
+
+#### 预览产物与门禁
+
+- 1440 桌面 A/B/C Profile 对比与首页 CTA 修正：`C:\Users\86166\.codex\visualizations\2026\07\31\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-042-profile-cta-20260731\1440-profile-options-home-cta.png`
+- 390 移动推荐 A 与首页 CTA 修正：`C:\Users\86166\.codex\visualizations\2026\07\31\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-042-profile-cta-20260731\390-recommended-a-home-cta.png`
+- 可打开的预览源：`C:\Users\86166\.codex\visualizations\2026\07\31\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-042-profile-cta-20260731\preview.html`；测量表：`C:\Users\86166\.codex\visualizations\2026\07\31\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-042-profile-cta-20260731\measurements.md`。
+- 预览图中的黑色 `PREVIEW ONLY` 标签和所有数值标注仅用于比对，严禁进入生产。项目代码、测试、Issue、Git 状态与部署均未修改；工作树既有无关脏改动保持原状。
+- 未通过门禁：业务方对方案 A/B/C 和 CTA 几何的预览确认；确认后才可由原代码开发员实施，并需重新提交真实生产四视口截图供独立 UI 复核。
+- 唯一下一步：业务方确认推荐 A 与 CTA 等距方案，或一次性指出需调整的预览项。
+
+### 生产 042 返工预览业务确认（2026-07-31）
+
+- 角色：UI 设计师 v2.3.0；状态：`BUSINESS_PREVIEW_CONFIRMED / IMPLEMENTATION_PENDING`。业务方已明确确认上一条预览的推荐方案 A 与首页 CTA 等距几何；本条只登记冻结口径，不是代码实现、开发验证、独立 UI 复核或 `UI_PASS`。
+- 冻结范围仅两项：
+  1. 仅 `/profile` 根页的顶部 Hero 改为独立 `#FFF9E8` 奶油白框体，`3px` 深色边框、`22px` 圆角、`6px` 硬阴影；文字左、黄色圆形右。高度按既有四视口分档，1440 为 `132.41px`、390 为 `148px`。
+  2. 首页两张发布入口 CTA 的按钮在卡片内水平居中，桌面左右可见净距各 `32px`、移动各 `20px`；按钮高度与其他既有样式不变。
+- 不可变约束：不得将 B/C 方案、黑色预览标签、测量数值或预览包装层写入生产；不得变更字体、字号、字重、文案、颜色、卡片、边框、描边、阴影、圆角、黄色圆形、CTA 高度及未列出的页面或布局。
+- 已通过门禁：业务方预览确认。仍未通过门禁：原代码开发员实施、定向测试/构建证据、真实四视口截图与 DOM 几何、独立 UI 复核、后续产品/Issue 门禁、部署后生产复测及业务方最终验收。
+- 本轮仅追加 UI 工作记录；未修改项目代码、测试、Issue、Git 或部署，既有无关脏改动保持原状。
+- 唯一下一步：原代码开发员按上述冻结口径实施并提供真实四视口证据，随后由本 UI 线程进行独立复核。
+
+### 9aaf599f 生产 042 返工独立 UI 四视口复核（2026-07-31）
+
+- 角色：UI 设计师 v2.3.0；复核目标：`9aaf599f32bb0cbfd6e94f1a700844f75cfb4bcd`，分支 `V2-unified-navigation-responsive-profile-20260729`；结论：`UI_PASS`。本结论仅覆盖已冻结的首页两张 CTA 与 `/profile` 根页 Hero；不等于推送、部署、生产复测、Issue 关闭或业务方最终验收通过。
+- 复核方式：实际逐张查看 `1280×800`、`1440×900`、`1920×1080`、`390×844` 的首页 CTA 和 Profile Hero 真实本地截图，并解析同目录 DOM 几何；未仅依赖测试报告。证据目录：`C:\Users\86166\AppData\Local\Temp\site-ux-042-green`。
+
+#### 首页 CTA
+
+- 1280：两卡按钮左右内距均 `32px`，高 `60px`；1440、1920：均 `32px`，高 `64px`；390：均 `20px`，高 `56px`。四档两卡 `rowTopDeltas=[0,0,0,0]`，标题保持桌面 `44px` / 移动 `32px` 且均单行。
+- 四档均 `cardOverflowXs=[0,0]`、`overflowY=0`，文案、色彩、描边、圆角、背景与按钮视觉无可见回退；实际截图中两按钮均完整位于卡内，未贴边或溢出。
+
+#### `/profile` 根页 Hero
+
+- DOM 实测：1280 高 `164px`（冻结值 `164.16px` 的像素取整）、1440 高 `132.40625px`、1920 高 `135.6875px`、390 高 `148px`；下方间距桌面 `16px`、移动 `12px`。四档 `documentScrollWidth=documentClientWidth`，无横向溢出。
+- 四档计算样式均为 `rgb(255,249,232)`、`3px` 边框、`22px` 圆角、`6px 6px 0` 硬阴影。实际截图确认文字左置、黄色圆形右置，二者均在框内且无裁切；根页下方账户框与五卡区域未回退。
+
+#### 冻结范围回归
+
+- commit 仅为 `/profile` 根页增加 `dplus-profile-root-page`，专属 Hero 选择器不匹配个人中心子页。`/parent-needs/new`、`/tutor-profiles/new`、`/parent-needs/[id]`、`/tutor-profiles/[id]`、`/chats/[id]` 的绿色返工截图与 RED 基线 SHA-256 成对一致，证明本提交未把根页框体或 CTA 变更扩散至既有页面。
+- 本轮未修改代码、测试、Issue、Git 或部署；项目既有无关脏改动保持原状。
+- 残余门禁：工程验证汇总、产品/Issue 门禁、推送与部署、部署后生产四视口复测及业务方最终验收仍由后续责任角色处理。
+- 唯一下一步：项目总负责人接收本次 `UI_PASS`，推进该 commit 的后续产品/工程门禁；部署后必须以真实生产四视口截图进行复核。
+
+### 生产 043 / 9aaf599f 独立 UI 终验（2026-08-01）
+
+- 角色：UI 设计师 v2.3.0；结论：`UI_CONDITIONAL_PASS`。组合证据足以使本轮冻结范围通过**条件性生产视觉门禁**，但不足以给出无条件 `UI_PRODUCTION_PASS`；本结论不替代功能点击、Issue 关闭或业务方最终验收。
+- 已独立逐张目视查看生产公开首页 1280×800、1440×900、1920×1080、390×844 截图，并解析生产 DOM：`C:\Users\86166\AppData\Local\Temp\site-ux-production-043-readonly\1280x800-home-cta.png`、`1440x900-home-cta.png`、`1920x1080-home-cta.png`、`390x844-home-cta.png` 与 `production-home-dom-measurements.json`。
+- 生产 CTA 实测：1280/1440/1920 两卡按钮左右内距均 `32px`，390 均 `20px`；行对齐差均为 `0`，`scrollWidth=clientWidth`，卡片滚动溢出为 `0`。实际截图确认按钮完整位于卡内、视觉不贴边，字号、颜色、边框、圆角、背景与高度无回退。
+- 已独立查看生产已登录 Profile 截图：`C:\Users\86166\AppData\Local\Temp\ungradu-prod-043-acceptance\profile-1280.png`、`profile-1440.png`；并核对上游 Chrome 直接测量。根页 Hero：1280 `164px / gap 16px`，1440 `132.40625px / gap 16px`，1920 `135.6875px / gap 16px`；背景 `rgb(255,249,232)`、`3px` 边框、`22px` 圆角、`6px` 硬阴影，黄色圆形 `68px`、`right 32px / top 24px`，均无横向溢出。
+- 组合回归证据：本地同一 commit 的 390 Profile 为 `148px / gap 12px` 且 `/profile/chats` 不继承根页框体；生产公开 390 已确认加载同批响应式 CTA CSS，生产桌面根页已确认根页专属 CSS 生效。结合 `9aaf599f` 仅给 `/profile` 根节点附加专属 class 的 diff，本轮未发现视觉偏差。
+- 条件与限制：已登录 Chrome 路由到生产 `/profile/chats` 后调试连接超时，未能直接提取该子页计算样式；生产已登录 390 Profile 未取得直接 DOM/截图。公开 CTA 处于未登录禁用态，两个 CTA 的真实登录态点击未完成，属于功能/登录态门禁，不能由 UI 视觉结论代替。
+- 本轮仅追加 UI 工作记录；未修改代码、测试、Issue、Git 或部署。
+- 唯一下一步：在可稳定连接的已登录 390 Chrome 会话中补取 `/profile` 与 `/profile/chats` 截图/计算样式；由功能责任角色完成两个 CTA 登录态真实点击。两项补证完成后再决定是否升格为无条件生产 UI 通过。
+
+### 043 生产最终补证 UI 终验（2026-08-01）
+
+- 角色：UI 设计师 v2.3.0；目标 commit：`9aaf599f32bb0cbfd6e94f1a700844f75cfb4bcd`；结论：`UI_PRODUCTION_PASS`。本结论仅为 UI 角色生产视觉门禁，不冒充产品或业务方验收。
+- 新增登录态生产证据已补齐上一条两项缺口：主页“我要找家教”真实跳转 `/parent-needs/new`；“我要做家教”真实跳转 `/tutor-profiles/new`。
+- 新增生产 390 Profile 直测：`window.innerWidth=390`、`innerHeight=844`；`document/body clientWidth=375`、`scrollWidth=375`、`horizontalOverflow=false`；Hero `x=16`、`right=359`、`width=343`、`height=148`；背景 `rgb(255,249,232)`、3px 边框、22px 圆角、6px 硬阴影；下方间距 `12px`；黄色圆形 `56×56`、`right=16`、`top=18`、3px 边框、4px 阴影。视口已 reset。
+- 既有生产证据继续有效：Profile 桌面 1280/1440/1920 高度与 gap 通过；`/profile/chats` `rootClassPresent=false`、透明背景、0px 边框/圆角、无阴影、`1425/1425` 无横溢；公开首页 CTA 四视口几何通过。
+- UI 视觉门禁现已完整通过，允许将 ISSUE-0025/0028 交 Issue 管理员进入关闭复核；UI 不自行关闭 Issue。产品/业务方门禁仍需由对应角色独立给出，故本线程不输出 `PRODUCT_PRODUCTION_PASS`。
+- 本轮仅追加 UI 工作记录；未修改代码、Issue、部署或生产状态。
+- 唯一下一步：Issue 管理员完成 ISSUE-0025/0028 关闭复核，并由产品/业务方完成其独立生产验收门禁。
+
+### ISSUE-0024/0029 新版四视口 UI 预览（2026-08-01）
+
+- 角色：UI 设计师 v2.3.0；状态：`UI_PREVIEW_READY / BUSINESS_PREVIEW_CONFIRMATION_PENDING`。本轮只产出 UI 预览与本角色工作记录，输入基线为生产 043 当前视觉；未修改业务代码、测试、Issue canonical、Git 或部署。
+- 预览范围严格限定为 ISSUE-0024 与 ISSUE-0029：0024 仅表达白色全局 Header（桌面 `72px`、移动 `64px`）、返回键左侧留 margin（桌面 `48×48 / x=24`、移动 `40×40 / x=12`）及其右侧品牌方块与 `UNGradu EDU`；返回按钮文案/状态表达为“返回上一个真实访问页面”，不把目标固定画成首页。真实访问轨迹与父级映射属于产品/路由规则，本预览不自行发明映射。
+- 0029 预览保持 D+ 既有字体、色彩、粗描边、圆角与硬阴影语言，仅放大聊天工作区并拆开消息头、消息区、composer 与装饰：桌面目标主区/消息区/composer 为 `1280=720/508/116px`、`1440=760/540/124px`、`1920=840/620/132px`；三列保留左侧状态与右侧联系方式；左侧改为奶油白/低饱和浅色层级，不使用大面积纯黑；发送按钮完整收进 composer 并与输入框对齐；黄色圆形与“返回我的聊天”动作分离（桌面 gap≥`16px`，移动 gap≥`12px`）。390 采用单列且聊天主区优先，消息区≥`320px`、composer≥`112px`，无横向溢出。
+- 预览产物：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-0024-0029-20260801\preview.html`；测量说明：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-0024-0029-20260801\measurements.md`；四视口图：`1280x800.png`、`1440x900.png`、`1920x1080.png`、`390x844.png`（均在上述目录）。390 预览已完成一次气泡换行自检，右侧气泡 contained、无可见裁切；预览标注明确为 `PREVIEW ONLY`，不计入上线高度。
+- 冻结项：0024 Header 高度/返回键几何/品牌相邻关系；0029 桌面三列、移动单列顺序、目标尺寸、消息头净距、内外框呼吸间距、composer 完整性、左侧浅色替代与装饰分离。未决定项：真实访问轨迹到父级路由的产品映射、最终实现选择器与 390 文案在真实业务数据下的换行细节，均不得由 UI 预览替代。
+- 给业务方的唯一确认问题：是否确认这套四视口布局（尤其桌面三列尺寸、移动消息主区优先，以及返回键按真实访问轨迹而不写死首页）作为 ISSUE-0024/0029 的实现输入？
+- 唯一下一步：等待业务方确认预览；确认后交回原代码开发员按冻结项实现并提供真实四视口证据，本 UI 线程再独立复核。
+
+### ISSUE-0024/0029 预览返工：Hero 层级与重复返回入口（2026-08-01）
+
+- 角色：UI 设计师 v2.3.0；状态：`UI_PREVIEW_REWORK_READY`。本轮仅修正预览中的层级重叠，不改聊天尺寸、字体、色彩、描边、圆角、浅色状态栏、消息区或 composer。
+- 修正内容：绿色“站内聊天”标签完整收进 Hero，Hero 内部采用既有字体与更紧凑的内部间距；删除内容区“返回我的聊天”入口，仅保留白色 Header 最左统一返回箭头；Hero 与下方三列/移动消息主区保留清晰垂直间距。预览说明条仍为 `PREVIEW ONLY`，不计上线高度。
+- 四视口产物：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-0024-0029-20260801\1280x800.png`、`1440x900.png`、`1920x1080.png`、`390x844.png`。
+- 自检证据：1280/1440/1920 截图中标签未压边、Hero 与工作区边框未相交；390 截图同样无重叠。DOM 复核：1280/1440 Hero→工作区净距 `14px`、390 净距 `12px`，`.hero-actions` 不存在；滚动到底部的既有 composer 细节图仍显示输入框、发送按钮与主框底边完整。
+- 唯一下一步：由总负责人复核本次四视口返工预览；未获确认前不得交开发实现。
+
+### ISSUE-0024/0029 业务确认冻结基线（2026-08-01）
+
+- 角色：UI 设计师 v2.3.0；状态：`UI_PREVIEW_FROZEN / IMPLEMENTATION_SEQUENCE_USER_DECISION_PENDING`。业务方已确认“可以，冻结保留记住这一版”。本条仅登记冻结，不再修改视觉内容、代码、Issue canonical、Git 或部署。
+- 冻结目录：`C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-0024-0029-20260801`
+- SHA-256（冻结文件）：
+  - `preview.html` — `671A33D4DA512A4DE3028441C77387DE94B638A42F4ED62D1587F953E08ECD37`
+  - `measurements.md` — `9E811101CD350B8A6BE3B722842C56FA96E05FCD09EA3F93DB6EF7FA27930BEA`
+  - `1280x800.png` — `92DA9BB42CE6D976BDAC2C57AD853C3F0B3BB1B65C7BB5C6BFEF2DF20B61B844`
+  - `1440x900.png` — `A60648139990623227127D4443F16485C736568FC9BD6FD06B7AD918C902756F`
+  - `1920x1080.png` — `5BAA8A4D50192D094F520FA897575B27D3A952775807147F7120F06D594E57CA`
+  - `390x844.png` — `16E0234413B474950B834E192370B1E0968409300CA715B19BE4BCACFA16809E`
+- 唯一下一步：等待总负责人作出实现顺序/是否进入开发的用户决策；在该决策前不得实施。
+
+### ISSUE-0024/0029 预览证据补充：桌面底部 composer 细节（2026-08-01）
+
+- 角色：UI 设计师 v2.3.0；状态仍为 `UI_PREVIEW_READY / BUSINESS_PREVIEW_CONFIRMATION_PENDING`。应总负责人要求，仅补充 1280×800 与 1440×900 滚动到底部的等效细节截图；既有四张视口图与布局均未重做，未修改代码、测试、Issue、Git 或部署。
+- [1280×800 底部细节图](C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-0024-0029-20260801\1280x800-bottom-composer.png)：主框宽 `727px`；composer `116px`；输入框与发送按钮同底线，按钮 `96px` 宽且完整收进主框，左右内侧 padding 可见，主框底边完整可见。
+- [1440×900 底部细节图](C:\Users\86166\.codex\visualizations\2026\07\29\019fad1d-872b-7271-8c8b-6d4b87e3dd4f\ui-preview-0024-0029-20260801\1440x900-bottom-composer.png)：主框宽 `727px`；composer `124px`；输入框与发送按钮同底线，按钮 `96px` 宽且完整收进主框，左右内侧 padding 可见，主框底边完整可见。
+- 本补充只验证既有冻结项“composer 不裁切、按钮完整、内外框有呼吸间距”，不改变任何布局、视觉样式或目标尺寸。唯一下一步仍为等待业务方确认四视口预览。
+
+### ISSUE-0036 审核与申诉状态 / 文案 / 可访问性验收设计（2026-08-10）
+
+- 角色：UI 设计师 v2.3.0；任务：在不改代码、现有 UI、Spec、Issue、Git、部署或平台配置的前提下，形成审核与申诉状态/文案/可访问性验收设计。
+- 输入已完整回读并核对：
+  - Spec `D:\codex_project\家教对接website\规划文档\Spec文档\Release_version_Spec\2026-08-10-issue-0036-联系方式快速智能审核-spec.md`，SHA-256 `005EA5F2490DC2E43A134BA0421EFBD357179C90E29A6F2AB560F6F61A97B437`。
+  - 业务门禁包 `D:\codex_project\家教对接website\规划文档\产品迭代\2026-08-10-ISSUE-0036-业务门禁决策包.md`，SHA-256 `AFFA051D5A78D91DE09D23276DB4452AAB874575907883F5257C189516305C73`。
+- 新增 UI 设计文档：`D:\codex_project\家教对接website\UI美术文档\设计验收与交接\2026-08-10-ISSUE-0036-审核与申诉状态验收设计.md`；完整回读后 SHA-256 `9F21370847C385630E13B07EB7597123F6A52E6E9C283C3079379CEC76BD18CA`，277 行。
+- 设计覆盖：`draft`、`pending_review`、`needs_manual_review`、`published`、`rejected`、`appeal_pending`、`deleted` 七状态；提交/等待/拒绝/申诉/撤回申诉（默认不启用）/改稿/超时/队列不可用/审核服务不可用/版本冲突文案；未成年人友好与隐私不泄露；焦点、键盘、live-region、错误关联、重复提交锁；现有本人列表/编辑/详情/聊天路径；1280/1440/1920/390 四视口截图与 DOM 验收清单及 `UI_REWORK_REQUIRED` 失败判据。
+- 设计状态：`UI_DESIGN_READY / HERMES_REVIEW_BLOCKED / USER_CONFIRMATION_PENDING`。14 项业务门仍未确认；文档明确安全默认可先冻结项与必须业务方带日期确认的 14 项 UI 影响，未把候选文案冒充生产或业务通过。
+- Workflow 证据：`vange-workflow` Hermes preflight 通过（Hermes Agent `v0.18.2`，默认模型仍为 `deepseek-v4-flash`，审查模型为 `deepseek-v4-pro`）；Round 1 只读审查进程未产出报告，已停止重复等待，故保持 `HERMES_REVIEW_BLOCKED`，不宣称 `DOCUMENT_GATE_PASSED` 或 `UI_PASS`。
+- 本轮仅新增上述 UI 设计文档并追加本工作记录；未修改业务代码、现有 UI、Spec、Issue canonical、Git、部署或平台配置。
+- 唯一下一步：项目总负责人将本稿与两份已核对 SHA 的输入交业务方逐项确认 14 项门及申诉/撤回文案，同时解决 Hermes Round 1 外部阻塞；确认与审查门通过前不进入实现、真实数据、生产或 Issue 关闭。
+
+### ISSUE-0034 动态 1280/390 UI 独立验收（2026-08-10）
+
+- 角色：UI 设计师 v2.3.0；状态：`UI_PASS`（仅本地候选动态 UI 门禁，不代表生产、产品或业务验收）。当前候选 HEAD 为 `80f1fac8e36851905843f9ed89dbb594164e2a1d`；未修改业务代码、Spec、Issue canonical、总负责人文件、Git 或部署。
+- 为严格遵守“不得访问真实 provider”，首轮未拦截的本地 API 探查不作为本结论证据；随后重启 `http://127.0.0.1:39346`，在浏览器 Fetch 层拦截 `/api/tutor-profiles*` 与 `/api/auth/session`，只注入内存合成公开 DTO。服务日志仅出现页面 GET，没有任何 API route/provider 请求。最终动态证据目录：`C:\Users\86166\AppData\Local\Temp\issue-0034-ui-dynamic-mocked-20260810`。
+- 1280×800 与 390×844 逐页检查：`/tutor-profiles`、`/tutor-profiles/preview-tutor`（隔离夹具完整渲染双省略、证明材料和聊天入口）及 `/login?next=%2Ftutor-profiles%2Fnew`（匿名发布入口正确落到登录页）。DOM 汇总为 `dom-measurements.json`，SHA-256 `B6397F4A3235B7230CE34635A53D014A7D0F4A01D16C8CB8E0C7FBB5E4A64BC9`。
+- 关键几何：列表/详情/登录在 1280 的 Header 均 `72px`，390 均 `64px`；所有隔离记录 `scrollWidth=clientWidth`、`overflow=false`。桌面返回箭头 `48×48 / x=24`，移动 `40×40 / x=12`，`aria-label=返回上一级`，列表 href `/`，详情 href `/tutor-profiles`；无内容区重复 Header 返回入口。详情 Hero 为桌面 `1124×164.156px`、移动 `358×237.469px`；聊天按钮滚动到底部后桌面 `224.53×46`、移动 `310×46`，均 `fullyVisible=true`；登录页 390 底部验证码/提交/密码入口均完整可见。
+- 视觉/文案：实际查看隔离截图（`list-1280.png`、`list-390.png`、`preview-tutor-1280.png`、`preview-tutor-390.png`、`login-1280.png`、`login-390.png`）。列表与完整详情均显示双省略 `学校与专业信息暂未公开`，无悬空分隔符；详情显示精确 `证明材料暂不公开`、`联系方式未公开`，未见 raw 联系方式/证明元信息；安全提示不破版。本轮未把 API 失败文案单独冒充动态通过，失败态仍需部署后按真实错误响应复核。
+- 结论：未发现本轮范围内的可见重叠、裁切、横向溢出、关键控件遮挡、双省略分隔符错误、证明材料文案错误或安全提示破版。允许进入精确 Git staged manifest 准备（本 UI 不执行 staging/commit）；仍需部署后生产 1280/390 复验、登录态真实数据、真实 API 失败态与产品/业务方门禁。
+- 唯一下一步：总负责人将本次 TEMP 截图与 DOM JSON 纳入精确 staged manifest 并安排部署后的生产 UI 复核；UI 线程不代为收口 Issue 或生产验收。
+
+### 生产只读验收：apex / www、首页、规则、反馈（2026-08-11）
+
+- 角色：UI 设计师 v2.3.0；结论：`PARTIAL`。本条只代表已取得的生产可见 DOM 证据，不代表完整生产 UI 通过、产品/业务验收或 Issue 关闭。
+- 只读检查目标：`https://ungraduedu.eu.cc/`、`/rules`、`/feedback`，并尝试 `https://www.ungraduedu.eu.cc/`；未登录、未提交、未写生产数据，未修改代码、平台、Issue、Git 或部署。
+- 1280 桌面 DOM 可见证据：
+  - 首页 `innerWidth=1280`、`innerHeight=800`，`clientWidth=1265`、`scrollWidth=1265`、无横向溢出；Header `72px`；两发布卡均完整可见，CTA 按钮 `285×60px`，第一卡 `x=68..353`、第二卡 `x=435..720`。
+  - `/rules` 成功读取共享 Header（返回上一级、品牌、登录/注册、智能客服、规则）及规则主内容四区；可见联系方式交换规则与安全提醒。
+  - `/feedback` 成功读取共享 Header、反馈类型/对象选择、描述与证据输入、字符计数、`提交风险反馈` 与风险状态说明；未见 DOM 级横溢或缺失关键操作。
+- `www` 只读结果：浏览器实际导航 `https://www.ungraduedu.eu.cc/` 后落到 `https://ungraduedu.eu.cc/`，并读取到与 apex 首页一致的可见 DOM（品牌、发布入口、核心入口、沟通原则）。这与补充的 Cloudflare/Worker/DNS 证据一致；不把区域递归 DNS 异常归因于 Custom Domain 或 Worker 配置回归，归入 ISSUE-0020 外部 DNS 可达性/区域网络风险（`EXTERNAL_BLOCKED`）。
+- 390 与截图限制：按 390×844 请求使用浏览器 viewport capability 时，覆盖未稳定生效（此前读数仍为 `innerWidth=1280`），本次恢复后再次设置触发浏览器会话超时并重置；`Page.captureScreenshot` 亦因 CDP `Page.captureScreenshot` 超时未产出截图。因此没有宣称 390 视觉通过，也不提供虚构截图路径；Statsig telemetry 超时属于浏览器运行时噪声，不作为站点缺陷。
+- 门禁判断：未观察到已取得桌面 DOM 中的明确 UI 缺陷，但桌面-only + 无截图/390 几何不足以升格 `UI_PASS`；CloudBase 53/100 与 Worker Version `b76e7c2d-995b-464d-b2b3-ed4d0139bb40` 仅作为上游运行信号，本角色未将其转换为 UI 结论。
+- 唯一下一步：在浏览器 viewport/CDP 稳定时补取 apex 与 www 的 390×844 首页、`/rules`、`/feedback` 截图/DOM 几何，再决定是否升级生产 UI 门禁；继续保持只读，不改代码、平台或 Issue。
+
+### DNS 归因更正（2026-08-11）
+
+- 根据最终补充实测，223.5.5.5、119.29.29.29、114.114.114.114、1.1.1.1、8.8.8.8 对 apex/www 均正确返回 Cloudflare `104.21.46.185 / 172.67.141.97`；Cloudflare Custom Domain、Worker DNS 与证书保持 Active。
+- 更正前条目中的宽泛“区域递归 DNS 风险”表述：已知异常仅为本机当前 WLAN 首选 DNS `194.169.55.66` 返回非 Cloudflare 地址；不表述为中国网络普遍污染，也不视为平台配置回归或 ISSUE-0034 生产回归。
+- 若在 ISSUE-0020 记录，仅应标注为客户端/当前网络首选 DNS 诊断事实（非平台技术阻断）；本 UI `PARTIAL` 仍只因 390 视口与截图证据缺失，不因 DNS 归因升级或新增阻塞。
+
+### UI 设计师 Agent v2.3.2 正式重绑定与受限连续性接管（2026-08-11）
+
+类型：会话重绑定 / 角色文件接管 / 严格受限写入
+
+维护文件：
+
+- `协同工作文档/AGENT身份注册信息/UI设计师Agent-019fefa7-ba66-7d63-8918-17fa0271437c.md`
+- `协同工作文档/AGENT身份注册信息/UI设计师Agent-019fad1d-872b-7271-8c8b-6d4b87e3dd4f.md`
+- `UI美术文档/钦定UI设计师.md`
+- `UI美术文档/UI设计师工作记录.md`
+
+绑定与模型：
+
+- 新会话 ID `019fefa7-ba66-7d63-8918-17fa0271437c`、统一标题 `UI设计师v2.3.2` 已登记为当前 UI 设计师接续入口。
+- 最终模型配置记录为 `gpt-5.6-luna / max`。
+- 旧绑定 `019fad1d-872b-7271-8c8b-6d4b87e3dd4f / UI设计师v2.3.0` 已标记为历史归档，不再接收新任务。
+
+职责与写入边界：
+
+- 角色仍为 UI 视觉设计、界面方案、交互说明、设计交接与独立 UI 复核负责人；不替产品经理、代码开发员、ISSUE 管理员、项目总负责人或业务方履职。
+- 本次仅维护上述四个自身连续性文件；中央注册表《AGENT注册状态总览.md》和《协同工作总览.md》由新项目总负责人统一写入。
+- 本次未修改 CONTEXT、Spec、Issue canonical/state、代码、UI 业务产物、其他角色文件或平台配置；未运行 npm，未执行 Git mutation，未部署，未创建任务或 subagent。
+
+连续性状态与门禁：
+
+- 当前 workflow 为 `WORKFLOW_ACTIVE`，不是 `WORKFLOW_COMPLETE`。
+- Active Open 为 `ISSUE-0020`、`ISSUE-0031`、`ISSUE-0032`、`ISSUE-0034`、`ISSUE-0035`、`ISSUE-0036`、`ISSUE-0038`。
+- `ISSUE-0020` 为 `open / EXTERNAL_BLOCKED`；Contract B 为 `HARD_CUT_FUNCTIONAL_PASS_WITH_EXECUTION_DEVIATION`。
+- CloudBase DeployId `055`、Worker 显示 `e72e0119`；`AUTH_SESSION_SECRET` 在 055 的有效读取与登录 503 尚待核对。
+- 登录入口修复 commit `b6bbb51da31671f6641df1747c81046317d9d765` 已推送但未部署；双账号反馈、回滚替代证据与最终残余风险接受仍未通过。
+- 数据库与涉及付费的动作延期；不得将本次重绑定写成 Issue 关闭、部署或业务方验收。
+
+唯一下一步：
+
+- 等待来源总负责人在新绑定下发送下一项受限 UI 任务；在此之前不扩展读取或工作范围，不代做 Issue、部署、生产或业务验收。

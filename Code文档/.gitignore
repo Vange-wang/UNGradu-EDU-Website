@@ -7,3 +7,7 @@ dist/
 .env
 .env.*
 !.env.example
+/cloudbaserc.json
+/data/customer-service/audit-records.jsonl
+/data/customer-service/conversation-states.json
+/data/customer-service/kb-intake.json

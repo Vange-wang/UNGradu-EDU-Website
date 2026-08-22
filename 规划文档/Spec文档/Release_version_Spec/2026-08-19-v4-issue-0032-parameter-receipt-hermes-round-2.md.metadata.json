@@ -1,0 +1,33 @@
+{
+  "source": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-19-v4-issue-0032-parameter-receipt-candidate.md",
+  "source_sha256": "52358D5F7BC7BE75819CA6CBBFDA9D8AAD64C98CF8863D91A4A197E75F557ECF",
+  "report": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-19-v4-issue-0032-parameter-receipt-hermes-round-2.md",
+  "report_sha256": "7F9D66B2027658797FC118596082EBFFB867665CF5FC5C6EC7D09FD21C63A768",
+  "round": "2/3",
+  "model": "deepseek-v4-pro",
+  "hermes_path": "D:\\miniconda\\Scripts\\hermes.exe",
+  "hermes_version": "Hermes Agent v0.18.2 (2026.7.7.2)",
+  "default_model": "deepseek-v4-flash",
+  "default_model_changed": false,
+  "exit_code": 0,
+  "started_at": "2026-08-19T01:49:31.7727402+08:00",
+  "completed_at": "2026-08-19T01:52:46.3747947+08:00",
+  "canonical_source_unchanged": true,
+  "review_scope": "S1/S2/S3 remediation and directly affected regressions",
+  "review_bundle_sha256": "549F312952051486C33F55C15744D3A85F0FDAC39A3B7421D685B324F58DC541",
+  "review_bundle_deleted": true,
+  "review_bundle_components": {
+    "canonical_candidate": {
+      "path": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-19-v4-issue-0032-parameter-receipt-candidate.md",
+      "sha256": "52358D5F7BC7BE75819CA6CBBFDA9D8AAD64C98CF8863D91A4A197E75F557ECF"
+    },
+    "round1_report": {
+      "path": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-19-v4-issue-0032-parameter-receipt-hermes-round-1.md",
+      "sha256": "F337BFCD501D7A8410D201D387740A939EB8DB6B254CE33F97EA76AF475C12AD"
+    },
+    "document_qa_ledger": {
+      "path": "D:\\codex_project\\家教对接website\\协同工作文档\\文档QA\\2026-08-19-v4-issue-0032-parameter-receipt-DocumentQA-Round1整改记录.md",
+      "sha256": "C136D9B413E1DA12D13AF84DD6B408565A8FE92F5E469EB4E7DCF24C8C6F9185"
+    }
+  }
+}

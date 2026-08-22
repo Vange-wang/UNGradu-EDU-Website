@@ -1,0 +1,16 @@
+{
+  "source": "C:\\Users\\86166\\AppData\\Local\\Temp\\tmpbfwmzj.tmp",
+  "source_sha256": "8372D4EB5C3006926BD9A495527D3BC972EE142385329F788A0CFDC1D383189E",
+  "report": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-15-issue-0032-邮箱人机验证关闭-hermes-round-2.md",
+  "report_sha256": "C56E4B980AAF26D4876AEA94A6C50CC4B77CB0F8AE1072DEC49FF00FFE517666",
+  "round": "2/3",
+  "model": "deepseek-v4-pro",
+  "hermes_path": "D:\\miniconda\\Scripts\\hermes.exe",
+  "hermes_version": "Hermes Agent v0.18.2 (2026.7.7.2)",
+  "default_model": "deepseek-v4-flash",
+  "default_model_changed": false,
+  "exit_code": 0,
+  "started_at": "2026-08-15T22:15:14.9920642+08:00",
+  "completed_at": "2026-08-15T22:18:06.4771360+08:00",
+  "canonical_source_unchanged": true
+}

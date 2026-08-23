@@ -1,8 +1,15 @@
+import {
+  getContactReviewOwnerPresentation,
+  type ContactReviewDisplayStatus
+} from "@/features/contact-review/contact-review-owner-ui";
+
 export type TutorProfileManagementView = "active" | "deleted" | "legacy";
+export type { ContactReviewDisplayStatus } from "@/features/contact-review/contact-review-owner-ui";
 
 type ManagedRecord = {
   managementState: "legacy-readonly" | "managed";
-  status: "deleted" | "published";
+  reviewStatus?: ContactReviewDisplayStatus;
+  status: "deleted" | "pending_review" | "published";
 };
 
 export function filterTutorProfilesForManagementView<T extends ManagedRecord>(
@@ -12,8 +19,17 @@ export function filterTutorProfilesForManagementView<T extends ManagedRecord>(
   return records.filter((record) => {
     if (view === "legacy") return record.managementState === "legacy-readonly";
     if (record.managementState !== "managed") return false;
-    return view === "deleted" ? record.status === "deleted" : record.status === "published";
+    return view === "deleted" ? record.status === "deleted" : record.status !== "deleted";
   });
+}
+
+export function describeContactReviewStatus(status: ContactReviewDisplayStatus | undefined) {
+  return getContactReviewOwnerPresentation({
+    canAppeal: false,
+    canEdit: status === "published" || status === "rejected",
+    publicVisibility: status === "published" ? "published" : "hidden",
+    reviewStatus: status ?? "published"
+  }).label;
 }
 
 export function getTutorProfileRecoveryState(

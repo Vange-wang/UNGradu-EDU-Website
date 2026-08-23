@@ -5,6 +5,15 @@ import type {
   ServerTutorProfile,
   ServerTutorProfileFilters
 } from "@/server/tutor-profiles";
+import type { ContactReviewDisplayStatus } from "./tutor-profile-management";
+
+export type ManagedTutorProfile = Omit<ServerTutorProfile, "status"> & {
+  canAppeal?: boolean;
+  canEdit?: boolean;
+  publicVisibility?: "deleted" | "hidden" | "published";
+  reviewStatus?: ContactReviewDisplayStatus;
+  status: "deleted" | "pending_review" | "published";
+};
 
 function createCookieBackedHeaders() {
   return {
@@ -70,7 +79,7 @@ export async function listMyTutorProfilesFromApi({
     method: "GET"
   });
 
-  return parseApiResponse<ServerTutorProfile[]>(response);
+  return parseApiResponse<ManagedTutorProfile[]>(response);
 }
 
 export async function readMyTutorProfileFromApi({
@@ -90,7 +99,7 @@ export async function readMyTutorProfileFromApi({
     }
   );
 
-  return parseApiResponse<ServerTutorProfile>(response);
+  return parseApiResponse<ManagedTutorProfile>(response);
 }
 
 export async function updateTutorProfileToApi({
@@ -108,11 +117,14 @@ export async function updateTutorProfileToApi({
   const response = await fetchWithCsrf(fetcher, `/api/tutor-profiles/${encodeURIComponent(id)}`, {
     body: JSON.stringify({ ...input, version }),
     credentials: "same-origin",
-    headers: createCookieBackedHeaders(),
+    headers: {
+      ...createCookieBackedHeaders(),
+      "idempotency-key": createIdempotencyKey("edit", id, version)
+    },
     method: "PATCH"
   });
 
-  return parseApiResponse<ServerTutorProfile>(response);
+  return parseApiResponse<ManagedTutorProfile>(response);
 }
 
 export async function deleteTutorProfileFromApi({
@@ -135,7 +147,7 @@ export async function deleteTutorProfileFromApi({
     method: "DELETE"
   });
 
-  return parseApiResponse<ServerTutorProfile>(response);
+  return parseApiResponse<ManagedTutorProfile>(response);
 }
 
 export async function restoreTutorProfileFromApi({
@@ -158,7 +170,7 @@ export async function restoreTutorProfileFromApi({
     method: "POST"
   });
 
-  return parseApiResponse<ServerTutorProfile>(response);
+  return parseApiResponse<ManagedTutorProfile>(response);
 }
 
 export async function saveTutorProfileToApi({
@@ -172,9 +184,33 @@ export async function saveTutorProfileToApi({
   const response = await fetchWithCsrf(fetcher, "/api/tutor-profiles", {
     body: JSON.stringify(input),
     credentials: "same-origin",
-    headers: createCookieBackedHeaders(),
+    headers: {
+      ...createCookieBackedHeaders(),
+      "idempotency-key": createIdempotencyKey("create", "new", 0)
+    },
     method: "POST"
   });
 
-  return parseApiResponse<ServerTutorProfile>(response);
+  return parseApiResponse<ManagedTutorProfile>(response);
+}
+
+export async function appealTutorProfileReview({
+  fetcher = fetch,
+  id,
+  version
+}: {
+  fetcher?: typeof fetch;
+  id: string;
+  version: number;
+}) {
+  const response = await fetchWithCsrf(fetcher, "/api/contact-review", {
+    body: JSON.stringify({ action: "appeal", entityId: id, entityType: "tutor_profile", expectedEntityRevision: version }),
+    credentials: "same-origin",
+    headers: {
+      ...createCookieBackedHeaders(),
+      "idempotency-key": createIdempotencyKey("appeal", id, version)
+    },
+    method: "POST"
+  });
+  return parseApiResponse<ManagedTutorProfile>(response);
 }

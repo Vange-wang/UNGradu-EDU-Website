@@ -8,6 +8,8 @@ import {
 } from "@/server/parent-needs";
 import { createParentNeedManagementHandlers } from "./management-handlers";
 import { createRuntimeEnvWithSessionRevocation } from "@/server/api-utils";
+import { createContactReviewRuntime } from "@/server/security/contact-review-runtime";
+import type { CloudBaseContactReviewDatabase } from "@/server/security/contact-review-cloudbase";
 
 type GetHandler = ReturnType<typeof createParentNeedApiHandlers>["GET_COLLECTION"];
 type PostHandler = ReturnType<
@@ -24,7 +26,17 @@ function getRouteHandlers() {
     };
     const collection = database.collection(PARENT_NEEDS_COLLECTION);
     const env = createRuntimeEnvWithSessionRevocation(database);
-    const handlers = createParentNeedApiHandlers({ collection, env });
+    const contactReviewRuntime = createContactReviewRuntime({
+      database: database as unknown as CloudBaseContactReviewDatabase,
+      entityType: "parent_need",
+      env
+    });
+    const handlers = createParentNeedApiHandlers({
+      collection,
+      contactReview: contactReviewRuntime.integration,
+      contactReviewGate: contactReviewRuntime.gate,
+      env
+    });
     const runTransaction: ParentNeedLifecycleTransactionRunner | undefined =
       typeof database.runTransaction === "function"
         ? (operation) =>
@@ -41,6 +53,8 @@ function getRouteHandlers() {
         : undefined;
     const managementHandlers = createParentNeedManagementHandlers({
       collection,
+      contactReview: contactReviewRuntime.integration,
+      contactReviewGate: contactReviewRuntime.gate,
       env,
       runTransaction
     });

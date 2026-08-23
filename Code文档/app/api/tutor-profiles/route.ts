@@ -8,6 +8,8 @@ import {
 } from "@/server/tutor-profiles";
 import { createTutorProfileManagementHandlers } from "./management-handlers";
 import { createRuntimeEnvWithSessionRevocation } from "@/server/api-utils";
+import { createContactReviewRuntime } from "@/server/security/contact-review-runtime";
+import type { CloudBaseContactReviewDatabase } from "@/server/security/contact-review-cloudbase";
 
 type GetHandler = ReturnType<typeof createTutorProfileApiHandlers>["GET_COLLECTION"];
 type PostHandler = ReturnType<
@@ -24,7 +26,17 @@ function getRouteHandlers() {
     };
     const collection = database.collection(TUTOR_PROFILES_COLLECTION);
     const env = createRuntimeEnvWithSessionRevocation(database);
-    const handlers = createTutorProfileApiHandlers({ collection, env });
+    const contactReviewRuntime = createContactReviewRuntime({
+      database: database as unknown as CloudBaseContactReviewDatabase,
+      entityType: "tutor_profile",
+      env
+    });
+    const handlers = createTutorProfileApiHandlers({
+      collection,
+      contactReview: contactReviewRuntime.integration,
+      contactReviewGate: contactReviewRuntime.gate,
+      env
+    });
     const runTransaction: TutorProfileLifecycleTransactionRunner | undefined =
       typeof database.runTransaction === "function"
         ? (operation) =>
@@ -41,6 +53,8 @@ function getRouteHandlers() {
         : undefined;
     const managementHandlers = createTutorProfileManagementHandlers({
       collection,
+      contactReview: contactReviewRuntime.integration,
+      contactReviewGate: contactReviewRuntime.gate,
       env,
       runTransaction
     });

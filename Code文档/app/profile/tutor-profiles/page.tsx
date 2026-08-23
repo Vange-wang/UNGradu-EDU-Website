@@ -6,21 +6,23 @@ import { useEffect, useState } from "react";
 import { RequireTestSession } from "@/features/auth/require-test-session";
 import { formatTutorFeeRange } from "@/features/tutor-profiles/tutor-profile";
 import {
+  appealTutorProfileReview,
   deleteTutorProfileFromApi,
   listMyTutorProfilesFromApi,
-  restoreTutorProfileFromApi
+  restoreTutorProfileFromApi,
+  type ManagedTutorProfile
 } from "@/features/tutor-profiles/tutor-profile-api-client";
+import { getContactReviewOwnerPresentation } from "@/features/contact-review/contact-review-owner-ui";
 import {
   filterTutorProfilesForManagementView,
   getTutorProfileRecoveryState,
   type TutorProfileManagementView
 } from "@/features/tutor-profiles/tutor-profile-management";
-import type { ServerTutorProfile } from "@/server/tutor-profiles";
 
 type Notice = { kind: "error" | "success"; message: string } | null;
 
 function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
-  const [profiles, setProfiles] = useState<ServerTutorProfile[]>([]);
+  const [profiles, setProfiles] = useState<ManagedTutorProfile[]>([]);
   const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<Notice>(null);
@@ -54,7 +56,7 @@ function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
     };
   }, [ownerPhone, refreshIndex]);
 
-  async function deleteProfile(profile: ServerTutorProfile) {
+  async function deleteProfile(profile: ManagedTutorProfile) {
     if (!window.confirm(
       "删除后会立即从公开页面下架；48 小时内可以恢复。历史聊天保留，但删除期间不可发送消息或查看、交换联系方式。是否继续？"
     )) {
@@ -75,7 +77,7 @@ function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
     if (result.ok) setRefreshIndex((value) => value + 1);
   }
 
-  async function restoreProfile(profile: ServerTutorProfile) {
+  async function restoreProfile(profile: ManagedTutorProfile) {
     const result = await restoreTutorProfileFromApi({
       currentUserPhone: ownerPhone,
       id: profile.id,
@@ -84,8 +86,17 @@ function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
     setNotice({
       kind: result.ok ? "success" : "error",
       message: result.ok
-        ? "家教信息已恢复并重新公开。"
+        ? "家教信息已恢复并重新提交审核，审核完成前不会公开。"
         : result.errors.request ?? "恢复失败"
+    });
+    if (result.ok) setRefreshIndex((value) => value + 1);
+  }
+
+  async function appealProfile(profile: ManagedTutorProfile) {
+    const result = await appealTutorProfileReview({ id: profile.id, version: profile.version });
+    setNotice({
+      kind: result.ok ? "success" : "error",
+      message: result.ok ? "申诉已提交，等待复核。" : result.errors.request ?? "申诉提交失败"
     });
     if (result.ok) setRefreshIndex((value) => value + 1);
   }
@@ -127,7 +138,7 @@ function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
 
       <div className="management-view-tabs exchange-actions" aria-label="家教信息记录状态">
         {([
-          ["active", `有效 (${counts.active})`],
+          ["active", `有效 / 审核中 / 未通过 (${counts.active})`],
           ["deleted", `已删除 / 待恢复 (${counts.deleted})`],
           ["legacy", `旧记录只读隔离 (${counts.legacy})`]
         ] as const).map(([value, label]) => (
@@ -168,6 +179,12 @@ function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
         <div className="record-list profile-record-list">
           {visibleProfiles.map((profile) => {
             const recovery = getTutorProfileRecoveryState(profile.deletedAt);
+            const presentation = getContactReviewOwnerPresentation({
+              canAppeal: profile.canAppeal === true,
+              canEdit: profile.canEdit ?? (profile.status === "published"),
+              publicVisibility: profile.publicVisibility ?? (profile.status === "deleted" ? "deleted" : "published"),
+              reviewStatus: profile.reviewStatus ?? "published"
+            });
 
             return (
             <article className="record-card profile-record-card" key={profile.id}>
@@ -181,9 +198,7 @@ function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
                 <span className="status-pill">
                   {profile.managementState === "legacy-readonly"
                     ? "旧记录 · 暂不可管理"
-                    : profile.status === "deleted"
-                      ? "已删除"
-                      : "有效"}
+                    : presentation.label}
                 </span>
               </div>
               <p>可教科目：{profile.subjects.join("、")}</p>
@@ -207,27 +222,40 @@ function TutorProfilesList({ ownerPhone }: { ownerPhone: string }) {
                   <Link href="/tutor-profiles/new">重新发布</Link>
                 </div>
               ) : profile.status === "deleted" ? (
-                <div className="exchange-actions">
-                  <span>
-                    {recovery.canRestore ? "恢复期限" : "恢复期已过"}：
-                    {recovery.deadline
-                      ? new Date(recovery.deadline).toLocaleString("zh-CN")
-                      : "不可用"}
-                  </span>
-                  {recovery.canRestore ? (
-                    <button className="button secondary" onClick={() => void restoreProfile(profile)} type="button">
-                      恢复
-                    </button>
-                  ) : null}
+                <div>
+                  <p className="privacy-note">{presentation.message}</p>
+                  <div className="exchange-actions">
+                    <span>
+                      {recovery.canRestore ? "恢复期限" : "恢复期已过"}：
+                      {recovery.deadline
+                        ? new Date(recovery.deadline).toLocaleString("zh-CN")
+                        : "不可用"}
+                    </span>
+                    {recovery.canRestore ? (
+                      <button className="button secondary" onClick={() => void restoreProfile(profile)} type="button">
+                        恢复
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               ) : (
-                <div className="exchange-actions">
-                  <Link className="button secondary" href={`/tutor-profiles/new?edit=${encodeURIComponent(profile.id)}`}>
-                    编辑
-                  </Link>
-                  <button className="button secondary" onClick={() => void deleteProfile(profile)} type="button">
-                    删除
-                  </button>
+                <div>
+                  <p className="privacy-note">{presentation.message}</p>
+                  <div className="exchange-actions">
+                    {presentation.canEdit ? (
+                      <Link className="button secondary" href={`/tutor-profiles/new?edit=${encodeURIComponent(profile.id)}`}>
+                        编辑
+                      </Link>
+                    ) : null}
+                    {presentation.canAppeal ? (
+                      <button className="button secondary" onClick={() => void appealProfile(profile)} type="button">
+                        提交申诉
+                      </button>
+                    ) : null}
+                    <button className="button secondary" onClick={() => void deleteProfile(profile)} type="button">
+                      删除
+                    </button>
+                  </div>
                 </div>
               )}
             </article>

@@ -99,3 +99,24 @@ V7/ISSUE-0035 源文件只读基线为 SHA-256 `B51D37004F5123660FF863E4C8A0776B
 ### 6.4 唯一下一步
 
 项目总负责人完整回读本轮 V6 新 hash，并执行 V6 Hermes Round 3/3（最终轮）。若 Round 3 仍有 SERIOUS，必须进入 DOCUMENT_REVIEW_LIMIT_REACHED，不得自动开启 Round 4。
+
+## 7. 2026-08-23｜V5 / ISSUE-0036 Hermes Round 1 S-001 整改
+
+> 输入 V5 Spec SHA-256：`15560B784E547FF93BDF7BD61263A7519B733A50DE69D669675B5B0E8A669F3D`；20,843 bytes / 217 lines  
+> Hermes Round 1 报告 SHA-256：`E7A9734D8F0E73EB9945234D1F35EA47FF732548F73B6B52BCD1738EEA9050B1`  
+> metadata SHA-256：`6A54A61F254AA65FB2486E1EAA88003A92397C3207AF5F8A7D68C68E0E13BC5A`；`deepseek-v4-pro`；Round 1/3；默认模型未变  
+> 状态：`QA_DOCUMENT_REWORK_COMPLETE`；不是自我批准、文档通过、实现授权、生产验收或 Issue 关闭
+
+### 7.1 S-001 old/new location
+
+- 旧位置：V5 Spec §1.2“来源与读取快照”中的 `ISSUE总表.md` 行仍绑定历史摘要 `0C404DE8…A2F316`，与 §1.3 当前精确绑定 `C747303634458CE35AC3A13AA562B6720C617229EA6E43C19593A9A2C95BA49F` 矛盾。
+- 新位置：§1.2 表格已统一为当前完整 SHA-256 `C747303634458CE35AC3A13AA562B6720C617229EA6E43C19593A9A2C95BA49F`、40,751 bytes / 99 lines；§1.2 表后新增材料漂移说明，§1.3 既有精确绑定保持同一值。
+- 证据核对：2026-08-23 完整读取并重算当前 `ISSUE总表.md`；第 17 行仍明确 ISSUE-0036 为 `open / USER_CONFIRMATION_PENDING`。既有本 ledger 已披露旧 `0C404DE8…A2F316` 快照曾漂移至 `8ABD40D9…FA0F7252`；本次当前文件进一步更新为 `C7473036…5BA49F`。该外部材料漂移只刷新权威证据绑定，不改变 §1.1 状态结论，本角色未修改 Issue canonical/state 或总表。
+- 定向验证：§1.2 与 §1.3 的唯一当前权威绑定均为 `C747303634458CE35AC3A13AA562B6720C617229EA6E43C19593A9A2C95BA49F`；历史 `0C404DE8…A2F316` 仅在显式历史漂移说明中保留，不再作为当前绑定。
+
+### 7.2 输出、非范围与下一门禁
+
+- 修订后 V5 Spec SHA-256：`F37E6AD7BB24F3C52561413B53735FA7B09F2BFFEC1CC2F111646087FF697844`；21,593 bytes / 219 lines。
+- 未处理 N-001、N-002、N-003、AC-1、AC-2、AC-3；这些仍交 ISSUE 管理员登记为非阻塞项，本批不宣称关闭。
+- 未修改 Hermes report/metadata、Issue canonical/总表、其他 Spec、代码、UI、平台、中央文件或角色文件；未运行 Hermes/npm，未执行 Git mutation、部署或 Cloudflare/CloudBase 操作，未创建任务/subagent。
+- 共享审查计数仍为 Round 1/3；QA 修订不重置计数。唯一下一步：项目总负责人以新 V5 Spec hash 执行 Hermes Round 2/3 聚焦复核 S-001 及必要回归。

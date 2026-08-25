@@ -5,6 +5,15 @@ import type {
   ServerParentNeed,
   ServerParentNeedFilters
 } from "@/server/parent-needs";
+import type { ContactReviewDisplayStatus } from "./parent-need-management";
+
+export type ManagedParentNeed = Omit<ServerParentNeed, "status"> & {
+  canAppeal?: boolean;
+  canEdit?: boolean;
+  publicVisibility?: "deleted" | "hidden" | "published";
+  reviewStatus?: ContactReviewDisplayStatus;
+  status: "deleted" | "pending_review" | "published";
+};
 
 function createCookieBackedHeaders() {
   return {
@@ -70,7 +79,7 @@ export async function listMyParentNeedsFromApi({
     method: "GET"
   });
 
-  return parseApiResponse<ServerParentNeed[]>(response);
+  return parseApiResponse<ManagedParentNeed[]>(response);
 }
 
 export async function readMyParentNeedFromApi({
@@ -90,7 +99,7 @@ export async function readMyParentNeedFromApi({
     }
   );
 
-  return parseApiResponse<ServerParentNeed>(response);
+  return parseApiResponse<ManagedParentNeed>(response);
 }
 
 export async function updateParentNeedToApi({
@@ -108,11 +117,14 @@ export async function updateParentNeedToApi({
   const response = await fetchWithCsrf(fetcher, `/api/parent-needs/${encodeURIComponent(id)}`, {
     body: JSON.stringify({ ...input, version }),
     credentials: "same-origin",
-    headers: createCookieBackedHeaders(),
+    headers: {
+      ...createCookieBackedHeaders(),
+      "idempotency-key": createIdempotencyKey("edit", id, version)
+    },
     method: "PATCH"
   });
 
-  return parseApiResponse<ServerParentNeed>(response);
+  return parseApiResponse<ManagedParentNeed>(response);
 }
 
 export async function deleteParentNeedFromApi({
@@ -135,7 +147,7 @@ export async function deleteParentNeedFromApi({
     method: "DELETE"
   });
 
-  return parseApiResponse<ServerParentNeed>(response);
+  return parseApiResponse<ManagedParentNeed>(response);
 }
 
 export async function restoreParentNeedFromApi({
@@ -158,7 +170,7 @@ export async function restoreParentNeedFromApi({
     method: "POST"
   });
 
-  return parseApiResponse<ServerParentNeed>(response);
+  return parseApiResponse<ManagedParentNeed>(response);
 }
 
 export async function saveParentNeedToApi({
@@ -172,9 +184,33 @@ export async function saveParentNeedToApi({
   const response = await fetchWithCsrf(fetcher, "/api/parent-needs", {
     body: JSON.stringify(input),
     credentials: "same-origin",
-    headers: createCookieBackedHeaders(),
+    headers: {
+      ...createCookieBackedHeaders(),
+      "idempotency-key": createIdempotencyKey("create", "new", 0)
+    },
     method: "POST"
   });
 
-  return parseApiResponse<ServerParentNeed>(response);
+  return parseApiResponse<ManagedParentNeed>(response);
+}
+
+export async function appealParentNeedReview({
+  fetcher = fetch,
+  id,
+  version
+}: {
+  fetcher?: typeof fetch;
+  id: string;
+  version: number;
+}) {
+  const response = await fetchWithCsrf(fetcher, "/api/contact-review", {
+    body: JSON.stringify({ action: "appeal", entityId: id, entityType: "parent_need", expectedEntityRevision: version }),
+    credentials: "same-origin",
+    headers: {
+      ...createCookieBackedHeaders(),
+      "idempotency-key": createIdempotencyKey("appeal", id, version)
+    },
+    method: "POST"
+  });
+  return parseApiResponse<ManagedParentNeed>(response);
 }

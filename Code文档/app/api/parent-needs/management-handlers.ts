@@ -18,6 +18,8 @@ import {
   updateServerParentNeed,
   type ParentNeedLifecycleTransactionRunner
 } from "@/server/parent-needs";
+import type { ContactReviewRuntimeGate } from "@/server/security/contact-review-cloudbase";
+import type { ContactReviewManagementIntegration } from "@/server/security/contact-review-integration";
 
 type ParentNeedCollection = Parameters<typeof saveServerParentNeed>[0]["collection"];
 type RouteContext = { params: Promise<{ id: string }> };
@@ -71,11 +73,15 @@ function transactionUnavailableResponse() {
 
 export function createParentNeedManagementHandlers({
   collection,
+  contactReview,
+  contactReviewGate = { enabled: false, ok: true },
   env = process.env,
   sessionRevocationGuard,
   runTransaction
 }: {
   collection: ParentNeedCollection;
+  contactReview?: ContactReviewManagementIntegration;
+  contactReviewGate?: ContactReviewRuntimeGate;
   env?: RuntimeEnv;
   sessionRevocationGuard?: RuntimeEnv["sessionRevocationGuard"];
   runTransaction?: ParentNeedLifecycleTransactionRunner;
@@ -84,6 +90,14 @@ export function createParentNeedManagementHandlers({
     ...env,
     sessionRevocationGuard: sessionRevocationGuard ?? env.sessionRevocationGuard
   });
+  const unavailableReviewResponse = () => jsonResponse({
+    code: "CONTACT_REVIEW_CONFIGURATION_UNAVAILABLE",
+    errors: { request: "联系方式审核服务暂不可用" },
+    ok: false,
+    value: null
+  }, 503);
+  const readRequestId = (request: Request) =>
+    request.headers.get("x-correlation-id") ?? request.headers.get("x-request-id") ?? crypto.randomUUID();
   return {
     async POST_COLLECTION(request: Request) {
       const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
@@ -93,6 +107,17 @@ export function createParentNeedManagementHandlers({
 
       const body = await readJsonBody<ParentNeedInput>(request, parentNeedBodyLimits);
       if (!body.ok) return body.response;
+
+      if (!contactReviewGate.ok) return unavailableReviewResponse();
+      if (contactReviewGate.enabled && contactReview) {
+        return responseForResult(await contactReview.create({
+          authenticatedUserId: auth.authenticatedUserId,
+          idempotencyKey: request.headers.get("idempotency-key") ?? "",
+          input: body.value,
+          now: new Date().toISOString(),
+          requestId: readRequestId(request)
+        }));
+      }
 
       return responseForResult(
         await saveServerParentNeed({
@@ -109,6 +134,10 @@ export function createParentNeedManagementHandlers({
       if (new URL(request.url).searchParams.get("scope") === "mine") {
         const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
         if (!auth.ok) return auth.response;
+        if (!contactReviewGate.ok) return unavailableReviewResponse();
+        if (contactReviewGate.enabled && contactReview) {
+          return responseForResult(await contactReview.readOwner(auth.authenticatedUserId, id));
+        }
         return responseForResult(
           await readServerParentNeedForOwner({
             authenticatedUserId: auth.authenticatedUserId,
@@ -116,6 +145,15 @@ export function createParentNeedManagementHandlers({
             id
           })
         );
+      }
+
+      if (!contactReviewGate.ok) return unavailableReviewResponse();
+      if (contactReviewGate.enabled) {
+        if (!contactReview) return unavailableReviewResponse();
+        const authority = await contactReview.readPublic(id);
+        if (!authority.ok) return responseForResult(authority);
+        if (!authority.value) return apiError(404, PARENT_NEED_NOT_FOUND_MESSAGE);
+        return jsonResponse(authority);
       }
 
       const result = await findPublicServerParentNeedById({ collection, id });
@@ -136,6 +174,18 @@ export function createParentNeedManagementHandlers({
       if (!expectedVersion) return apiError(400, "缺少有效的 version");
 
       const { id } = await context.params;
+      if (!contactReviewGate.ok) return unavailableReviewResponse();
+      if (contactReviewGate.enabled && contactReview) {
+        return responseForResult(await contactReview.edit({
+          authenticatedUserId: auth.authenticatedUserId,
+          entityId: id,
+          expectedEntityRevision: expectedVersion,
+          idempotencyKey: request.headers.get("idempotency-key") ?? "",
+          input: body.value,
+          now: new Date().toISOString(),
+          requestId: readRequestId(request)
+        }));
+      }
       return responseForResult(
         await updateServerParentNeed({
           authenticatedUserId: auth.authenticatedUserId,
@@ -157,9 +207,20 @@ export function createParentNeedManagementHandlers({
       if (!body.ok) return body.response;
       const expectedVersion = readVersion(body.value);
       if (!expectedVersion) return apiError(400, "缺少有效的 version");
-      if (!runTransaction) return transactionUnavailableResponse();
 
       const { id } = await context.params;
+      if (!contactReviewGate.ok) return unavailableReviewResponse();
+      if (contactReviewGate.enabled && contactReview) {
+        return responseForResult(await contactReview.delete({
+          authenticatedUserId: auth.authenticatedUserId,
+          entityId: id,
+          expectedEntityRevision: expectedVersion,
+          idempotencyKey: request.headers.get("idempotency-key") ?? "",
+          now: new Date().toISOString(),
+          requestId: readRequestId(request)
+        }));
+      }
+      if (!runTransaction) return transactionUnavailableResponse();
       return responseForResult(
         await deleteServerParentNeed({
           authenticatedUserId: auth.authenticatedUserId,
@@ -182,9 +243,20 @@ export function createParentNeedManagementHandlers({
       if (body.value.action !== "restore") return apiError(400, "不支持的管理操作");
       const expectedVersion = readVersion(body.value);
       if (!expectedVersion) return apiError(400, "缺少有效的 version");
-      if (!runTransaction) return transactionUnavailableResponse();
 
       const { id } = await context.params;
+      if (!contactReviewGate.ok) return unavailableReviewResponse();
+      if (contactReviewGate.enabled && contactReview) {
+        return responseForResult(await contactReview.restore({
+          authenticatedUserId: auth.authenticatedUserId,
+          entityId: id,
+          expectedEntityRevision: expectedVersion,
+          idempotencyKey: request.headers.get("idempotency-key") ?? "",
+          now: new Date().toISOString(),
+          requestId: readRequestId(request)
+        }));
+      }
+      if (!runTransaction) return transactionUnavailableResponse();
       return responseForResult(
         await restoreServerParentNeed({
           authenticatedUserId: auth.authenticatedUserId,

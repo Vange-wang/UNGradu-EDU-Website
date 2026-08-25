@@ -4,12 +4,12 @@
 
 - Issue ID：`ISSUE-0036`
 - 类型：future feature / content safety review planning
-- 状态：`open`
-- 工作流状态：`USER_CONFIRMATION_PENDING`
-- 阶段口径：0036 Spec Hermes Round 3/3 已为 `PASS_WITH_NONBLOCKING_OPEN_ISSUES`、0 项 `SERIOUS`，Round 3 的 NS-001～NS-006 由独立 `ISSUE-0038` 追踪，禁止第四轮。业务方已授权 14 项推荐方向进入本地/集成/合成队列实施；无实名人工审核 owner、供应商/DPA/生产 key 时，禁止生产人工闭环、AI 出域或自动公开。本 Issue 保持 `open / USER_CONFIRMATION_PENDING`，不关闭
+- 状态：`closed`
+- 工作流状态：`WORKFLOW_COMPLETE`（仅 ISSUE-0036 自身；项目总 workflow 仍为 `WORKFLOW_ACTIVE`）
+- 阶段口径：本 Issue 按 2026-08-25 “人工审核延期、暂缓需求/范围调整后关闭”口径适用关单；这不是生产智能审核、生产人工审核、AI provider、flag-on、自动公开、部署、生产观察或回滚演练完成。历史 open/USER_CONFIRMATION_PENDING 阶段与原生产合同继续保留在下文历史记录中。
 - 优先级：P1（待业务方确认后再重新排序）
 - 来源：业务方原话：“增加一个issue，家长端或者老师端提交家教信息和老师信息之后要有个快速审核期，审核提交的内容里面有没有夹杂联系方式，邮箱、电话、微信号、qq号等等，尤其注意很长的数字，你先推荐审核方法，我是想的ai智能审核”；随后明确：“那这个先记录吧，之后再做决策，先按spec文档开始行动开发”。本轮仅执行登记授权。
-- 当前责任：原实现 owner 可在本地/集成/合成队列门禁内推进；生产人工审核 owner、供应商/DPA/生产 key 尚未具备，ISSUE 管理员仅维护本 Issue 台账。
+- 当前责任：ISSUE 管理员维护已关闭 canonical、总表与连续性；未来若重新启用联系方式审核，必须重开 ISSUE-0036 或建立明确继任 Issue，重新经过 Spec、实现、独立复核、部署/生产和业务验收。
 
 ## 问题与当前代码缺口（只读事实）
 
@@ -42,6 +42,18 @@
 - 最小解除条件：本地/集成/合成队列验证证据齐备；生产人工闭环另须业务方确认审核目标、公开字段范围、风险接受度和处理语义，并补齐实名 owner、供应商/DPA 与生产 key。
 - 当前保持 `open / USER_CONFIRMATION_PENDING`，属于独立 `NON_BLOCKING` Issue；本地/集成/合成队列已获授权，但不代表生产通过或 Issue 关闭。
 - 唯一下一步：原实现 owner 在本地/集成/合成队列范围内按门禁推进；业务方补齐实名审核 owner、供应商/DPA 与生产 key 前，不启动生产人工闭环、AI 出域、自动公开或部署。
+
+## 2026-08-25 适用关单：人工审核延期、暂缓需求/范围调整后关闭
+
+- 关闭状态：`closed / WORKFLOW_COMPLETE`，仅表示 ISSUE-0036 自身在已批准的 material scope adjustment 下关闭；项目总 workflow 仍为 `WORKFLOW_ACTIVE`。
+- 关闭语义：业务方明确“人工审核就先不做，先放着”，并在获知旧合同 `CANNOT_CLOSE / KEEP_OPEN_DEFERRED` 必须先完成 material scope adjustment 后明确“继续”。范围调整 addendum 取代旧裁决的适用前提，但不追溯改写旧裁决，也不证明原始生产闭环完成。
+- 文档门：addendum SHA-256=`CC7C520B549D2F8449119A533C455D725331957B2F4EA5AE321F2F317110DA2A`；Hermes R1 SHA-256=`E54768E4CA0BB2516E67EB503AAB7C7F38E14632772F5054A66649FED5A2C0D6`，唯一 S1 已由 QA 修订；Hermes focused R2 SHA-256=`61AC1D365A483C6230083B6C604D0F39203BE2C461D7591AAF9619BD8D5A8AE6`，metadata SHA-256=`2DDEE947E1089B109C8EF84150E0C1BE026869B13EFBE29101E77A72BA647547`，`deepseek-v4-pro` / `2/3` / `canonical_source_unchanged=true` / `PASS_WITH_NONBLOCKING_OPEN_ISSUES` / SERIOUS=0；QA ledger SHA-256=`8D47B5F8582E1FAB596DFB812179E133F8D24A1A59338FAAFB81049B90123658`。按 vange-workflow，SERIOUS=0 后文档门通过，本周期不启动 Round 3。
+- 业务与产品边界：bounded 产品验收 SHA-256=`FA56F5D140D6E053321C173CB3ECA591358F75FBC7172AA88CDEE6EC56392789`，结论=`PRODUCT_ACCEPTANCE_PASS`、`DEPLOYMENT_ALLOWED_FLAG_OFF_ONLY`、`PRODUCTION_FLAG_ON_BLOCKED`；仅覆盖 bounded local/integrated/synthetic 范围，不能替代生产验收。
+- 实现证据：V5 branch=`V5-issue-0036-contact-review-closure`、commit=`f8ad5d009c5483d6791699d2c2394765a23fb2f2`、tree=`19b903a8a4e6e2ece653c2c175cbcbbdfadae352`；技术/UI 独立复核通过，`659 passed / 1 existing skipped`，build `18/18`。该证据绑定的是既有 bounded local/synthetic 交付，不把当前工作树 HEAD 或该提交写成生产 revision。
+- 生产边界：`CONTACT_REVIEW_ENABLED=false`、`CONTACT_REVIEW_SCHEMA_READY=false` 保持；未启用 reviewer/Secret/审核入口、AI provider/出域、flag-on、自动公开、生产观察、回滚演练或部署。数据库/付费及其他 Issue 不因本次关闭改变。
+- 非阻塞债务：范围调整 addendum R1 N1-N5、R2 N-001/N-002/O-3 已追加至 ISSUE-0043；ISSUE-0043 保持 `open / NON_BLOCKING_DOCUMENT_REVIEW`，不阻止本次“暂缓需求关闭”，但其未来触发条件仍须由适用 owner 处理。
+- 未来恢复触发：业务方若重新决定启用联系方式审核，必须重开 ISSUE-0036 或建立明确继任 Issue，重新经过 provider/人工范围 Spec、用户确认、实现、测试、独立技术/UI复核、适用部署/生产证据、产品/业务验收和 ISSUE 关单证据；在新链路完成前双 flag 继续为 false，不得因本次暂缓关闭自动启用。
+- 本关闭不表示 ISSUE-0031、ISSUE-0035、ISSUE-0038、ISSUE-0043 或其他 Open Issue 关闭，不表示项目 workflow 完成。
 
 ## 阶段变更 Spec 最终门禁同步（2026-08-10）
 

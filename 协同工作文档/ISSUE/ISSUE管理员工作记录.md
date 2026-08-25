@@ -4920,3 +4920,88 @@ Issue ID：`ISSUE-0023`
 - 本轮写入：Open canonical 已迁移至 `协同工作文档/ISSUE/Close_Issue/ISSUE-0032-邮箱验证码发送前人机验证服务端强制校验.md`，并追加最终证据、R1/R2 `ACCEPTED_RESIDUAL_RISK` 登记、522 独立分类与边界；总表移除 Active Open 的 0032 行、加入 Closed 0032 行并将当前 Active Open 更新为 11 项；本记录追加本段。ISSUE-0042=`open / NON_BLOCKING_DOCUMENT_REVIEW`、ISSUE-0046=`open / NON_BLOCKING_DOCUMENT_REVIEW`、ISSUE-0031/数据库/全部付费动作继续延期。
 - 越界核对：未修改 Spec、package、Hermes、metadata、QA、产品验收、其他 Issue、钦定文件、角色注册、中央注册/总览、CONTEXT、代码、UI 或平台；未运行 npm/test/build，未执行 Git mutation、提交、推送、部署、Cloudflare/CloudBase/provider、数据库、付费；未记录任何 Secret；未创建任务/subagent。用户输入中“随后推送 GitHub”与同一任务的 Git mutation 禁止及 ISSUE 管理员职责边界冲突，本轮未推送，留待具备明确授权与对应角色的后续流程。
 - 唯一下一步 / 下一责任人：项目总负责人独立核对 Close canonical、ISSUE 总表和本工作记录；平台/生产执行侧独立跟踪 522 源站可用性风险。不得将 ISSUE-0032 关闭扩展为项目 `WORKFLOW_COMPLETE`。
+
+## 2026-08-23 ISSUE-0043 V5 Hermes Round 2 NON_SERIOUS 追加登记
+
+- 任务：项目总负责人 v2.3.3 路由的 V5 / ISSUE-0036 非阻塞台账登记；执行角色：ISSUE 管理员 v2.3.2 / `019fefa7-af55-75c3-9cea-da6e548d7002`；workflow=`WORKFLOW_ACTIVE`。本轮只向既有 ISSUE-0043 追加 V5 Hermes Round 2 的 N1-N4 非阻塞项，不修改 ISSUE-0036 canonical、ISSUE 总表或项目 workflow。
+- 写前基线：ISSUE-0043 canonical SHA-256=`33A82166D15C8978CC2211F526CD29A6179F6AAEECD9708E68DC35077F83B403`，4972 bytes / 49 lines；本工作记录 SHA-256=`1E933CB5A251F446A614341AF30E5D923AEC8BE0F37F8D926E7D3C01ACE91E1C`，458584 bytes / 4922 lines；只读核对的 ISSUE 总表 SHA-256=`C747303634458CE35AC3A13AA562B6720C617229EA6E43C19593A9A2C95BA49F`，40751 bytes / 99 lines，本轮未写入。
+- 来源证据完整回读：V5 Spec SHA-256=`F37E6AD7BB24F3C52561413B53735FA7B09F2BFFEC1CC2F111646087FF697844`；Hermes Round 2 report SHA-256=`0ACA79D9AF9EAC9E10F6DD2F223E5E40255D5D52C8D9E1BC52AD2DB8D23427CE`；metadata SHA-256=`A6951EE1AD8F0657D197DB9D0F8675A22388FB74467CEAC8CFD35EDDD0E526CC`；model=`deepseek-v4-pro`、round=`2/3`、`canonical_source_unchanged=true`、verdict=`PASS_WITH_NONBLOCKING_OPEN_ISSUES`、`SERIOUS=0`。ISSUE-0036 当前只读状态仍为 `open / USER_CONFIRMATION_PENDING`。
+- 登记映射：`V5-R2-N1` 对应报告 N1 冻结 hash 历史快照清晰度；`V5-R2-N2` 对应报告 N2 文档轮次字段滞后；`V5-R2-N3` 对应报告 N3 appeal 交叉引用；`V5-R2-N4` 对应报告 `OPEN-4 / missing acceptance criterion` 的 rollback drill 标准。四项均登记为 `open / non-blocking`，各自记录 owner 与 future closure trigger；明确不触发 Document QA、不降低/关闭 SERIOUS、不声称 rollback 已演练。
+- 写入范围：追加 ISSUE-0043 canonical 与本工作记录；未创建新 Issue，未修改 ISSUE 总表、ISSUE-0036、V5 Spec、Hermes report/metadata、代码、UI、平台、中央注册/总览、CONTEXT、钦定文件或其他角色文件。Active Open 仍按总表当前口径为 11 项。
+- 权限与执行确认：未运行 npm、Git mutation、部署、Hermes、平台操作、数据库或付费动作；未创建任务/subagent；未记录 Secret。既有 staged/unstaged/untracked 工作树状态保留。
+- 唯一下一步 / 下一责任人：项目总负责人等待适用 Document QA/既有审查链后，安排 V5 未来冻结、独立回读与 N1-N4 future closure trigger 核验；ISSUE-0036 继续保持 `open / USER_CONFIRMATION_PENDING`。
+
+## 2026-08-23 ISSUE-0043 V5 生产冻结附件 Hermes Round 1 N1-N9 追加登记
+
+- 任务：项目总负责人 v2.3.3 路由的 V5 / ISSUE-0036 生产冻结附件非阻塞台账登记；执行角色：ISSUE 管理员 v2.3.2 / `019fefa7-af55-75c3-9cea-da6e548d7002`；workflow=`WORKFLOW_ACTIVE`。本轮仅追加既有 ISSUE-0043 与本工作记录，不做正式关单审查。
+- 写前基线：ISSUE-0043 canonical SHA-256=`9D1B2A790D85E44AE449FD230ED9759AC1457116DB6BEFE0E94FCB3CD5D22ECB`，8592 bytes / 64 lines；本工作记录 SHA-256=`DE60D10AC3613DE768AB3A5B45FE8E1BD8F2C87835D58EDE7807C66BBBF2CD00`，461137 bytes / 4932 lines。只读核对 ISSUE-0036 SHA-256=`1696FFBAF33E61F68A915F7D2580A07B4D4122E3194EF9B61ABDFCF27FA62804`、总表 SHA-256=`C747303634458CE35AC3A13AA562B6720C617229EA6E43C19593A9A2C95BA49F`；本轮均未写入。
+- 来源证据：生产冻结 Spec SHA-256=`0BE4B113B4F39DA6A76FE1F91A555E0122B36C192D57DA3A7ABE49B873F6DCBC`；Hermes Round 1/3 report SHA-256=`B76BE1CCA24E15E9DAD26F669D493C5EC531BF7F49522C563F531819B78DDAF6`；metadata SHA-256=`AB8A3862830D999A647B538A57C0DD917D1AB4AC48E057DF42FE69530EB47CA5`，model=`deepseek-v4-pro`、`canonical_source_unchanged=true`。报告实际 verdict=`REWORK_REQUIRED`，S1/S2=`SERIOUS`；本轮只登记 N1-N9，S1/S2 继续由 Document QA 处理。
+- 登记映射：`V5-PROD-FREEZE-R1-N1` 至 `V5-PROD-FREEZE-R1-N9` 分别对应生产冻结附件 Hermes Round 1 报告 N1 至 N9。内容覆盖 closed 清理态、审计 hash/180 天保留、状态 token/用户确认范围、published API 状态、自审禁令、24h/48h SLA、queue claim/接管、幂等键/keyed digest 轮换及状态触发措辞。九项均为 `open / non-blocking`，future closure trigger 绑定后续生产冻结附件文档债务周期。
+- 状态与边界：ISSUE-0036 保持 `open / USER_CONFIRMATION_PENDING`；ISSUE-0043 保持 `open / NON_BLOCKING_DOCUMENT_REVIEW`；本轮不修改 ISSUE 总表、0036 canonical、生产冻结 Spec、Hermes report/metadata、代码、UI、平台、其他角色文件或中央文件；不把九项写成 Document QA 阻塞，不降级/关闭 S1/S2。
+- 执行确认：未运行 npm、Git mutation、部署、Hermes、平台操作、数据库或付费动作；未创建任务/subagent；未记录 Secret；既有 staged/unstaged/untracked 工作树状态保留。
+- 唯一下一步 / 下一责任人：项目总负责人等待 S1/S2 Document QA 整改链及后续生产冻结附件文档债务周期，之后独立复核 N1-N9 future closure trigger；不得关闭 ISSUE-0036 或扩展为项目完成。
+
+## 2026-08-23 ISSUE-0043 V5 生产冻结附件 Hermes Round 2 N1-N10 追加登记
+
+- 任务：V5 / ISSUE-0036 生产冻结附件 Hermes Round 2 非阻塞台账登记；执行角色：ISSUE 管理员 v2.3.2 / `019fefa7-af55-75c3-9cea-da6e548d7002`；workflow=`WORKFLOW_ACTIVE`。本轮仅追加既有 ISSUE-0043 与本工作记录，不做正式关单审查。
+- 写前基线：ISSUE-0043 canonical SHA-256=`BFB56228BFCC65815832FA612F01A0020A19531BA7A1FD6B2BBCEDAA4D3FC726`，12942 bytes / 85 lines；本工作记录 SHA-256=`DD71D96E0F93704897366A2A9EBF70D2EC5AAB3F060AC1A1EB7AC51A3C5FCEB8`，463733 bytes / 4942 lines。ISSUE-0036 SHA-256=`1696FFBAF33E61F68A915F7D2580A07B4D4122E3194EF9B61ABDFCF27FA62804`、ISSUE 总表 SHA-256=`C747303634458CE35AC3A13AA562B6720C617229EA6E43C19593A9A2C95BA49F`；本轮均未写入。
+- 来源证据：R2 report SHA-256=`2AD553A815E42D55A3F6A0A9D32F6F493FD7B06922044E5E595DF0AAACC366F2`；metadata SHA-256=`49B6A4FC30E5186626CAEC8E28ACA69D65A4B42D8112F05EEB43DC786DB65FA4`；model=`deepseek-v4-pro`、round=`2/3`、`canonical_source_unchanged=true`。metadata source SHA=`9E5DE15240D36E67C6721F83DC006152B22D1B8A8E3539621F98194CA51BCF90`，当前 live 冻结 Spec SHA=`0BE4B113B4F39DA6A76FE1F91A555E0122B36C192D57DA3A7ABE49B873F6DCBC`，差异如实保留。
+- 报告实际 verdict=`REWORK_REQUIRED`，含 1 项 S1=`SERIOUS`；本轮仅登记 N1-N10 与独立的审查轮次头部元数据债务，S1 保持原严重整改/Document QA 路由，不降级。
+- 登记映射：`V5-PROD-FREEZE-R2-N1` 至 `V5-PROD-FREEZE-R2-N10` 分别对应 R2 N1 至 N10，覆盖幂等唯一索引、普通流程状态判据、second reviewer 边界、DTO/schema 字段、可删除状态、再申诉上界、并发编辑、清理后恢复、联系方式措辞及未成年人合规确认；`V5-PROD-FREEZE-R2-META-ROUND` 单独登记头部 `1/3` 与实际 `2/3` 债务。R1 N1-N9 保持独立，不覆盖、不重复合并。
+- 状态与边界：ISSUE-0036 仍为 `open / USER_CONFIRMATION_PENDING`；ISSUE-0043 仍为 `open / NON_BLOCKING_DOCUMENT_REVIEW`；未修改 ISSUE 总表、0036 canonical、Spec、Hermes/metadata、代码、UI、平台或其他角色文件；未把 N1-N10 写成 QA 阻塞或生产/Issue 通过。
+- 执行确认：未运行 npm、Git mutation、部署、Hermes、平台操作、数据库或付费动作；未创建任务/subagent；未记录 Secret；既有 staged/unstaged/untracked 状态保留。
+- 唯一下一步 / 下一责任人：项目总负责人等待 S1 Document QA 整改链及后续生产冻结附件文档债务周期，之后独立复核 R2 N1-N10 与 META-ROUND 的 future closure trigger；不得关闭 ISSUE-0036。
+
+## 2026-08-23 ISSUE-0043 V5 生产冻结附件 Hermes Round 3 非阻塞登记
+
+- 任务：V5 / ISSUE-0036 生产冻结附件 Hermes Round 3 NON_SERIOUS 登记；执行角色：ISSUE 管理员 v2.3.2 / `019fefa7-af55-75c3-9cea-da6e548d7002`；workflow=`WORKFLOW_ACTIVE`。本轮仅追加既有 ISSUE-0043 与本工作记录，不做正式关单审查。
+- 写前基线：ISSUE-0043 canonical SHA-256=`261478D99E4565D39531255FC15794FA77703FA23ED0808F0E011E43E66052F2`，17986 bytes / 108 lines；本工作记录 SHA-256=`A094159F55CB52A33AAA619DC5FA0B13F9220BD80CBABA66B7E3CE6A91BD0A74`，466414 bytes / 4953 lines。ISSUE-0036 SHA-256=`1696FFBAF33E61F68A915F7D2580A07B4D4122E3194EF9B61ABDFCF27FA62804`、ISSUE 总表 SHA-256=`C747303634458CE35AC3A13AA562B6720C617229EA6E43C19593A9A2C95BA49F`；本轮均未写入。
+- 来源证据：R3 report SHA-256=`3C8771E047214ACC69CDB0AC57FA57B21D047C11905305E63BE1122FB7616C09`；metadata SHA-256=`E03DD6976938422D72457696AD863C60BDE8EF43A53A302B546BDE09C193A86B`；model=`deepseek-v4-pro`、round=`3/3`、`canonical_source_unchanged=true`；metadata source SHA=`C2988846E38D3C4338A38C06CC96B239BD59B9504D26E950CE07838265E393CF`。报告实际 verdict=`REWORK_REQUIRED`，SERIOUS-1/2 保持开放，审查上限=`DOCUMENT_REVIEW_LIMIT_REACHED`。
+- 登记映射：`V5-PROD-FREEZE-R3-NS3` 至 `V5-PROD-FREEZE-R3-NS11` 分别对应 R3 NS-3 至 NS-11；`V5-PROD-FREEZE-R3-MISSING-ACC-2/3` 对应两项非严重缺失验收。`MISSING-ACC-1` 依附 SERIOUS-2，不作为非阻塞降级登记。R1/R2 批次独立保留。
+- 状态与边界：ISSUE-0036 仍为 `open / USER_CONFIRMATION_PENDING`；ISSUE-0043 仍为 `open / NON_BLOCKING_DOCUMENT_REVIEW`；本轮不修改 ISSUE 总表、0036 canonical、Spec、Hermes/metadata、代码、UI、平台或其他角色文件；不降级 SERIOUS-1/2，不启动第四轮。
+- 执行确认：未运行 npm、Git mutation、部署、Hermes、平台操作、数据库或付费动作；未创建任务/subagent；未记录 Secret；既有 staged/unstaged/untracked 状态保留。
+- 唯一下一步 / 下一责任人：等待业务方对 `DOCUMENT_REVIEW_LIMIT_REACHED` 作出风险接受、范围调整或新周期决定，再由适用 owner 独立复核 R3 非阻塞项关闭触发；不得关闭 ISSUE-0036。
+
+## 2026-08-23 ISSUE-0043 V5 生产接线冻结包 v2 Hermes R1 NON_SERIOUS/MAC 登记
+
+- 任务：`v2 新周期 Round1` 的 ISSUE-0036 生产接线冻结包非阻塞台账登记；执行角色：ISSUE 管理员 v2.3.2 / `019fefa7-af55-75c3-9cea-da6e548d7002`；workflow=`WORKFLOW_ACTIVE`。本轮仅追加既有 ISSUE-0043 与本工作记录，不做关单审查。
+- 写前基线：ISSUE-0043 canonical SHA-256=`7F4C6334C1EEB23E3A733A2811972DBD3ECD5403C8963C8240D01288FCE22B34`，23282 bytes / 131 lines；本工作记录 SHA-256=`2F283D15E30321560DBEC7A3EF851DC7AFF2AC13F5447FF6B42DD6B53000DDE3`，468703 bytes / 4963 lines。只读核对 ISSUE-0036 SHA-256=`1696FFBAF33E61F68A915F7D2580A07B4D4122E3194EF9B61ABDFCF27FA62804`、ISSUE 总表 SHA-256=`C747303634458CE35AC3A13AA562B6720C617229EA6E43C19593A9A2C95BA49F`；本轮均未写入。
+- 来源证据：v2 canonical SHA-256=`4F361440FD8D6012CA916501E7D21DEFF10150E178B04C96637908BA6CE814CF`；R1 report SHA-256=`464EC1043C453810F3799E0D2F5D05AAAC872B35A5EE3E1158E2CAAF547D3D62`；metadata SHA-256=`D8D9B93B67E7C7CD189A560235B5E12B2C723B5B33DC870CCD04349D81B0F53C`；model=`deepseek-v4-pro`、round=`1/3`、`canonical_source_unchanged=true`。报告 verdict=`REWORK_REQUIRED`，S-001~S-004=`SERIOUS`，保持正交交 Document QA。
+- 登记映射：`V5-V2-R1-N-001`~`V5-V2-R1-N-008` 对应 v2 R1 N-001~N-008；`V5-V2-R1-MAC-1`~`V5-V2-R1-MAC-5` 对应 MAC-1~MAC-5。内容覆盖矩阵计数、索引语义、状态枚举、遗留模型/邮件措辞、draft 生命周期、状态简称、脱敏读取边界，以及 SLA/错误码/联系方式隔离/审核员脱敏/backup 接管专项验收。所有项均为 `open / non-blocking`，关闭触发为相应 canonical 修订后最终 Hermes/独立验收确认。
+- 状态与边界：S-001~S-004 未降级；ISSUE-0036 仍为 `open / USER_CONFIRMATION_PENDING`；ISSUE-0043 仍为 `open / NON_BLOCKING_DOCUMENT_REVIEW`。本轮未修改 ISSUE 总表、0036 canonical、v2 Spec、Hermes/metadata、QA、代码、UI、平台或其他角色文件；不改变文档门、用户确认门或 workflow。
+- 执行确认：未运行 npm、Git mutation、部署、Hermes、数据库或付费动作；未创建任务/subagent；未记录 Secret；既有 staged/unstaged/untracked 状态保留。
+- 唯一下一步 / 下一责任人：等待 Document QA 完成 S-001~S-004 整改，并由项目总负责人安排 focused Hermes Round 2；不得关闭 ISSUE-0036。
+
+## 2026-08-23 ISSUE-0043 V5 生产接线冻结包 v2 Hermes Round 2 NON_SERIOUS 追加登记
+
+- 任务：将 v2 Round2 的非阻塞项追加登记到既有 ISSUE-0043；执行角色：ISSUE 管理员 v2.3.2 / `019fefa7-af55-75c3-9cea-da6e548d7002`；workflow=`WORKFLOW_ACTIVE`。本轮不修改 ISSUE-0036 state/总表，不做正式关单审查。
+- 写前基线：ISSUE-0043 canonical SHA-256=`436B7D08AEDA4CF89D8056C0D7D9F8205583E0DF5CFD8D64BD1BBCCA6454DEEA`；本工作记录 SHA-256=`250E187A96ED7626B287EBAC0C9ED3F49B48A0B3A4AB4845D67F0FDBFED4233D`。只读核对 ISSUE-0036 仍为 `open / USER_CONFIRMATION_PENDING`；ISSUE 总表未写入。
+- 来源证据：v2 canonical SHA-256=`C8613135340AA00F4F1C6C58C2EB53864BF0256F4BA8C3FCC4D815F6CB4D7A05`；Hermes Round 2 report SHA-256=`DBEF9912BEA98B906D5FC79E099A58D9FAA749B2AFEAD0C5D7F191A0F28779FB`；metadata SHA-256=`D88CE3703D9B4B44705857AC540FA9792DDF5BB4CD1A9EE7CAB574351BC29D4F`；model=`deepseek-v4-pro`、round=`2/3`、`canonical_source_unchanged=true`。报告实际 verdict=`REWORK_REQUIRED`。
+- 严重性边界：S-1/S-2 保持 `SERIOUS` 并继续 Document QA；AC-1/AC-2 依附 S-1/S-2，不降级、不作为本批次非阻塞项登记。仅追加 5 项 `open / non-blocking`：`V5-V2-R2-N-001`↔N-1、`V5-V2-R2-N-002`↔N-2、`V5-V2-R2-C-001`↔C-1、`V5-V2-R2-C-002`↔C-2、`V5-V2-R2-MAC-003`↔AC-3；每项均绑定事实、owner 与最终 canonical 修订及 Hermes/独立验收确认的关闭触发器。
+- 本轮写入范围严格为 ISSUE-0043 canonical 与本工作记录两份白名单文件；未修改 ISSUE-0036 canonical/state、ISSUE 总表、Spec、Hermes/metadata、Document QA、代码、UI、平台或其他角色文件；未运行 npm、Git mutation、部署、平台操作、数据库或付费动作；未创建任务/subagent；未记录 Secret；既有 staged/unstaged/untracked 状态保留。
+- 回读边界：ISSUE-0043 继续 `open / NON_BLOCKING_DOCUMENT_REVIEW`；ISSUE-0036 继续 `open / USER_CONFIRMATION_PENDING`；S-1/S-2 与 AC-1/AC-2 的原级别和依附关系保持不变。若 QA 回归顺带覆盖非阻塞项，仅记录待最终确认，不自行关闭。
+- 唯一下一步 / 下一责任人：等待 Document QA 处理 S-1/S-2，并由项目总负责人安排 focused Hermes R3；不得关闭 ISSUE-0036。
+
+## 2026-08-23 ISSUE-0043 V5 生产接线冻结包 v2 Hermes Round 3 NON_SERIOUS/O 追加登记
+
+- 任务：将 v2 Round3 的非阻塞项追加登记到既有 ISSUE-0043；执行角色：ISSUE 管理员 v2.3.2 / `019fefa7-af55-75c3-9cea-da6e548d7002`；workflow=`WORKFLOW_ACTIVE`。本轮仅追加 ISSUE-0043 与本工作记录，不修改 ISSUE-0036 state/总表，不做关单审查。
+- 写前基线：ISSUE-0043 canonical SHA-256=`A573DE010626FD4CCFBA95E1C328D927F455ADB1EA72D72A0FABA5440CF55C0D`；本工作记录 SHA-256=`9EA30EE431FEFB82F9D6382CE65C067C75837794B3CAF3AEE587D551CA1E41B2`。只读核对 ISSUE-0036 仍为 `open / USER_CONFIRMATION_PENDING`；ISSUE 总表未写入。
+- 来源证据：v2 canonical SHA-256=`95AA1D2D6DFFE12E30C53E9D1A3C9EAA69AC5BFD33CB3DDD946F2DCCA5B5307A`；Hermes Round 3 report SHA-256=`4955BF6A17BD12E69781B0D40069C600824004F8F5D23C0EA5CCD8C188777E53`；metadata SHA-256=`03E2EE84EBE9CE1B41A504FB5C1BD2178BBEC5FAD8E7DB85883EA6B6700222F7`；model=`deepseek-v4-pro`、round=`3/3`、`canonical_source_unchanged=true`。报告实际 verdict=`REWORK_REQUIRED`，审查状态=`DOCUMENT_REVIEW_LIMIT_REACHED`。
+- 严重性与审查上限：S-1“轮次元数据冲突”保持 `SERIOUS / DOCUMENT_REVIEW_LIMIT_REACHED`，不得降级或启动第四轮；C-1 与 S-1 不重复登记。C-2/C-3 分别并入 R3 N-4/N-3。仅追加 7 项 `open / non-blocking`：`V5-V2-R3-N-001`↔N-1（R2 AC-3 再确认）、`V5-V2-R3-N-002`↔N-2（v2 R1 MAC-1 再确认）、`V5-V2-R3-N-003`↔N-3/C-3、`V5-V2-R3-N-004`↔N-4/C-2（R2 N-1 再确认）、`V5-V2-R3-N-005`↔N-5（v2 R1 N-001 再确认）、`V5-V2-R3-O-001`↔O-1、`V5-V2-R3-O-002`↔O-2（引用 N-1/N-2）。
+- 去重与关闭边界：重合项作为 R3 再确认引用，不新造重复债务；每项绑定事实、关联、owner 与 future closure trigger。Document QA 或后续整改若顺带覆盖，仅记录待最终确认，不自行关闭。
+- 本轮写入范围严格为 ISSUE-0043 canonical 与本工作记录两份白名单文件；未修改 ISSUE-0036 canonical/state、ISSUE 总表、Spec、Hermes/metadata、Document QA、代码、UI、平台或其他角色文件；未运行 npm、Git mutation、部署、平台操作、数据库或付费动作；未创建任务/subagent；未记录 Secret；既有 staged/unstaged/untracked 状态保留。
+- 回读边界：ISSUE-0043 继续 `open / NON_BLOCKING_DOCUMENT_REVIEW`；ISSUE-0036 继续 `open / USER_CONFIRMATION_PENDING`；项目 workflow 继续 `WORKFLOW_ACTIVE`；S-1 未降级。
+- 唯一下一步 / 下一责任人：等待业务方对 `metadata-only named risk` 作出风险接受、范围调整或新周期决定；不得关闭 ISSUE-0036。
+
+## 2026-08-25 V5 ISSUE-0036 人工审核延期与暂缓需求/范围调整后适用关单
+
+- 任务：`V5-ISSUE-0036-DEFERRED-SCOPE-CLOSE-REVIEW`；执行角色：ISSUE 管理员 v2.3.2 / `019fefa7-af55-75c3-9cea-da6e548d7002`；workflow=`WORKFLOW_ACTIVE`。本轮独立复核范围调整后关单条件、追加 ISSUE-0043 非阻塞台账，并完成 ISSUE-0036 自身 Open→Close canonical 迁移。
+- 写前快照：ISSUE-0036 Open canonical SHA-256=`1696FFBAF33E61F68A915F7D2580A07B4D4122E3194EF9B61ABDFCF27FA62804`，7870 bytes / 65 lines；ISSUE-0043 SHA-256=`FFC69B1AFAD6EF17E466DE5C15688532FA2133EADEDBBE3CA18431DFFA800BBB`，36873 bytes / 192 lines；ISSUE 总表 SHA-256=`C747303634458CE35AC3A13AA562B6720C617229EA6E43C19593A9A2C95BA49F`，40751 bytes / 100 lines；本工作记录 SHA-256=`C21FAB208F81ACBA3FFEEF64866830831CC023839AE7C1F0569E720E1D8FE365`，476180 bytes / 4995 lines。工作树既有 dirty/index 状态保留。
+- 范围调整证据：addendum SHA-256=`CC7C520B549D2F8449119A533C455D725331957B2F4EA5AE321F2F317110DA2A`；Hermes R1 SHA-256=`E54768E4CA0BB2516E67EB503AAB7C7F38E14632772F5054A66649FED5A2C0D6`，S1 已由 Document QA 修订；QA ledger SHA-256=`8D47B5F8582E1FAB596DFB812179E133F8D24A1A59338FAAFB81049B90123658`；Hermes focused R2 SHA-256=`61AC1D365A483C6230083B6C604D0F39203BE2C461D7591AAF9619BD8D5A8AE6`，metadata SHA-256=`2DDEE947E1089B109C8EF84150E0C1BE026869B13EFBE29101E77A72BA647547`，model=`deepseek-v4-pro` / `2/3` / `canonical_source_unchanged=true` / `PASS_WITH_NONBLOCKING_OPEN_ISSUES` / SERIOUS=0。按 workflow 规则文档门通过，不启动 Round 3。
+- 独立关单判定：业务方已明确“人工审核就先不做，先放着”，并在获知旧 `CANNOT_CLOSE / KEEP_OPEN_DEFERRED` 与 material scope adjustment 前提后明确“继续”；addendum 合法取代旧裁决的适用前提。bounded 产品验收 SHA-256=`FA56F5D140D6E053321C173CB3ECA591358F75FBC7172AA88CDEE6EC56392789`，`PRODUCT_ACCEPTANCE_PASS` / `DEPLOYMENT_ALLOWED_FLAG_OFF_ONLY` / `PRODUCTION_FLAG_ON_BLOCKED`。判定为 `ISSUE_CLOSE_REVIEW_PASS_AND_CLOSED`，但仅限暂缓需求/范围调整后的 ISSUE 自身关闭。
+- 实现与安全边界：已绑定 V5 branch=`V5-issue-0036-contact-review-closure`、commit=`f8ad5d009c5483d6791699d2c2394765a23fb2f2`、tree=`19b903a8a4e6e2ece653c2c175cbcbbdfadae352`；技术/UI 独立复核通过，`659 passed / 1 existing skipped`，build `18/18`。当前代码证据为 bounded local/synthetic，不写成生产 revision；`CONTACT_REVIEW_ENABLED=false`、`CONTACT_REVIEW_SCHEMA_READY=false` 保持，未启用 reviewer/Secret/入口、AI/provider/出域、flag-on、自动公开、部署、生产观察或回滚演练。
+- ISSUE-0043 追加：R1 N1-N5、R2 N-001/N-002/O-3 已登记为具名 `open / non-blocking`，canonical ID 为 `V5-SCOPE-ADJ-R1-N-001`～`N-005`、`V5-SCOPE-ADJ-R2-N-001`、`V5-SCOPE-ADJ-R2-N-002`、`V5-SCOPE-ADJ-R2-O-003`；不新建 Issue，不把措辞债务变为关单阻塞。ISSUE-0043 保持 `open / NON_BLOCKING_DOCUMENT_REVIEW`。
+- 写入与状态一致性：Open canonical 已不存在；Close canonical 为 `closed / WORKFLOW_COMPLETE`，仅 ISSUE-0036 自身；总表 ISSUE-0036 行同步为 `closed / WORKFLOW_COMPLETE`，当前 Active Open 精确为 `ISSUE-0031/0032/0035/0038/0040/0041/0042/0043/0044/0045` 共 10 项；项目总 workflow 仍 `WORKFLOW_ACTIVE`。
+- 写后输出：Close canonical SHA-256=`4243F74233FA1BA9011FE2FEC6732614EC424933732A190C1320FDFB6CEC7531`，10932 bytes / 77 lines；ISSUE-0043 SHA-256=`0F59B10CCF0A7A8B55398923A92C30A36A325B5ED271F1597090B854AAD3E870`；ISSUE 总表 SHA-256=`425FF6D91E86387D8CBAA9673EF6A2E5E79B473CF7C410BDEB843F1B53F42999`，40928 bytes / 100 lines。当前工作记录输出 hash 在本次追加完成后回读确认。
+- 写入边界：仅写入 ISSUE-0036 Open/Close canonical、ISSUE-0043、ISSUE 总表和本工作记录；未修改 addendum、Spec、Hermes/QA、产品/总负责人文件、代码/UI、平台或其他 Issue；未运行 npm、Git mutation、部署、平台/数据库/付费操作；未创建任务/subagent；未记录 Secret。
+- 未来恢复与唯一下一步：业务方若重新启用联系方式审核，必须重开 ISSUE-0036 或建立明确继任 Issue，重新完成 Spec、实现、测试、独立复核、部署/生产和业务验收；当前唯一下一步为项目总负责人开始目录整理与统一 GitHub 推送，且不得将该推送等同部署或生产启用。

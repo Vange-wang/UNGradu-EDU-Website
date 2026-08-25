@@ -126,3 +126,70 @@
 - NON_SERIOUS：Hermes N1–N5 继续由 ISSUE-0046 管理；未修改 ISSUE-0046，未处理纯 N1 元数据，不宣称任何 N 项关闭。ISSUE-0031、数据库与全部付费动作继续延期。
 - 权限/门禁：未运行 Hermes/npm/test/build，未执行 Git mutation、部署或平台/provider/database/付费动作，未创建任务/subagent；不是自我批准、`DOCUMENT_GATE_PASSED`、实现/平台授权、生产验收或 Issue 关闭。
 - 当前门禁：`SERIOUS_BATCH_REMEDIATED / HERMES_ROUND_2_PENDING`。唯一下一步：项目总负责人执行 Hermes Round 2/3 聚焦复核；本线程不得执行。
+
+## 2026-08-23｜V5 / ISSUE-0036 生产接线冻结包 Hermes Round 1 SERIOUS 批次整改
+
+- 执行角色：`019fefa7-c5cf-7e62-9859-5263998dfd77 / DocumentQAv2.3.2 / gpt-5.6-sol / high`；workflow=`WORKFLOW_ACTIVE`；共享计数保持 Round 1/3。
+- 写前输入：canonical `0BE4B113B4F39DA6A76FE1F91A555E0122B36C192D57DA3A7ABE49B873F6DCBC`（18,812 bytes / 265 lines）；Hermes R1 report `B76BE1CCA24E15E9DAD26F669D493C5EC531BF7F49522C563F531819B78DDAF6`；metadata `AB8A3862830D999A647B538A57C0DD917D1AB4AC48E057DF42FE69530EB47CA5`。
+- S1：申诉链中 primary/backup 只可 claim/triage；最终 published/rejected 必须由与 content owner、primary/backup claimant 均不同账号的 second reviewer 完成。task/audit 固定 appeal mode、primary、second reviewer、decision、decidedAt；非法角色、同账号二审、自审、缺字段或 stale version fail-closed。
+- S2：published vN 编辑创建 pending vN+1，最后 approved vN 内容不变并继续公开；新版本批准时原子切换 active pointer，拒绝/申诉时保留 vN。删除立即隐藏公开 snapshot，恢复只创建 hidden + pending_review 新版本。DTO/API/UI、事务、审计、停止、回滚与正负验收已同步。
+- 输出 canonical：`9E5DE15240D36E67C6721F83DC006152B22D1B8A8E3539621F98194CA51BCF90`；27,453 bytes / 306 lines。
+- QA ledger：`2026-08-23-v5-issue-0036-production-wiring-freeze-DocumentQA-Round1整改记录.md`；SHA-256 `AE7013D15C56008D09132E8749EE41729698316F85A31C6B871CA01F578BD12D`；5,262 bytes / 52 lines。
+- NON_SERIOUS：N1–N9 未交 QA且不宣称关闭；与 N4/N5 邻域重合的 DTO/全审核角色自审约束仅是 S2/S1 的直接必要回归。
+- 权限边界：未运行 Hermes/npm，未执行 Git mutation、部署、Cloudflare/CloudBase 或平台操作；未修改 report/metadata、原 V5 closing Spec、Issue canonical/总表、代码、UI、中央文件或其他角色文件；未创建任务/subagent；不自我批准。
+- 当前状态：`QA_DOCUMENT_REWORK_COMPLETE / HERMES_ROUND_2_PENDING`。唯一下一步：项目总负责人组织 focused Hermes Round 2/3；本线程不得执行。
+
+## 2026-08-23｜V5 / ISSUE-0036 生产冻结包 Hermes Round 2 revision-affected SERIOUS 整改
+
+- 执行角色：`019fefa7-c5cf-7e62-9859-5263998dfd77 / DocumentQAv2.3.2 / gpt-5.6-sol / high`；workflow=`WORKFLOW_ACTIVE`；共享计数保持 Round 2/3。
+- 写前输入：canonical `9E5DE15240D36E67C6721F83DC006152B22D1B8A8E3539621F98194CA51BCF90`（27,453 bytes / 306 lines）；R2 report `2AD553A815E42D55A3F6A0A9D32F6F493FD7B06922044E5E595DF0AAACC366F2`；metadata `49B6A4FC30E5186626CAEC8E28ACA69D65A4B42D8112F05EEB43DC786DB65FA4`。正文 verdict=`REWORK_REQUIRED` 优先于脚本包装状态。
+- 唯一 S1：冻结 per-field task + `contact_review_entity_versions` aggregate。字段 task 只保存 owner/entity/version/field/hash/rule/status/operator/idempotency；实体 aggregate 保存 requiredFields、field task/reviewKey、aggregateStatus/revision、active/pending version 和 publicVisibility。
+- 聚合公开门：新建 N/N required fields 终态通过前 hidden；编辑 vN+1 只有 N/N 通过才原子替换旧 vN，任一 rejected/appeal/manual/pending/missing/duplicate 保持旧 snapshot；删除立即 hidden，恢复创建新 aggregate 与全部字段 tasks。
+- 事务/接口证据：每个字段决定、requiredFields 完整性/唯一性复核、aggregate 重算、适用公开指针与 audit 同事务提交；DTO/API/UI、索引、停止、回滚和 1/N、N-1/N、N/N、missing/duplicate/concurrency 负例已同步。
+- 输出 canonical：`C2988846E38D3C4338A38C06CC96B239BD59B9504D26E950CE07838265E393CF`；36,822 bytes / 349 lines。
+- QA ledger：`2026-08-23-v5-issue-0036-production-wiring-freeze-DocumentQA-Round2整改记录.md`；SHA-256 `2F4682F16D60089B1A8A033000867BF3C351FB894E64208B2D3E3DA3227D7369`；4,855 bytes / 47 lines。
+- NON_SERIOUS：R2 N1–N10 未处理或宣称关闭；文档头 `CURRENT_REVIEW_ROUND=1/3` 与上一轮 next-step 文本漂移仅登记，未修改。
+- 权限边界：未运行 Hermes/npm，未执行 Git mutation、部署或平台操作；未修改 report/metadata、原 V5 Spec、Issue、代码/UI/平台、中央文件或其他角色文件；未创建任务/subagent；不自我批准。
+- 当前状态：`QA_DOCUMENT_REWORK_COMPLETE / HERMES_ROUND_3_PENDING`。唯一下一步：项目总负责人组织 focused Hermes Round 3/3；本线程不得执行。
+
+## 2026-08-23｜V5 / ISSUE-0036 生产接线冻结包 v2 Hermes Round 1 完整 SERIOUS 批次整改
+
+- 执行角色：`019fefa7-c5cf-7e62-9859-5263998dfd77 / DocumentQAv2.3.2 / gpt-5.6-sol / high`；workflow=`WORKFLOW_ACTIVE`；v2 新周期共享计数保持 Round 1/3。
+- 写前输入：canonical `4F361440FD8D6012CA916501E7D21DEFF10150E178B04C96637908BA6CE814CF`（33,014 bytes / 340 lines）；R1 report `464EC1043C453810F3799E0D2F5D05AAAC872B35A5EE3E1158E2CAAF547D3D62`；metadata `D8D9B93B67E7C7CD189A560235B5E12B2C723B5B33DC870CCD04349D81B0F53C`；正文 verdict=`REWORK_REQUIRED`，SERIOUS=4。
+- S-001：以 `activeReviewStatuses`/`completedDecisionStatuses` 取代未定义状态别名；rejected 非 active，pending 仍指 rejected 时只允许同版本一次申诉或 edit 更高版本二选一，published/delete 清 pending，普通 rejected 不清 pending。
+- S-002：新增版本无关 `contact_review_idempotency`；唯一键为 scopeKey+idempotencyKeyHash，不含 entityVersion；同请求返回原结果，不同 requestHash=409，版本/task/aggregate/pointer/audit/result 同事务。
+- S-003：删除不可建的 aggregate pending unique index；唯一当前候选只由主实体 `pendingReviewVersion` 与 `entityRevision/currentVersion` CAS 保证，不增加第二指针或虚构 partial index。
+- S-004：每个 rejected entityVersion 最多一个版本级 appeal request，覆盖全部 rejected requiredFields；published fields 不重开；second reviewer 提交完整逐字段决定向量，任一校验失败整体 fail-closed，不落部分结果。
+- 输出 canonical：`C8613135340AA00F4F1C6C58C2EB53864BF0256F4BA8C3FCC4D815F6CB4D7A05`；43,573 bytes / 376 lines。
+- QA ledger：`2026-08-23-v5-issue-0036-production-wiring-freeze-v2-DocumentQA-Round1整改记录.md`；SHA-256 `5E666680176221535441F5DF76B023BD4FA9CB4D13F39A47D56ED9367C5654DC`；7,016 bytes / 53 lines。
+- 非范围：N-001～N-008、MAC-1～MAC-5 未处理或宣称关闭；S-001 删除未定义状态别名与 N-003 邻域有直接必要重合，但不作为 N-003 关闭；N-005“邮件”遗留措辞保持。未修改 R1 report/metadata、v1 及其 reports/QA、Issue/总表/ISSUE-0043、产品经理记录、代码/UI/平台、中央/角色文件。
+- 权限边界：未运行 Hermes/npm/测试/build，未执行 Git mutation、部署或平台操作；未创建任务/subagent；不自我批准。
+- 当前状态：`QA_DOCUMENT_REWORK_COMPLETE / HERMES_ROUND_2_PENDING`。唯一下一步：项目总负责人组织 focused Hermes Round 2/3；本线程不得执行。
+
+## 2026-08-23｜V5 / ISSUE-0036 生产接线冻结包 v2 Hermes Round 2 SERIOUS 批次整改
+
+- 执行角色：`019fefa7-c5cf-7e62-9859-5263998dfd77 / DocumentQAv2.3.2 / gpt-5.6-sol / high`；workflow=`WORKFLOW_ACTIVE`；共享计数保持 Round 2/3。
+- 写前输入：canonical `C8613135340AA00F4F1C6C58C2EB53864BF0256F4BA8C3FCC4D815F6CB4D7A05`（43,573 bytes / 376 lines）；R2 report `DBEF9912BEA98B906D5FC79E099A58D9FAA749B2AFEAD0C5D7F191A0F28779FB`；metadata `D88CE3703D9B4B44705857AC540FA9792DDF5BB4CD1A9EE7CAB574351BC29D4F`；正文 verdict=`REWORK_REQUIRED`，SERIOUS=2。
+- S-1：aggregate 固定为 N/N published → appeal_pending → needs_manual_review → fully-decided published/rejected 且至少一 rejected → 其他 pending/fail-closed。rejected+pending 不可申诉，完成全部普通决定后才可能 rejected。
+- S-2：claim/triage 只写 triage/claim audit 并保持 appeal_pending；终审校验失败或 SLA 超时可进入 appealMode=true needs_manual_review，唯一恢复出口为 primary/backup 的 `resumeAppealReview`，复用原 appealRequestId 且不产生第二 appeal。
+- 组合保护：owner 在 appeal_pending/manual 期间 edit=409；resume 可审计化 handoff，second 必须不同于当前 triage 与 owner；非法/并发 resume 保持 manual；事务/存储不可用 503 且零状态/副作用。
+- 输出 canonical：`95AA1D2D6DFFE12E30C53E9D1A3C9EAA69AC5BFD33CB3DDD946F2DCCA5B5307A`；52,245 bytes / 405 lines。
+- QA ledger：`2026-08-23-v5-issue-0036-production-wiring-freeze-v2-DocumentQA-Round2整改记录.md`；SHA-256 `33A4B2C72779AFB1CB1E1E3256EC8588EABB12CB2D7A410F01574F4D3A00B1FE`；5,727 bytes / 37 lines。
+- 非范围：R2 N-1/N-2、C-1/C-2、AC-3 未处理或宣称关闭；N-2 claim 时机仅因 S-2 直接重合而同步，C-1/C-2 原文仍保留。未修改 report/metadata、v1、Round 1 QA、Issue/总表/ISSUE-0043、PM 记录、代码/UI/平台、中央/角色文件。
+- 外部并发：ISSUE-0043 在本轮由 `436B7D08…6454DEEA` 变为 `A573DE01…CF55C0D`，内容为 ISSUE 管理员登记 R2 非阻塞项；该文件未由本 QA 写入，且不与三份白名单 owner 文件重叠。
+- 权限边界：未运行 Hermes/npm/测试/build，未执行 Git mutation、部署或平台操作；未创建任务/subagent；不自我批准。
+- 当前状态：`QA_DOCUMENT_REWORK_COMPLETE / HERMES_ROUND_3_PENDING`。唯一下一步：项目总负责人组织 focused Hermes Round 3/3；本线程不得执行。
+
+## 2026-08-25｜V5 / ISSUE-0036 人工审核延期暂缓关闭附录 Hermes Round 1 S1 整改
+
+- 执行角色：`019fefa7-c5cf-7e62-9859-5263998dfd77 / DocumentQAv2.3.2 / gpt-5.6-sol / high`；workflow=`WORKFLOW_ACTIVE`；本附录新周期共享计数保持 Round 1/3。
+- 写前输入：canonical `E10524B8F1C3D59EFFC532C66775B483F2EEC80248E2416F0624F811D97D5D54`（9,704 bytes / 103 lines）；R1 report `E54768E4CA0BB2516E67EB503AAB7C7F38E14632772F5054A66649FED5A2C0D6`；metadata `6A04F86C3C595DD72536E34FCDDC4530C4298EE42C5795658C730646FBE0429E`；正文 verdict=`REWORK_REQUIRED`，SERIOUS=1。
+- S1 原位置/问题：原 §1 仅概括“人工审核先放着、说明范围调整后继续推进”，并绑定结论仍为 `CANNOT_CLOSE / KEEP_OPEN_DEFERRED` 的旧裁决；缺少原始业务指令、owner/时间、持久化复读来源及新决定如何取代旧裁决的明确关系。
+- S1 新位置/语义：新增 §1.1“独立业务决策绑定（S1）”，串联业务方长期目标、2026-08-25 原话“那人工审核就先不做，先放着”、获知 `CANNOT_CLOSE` 与 material scope adjustment 前提后的“继续”，并限定这组指令只授权“暂缓需求/范围调整后关闭”候选。
+- 持久化绑定：原始指令绑定项目总负责人线程 `01a00565-5d72-7663-991d-178c5dcfd170`；总负责人工作记录复读快照 `0164694F1C362BB1E3847CA32FFB82F6BA075D00884F107B15A47F4D225A607F`；产品经理工作记录复读快照 `0B36EA399E18C2DDE77F6A2EB99D135EC24EA7930360C674B95F6E2689E51E2E`；前置裁决文档 `F422F8CF111D0E1741E9E684ECFDABBB7975A9C4E836229381910E78D67B700C`。
+- 取代关系：本附录仅在“人工审核延期、暂缓需求关闭”范围内取代旧 `KEEP_OPEN_DEFERRED` 作为后续产品确认/Issue 管理员复读依据；旧裁决保留为范围变更前历史证据。文档门、业务方按最终文本确认与 ISSUE 管理员 canonical 操作前，Issue 仍为 `open / USER_CONFIRMATION_PENDING`。
+- 定向验证：两个 flag 继续为 false；人工审核、生产 AI、reviewer/Secret、flag-on、自动公开、部署、生产观察及回滚演练均未被授权或写成通过；未来启用仍须重开 ISSUE-0036 或建立继任 Issue。文档唯一下一步已改为 focused Hermes Round 2/3，仅复核 S1 与受影响回归。
+- 输出 canonical：`CC7C520B549D2F8449119A533C455D725331957B2F4EA5AE321F2F317110DA2A`；13,260 bytes / 121 lines。
+- 非范围：Hermes R1 N1～N5 未处理、未宣称关闭；未修改 report/metadata、旧 Spec、旧产品裁决、产品经理/总负责人记录、Issue canonical/总表、代码、UI、平台、中央/角色文件。
+- 权限边界：未运行 Hermes/npm/测试/build，未执行 Git mutation、部署或平台操作；未创建任务/subagent；本次 QA 不自我批准，不宣布 `DOCUMENT_GATE_PASSED` 或 Issue 关闭。
+- 当前状态：`QA_DOCUMENT_REWORK_COMPLETE / HERMES_ROUND_2_PENDING`。本段即本批 QA ledger；唯一下一步：项目总负责人路由产品经理执行 focused Hermes Round 2/3，仅复核 S1 与受影响回归。

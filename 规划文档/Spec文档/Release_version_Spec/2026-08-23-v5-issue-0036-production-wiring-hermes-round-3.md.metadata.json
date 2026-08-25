@@ -1,0 +1,16 @@
+{
+  "source": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-23-v5-issue-0036-production-wiring-freeze-spec.md",
+  "source_sha256": "C2988846E38D3C4338A38C06CC96B239BD59B9504D26E950CE07838265E393CF",
+  "report": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-23-v5-issue-0036-production-wiring-hermes-round-3.md",
+  "report_sha256": "3C8771E047214ACC69CDB0AC57FA57B21D047C11905305E63BE1122FB7616C09",
+  "round": "3/3",
+  "model": "deepseek-v4-pro",
+  "hermes_path": "D:\\miniconda\\Scripts\\hermes.exe",
+  "hermes_version": "Hermes Agent v0.18.2 (2026.7.7.2)",
+  "default_model": "deepseek-v4-flash",
+  "default_model_changed": false,
+  "exit_code": 0,
+  "started_at": "2026-08-23T19:38:36.5153479+08:00",
+  "completed_at": "2026-08-23T19:44:53.3428457+08:00",
+  "canonical_source_unchanged": true
+}

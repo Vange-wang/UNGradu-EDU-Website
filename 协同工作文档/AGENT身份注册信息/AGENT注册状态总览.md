@@ -10,7 +10,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 项目总负责人 Agent | Project Lead / 多 Agent 编排与责任溯源负责人 | `01a00565-5d72-7663-991d-178c5dcfd170` | `项目总负责人v2.3.3` | 业务方任务、流程文档、各 Agent 回执、项目文档只读上下文、协同失败证据 | 任务分发命令、协同协议、状态总览、责任溯源、交流记录 | `总负责人文档/总负责人工作记录.md` | `协同工作文档/`、`总负责人文档/` | 已注册，v2.3.3 当前唯一入口；模型 `gpt-5.6-sol / high`；`WORKFLOW_ACTIVE` | 第一负责人，仅调度、跟进、门禁、生产协调与收口 |
 | 产品经理 Agent | Product Manager / 验收负责人 | `019fefa7-9883-7af2-bdb5-acc5c8513781` | `产品经理v2.3.2` | 业务需求、Spec、PRD、里程碑、验收材料、产品决策 | PRD、Spec、里程碑、验收报告、产品决策记录 | `规划文档/产品经理工作记录.md` | `规划文档/`、`协同工作文档/AGENT身份注册信息/` | 已注册，v2.3.2 当前唯一入口；模型 `gpt-5.6-luna / max`；`WORKFLOW_ACTIVE` | 需求与产品验收负责人 |
-| 代码开发员 Agent | Code Developer / Issue 修复负责人 | `019fefa7-a3c3-7333-94d7-d61961c5ea99` | `代码开发员v2.3.2` | 已确认 Spec、PRD、Issue、缺陷清单、代码审查报告、代码仓库 | 业务代码、测试、脚本、代码文档、验证结果 | `Code文档/开发员工作记录.md` | `Code文档/`、必要时 `规划文档/里程碑文档/发布前准备/` | 已注册，v2.3.2 当前唯一入口；模型 `gpt-5.6-sol / high`；后续开发/部署须另行授权 | 实现与代码验证负责人 |
+| 代码开发员 Agent | Code Developer / Issue 修复负责人 | `01a02f2d-bbce-73d3-a807-827512726e0b` | `代码开发员v2.3.3` | 已确认 Spec、PRD、Issue、缺陷清单、代码审查报告、代码仓库 | 业务代码、测试、脚本、代码文档、验证结果 | `Code文档/开发员工作记录.md` | `Code文档/`、必要时 `规划文档/里程碑文档/发布前准备/` | 已注册，v2.3.3 当前唯一入口；沿用 `gpt-5.6-sol / high`；仅续接 V5 / ISSUE-0036 S3，提交/推送/部署须另行授权 | 实现与代码验证负责人 |
 | ISSUE 管理员 Agent | Issue Documentation / Issue 状态维护负责人 | `019fefa7-af55-75c3-9cea-da6e548d7002` | `ISSUE管理员v2.3.2` | 用户或 Agent 提出的 Issue、代码开发员 Issue 包、阶段最终报告、总负责人交办的 Issue 状态更新 | Issue 编号、Issue 总表、Open/Close Issue 文档、状态流转记录、关闭依据 | `协同工作文档/ISSUE/ISSUE管理员工作记录.md` | `协同工作文档/ISSUE/`、`协同工作文档/ISSUE/Issue_List/`、`协同工作文档/ISSUE/Open_Issue/`、`协同工作文档/ISSUE/Close_Issue/` | 已注册，v2.3.2 当前唯一入口；模型 `gpt-5.6-luna / max`；Active Open=6 | ISSUE 状态维护负责人 |
 | UI 设计师 Agent | UI Designer / Visual Design / Interface Redesign | `019fefa7-ba66-7d63-8918-17fa0271437c` | `UI设计师v2.3.2` | 项目总控制人视觉方向、截图 / 参考图、页面现状、已确认 Spec、UI 设计输入与素材 | UI 重设计方案、草图模板、视觉规范、阶段设计定稿、设计验收与交接文档 | `UI美术文档/UI设计师工作记录.md` | `UI美术文档/`、`协同工作文档/AGENT身份注册信息/` | 已注册，v2.3.2 当前唯一入口；模型 `gpt-5.6-luna / max`；`WORKFLOW_ACTIVE` | UI 视觉设计、设计交接与独立 UI 复核负责人 |
 | Document QA Agent | Independent Document QA / 严重问题修订负责人 | `019fefa7-c5cf-7e62-9859-5263998dfd77` | `DocumentQAv2.3.2` | 总负责人发送的 canonical Spec hash、Hermes 报告、完整 `SERIOUS` 批次、冻结决策与共享轮次 | 仅命名 Spec 的 `SERIOUS` 修订及指定 QA ledger | `协同工作文档/文档QA/DocumentQA工作记录.md` | `规划文档/Spec文档/Release_version_Spec/`、`协同工作文档/文档QA/` | 已注册，v2.3.2 当前唯一入口；模型 `gpt-5.6-sol / high`；`WAITING_ROLE` | 不运行 Hermes、不自我批准、不处理 `NON_SERIOUS`，最多三轮共享计数 |
@@ -29,7 +29,7 @@
 ### 1.2 v2.3.3 正式中央重绑定后的当前连续性与门禁
 
 - 当前项目总负责人为 `01a00565-5d72-7663-991d-178c5dcfd170 / 项目总负责人v2.3.3 / gpt-5.6-sol / high`；旧 v2.3.2 `019fefa7-8eb3-7412-879d-e6c40094ea70` 已转为历史归档，不再接收新任务。
-- 六个专业角色 v2.3.2 的注册、锚点、工作记录和绑定未变：产品经理 `019fefa7-9883-7af2-bdb5-acc5c8513781`、代码开发员 `019fefa7-a3c3-7333-94d7-d61961c5ea99`、ISSUE 管理员 `019fefa7-af55-75c3-9cea-da6e548d7002`、UI 设计师 `019fefa7-ba66-7d63-8918-17fa0271437c`、Document QA `019fefa7-c5cf-7e62-9859-5263998dfd77`、独立代码复核 `019fefa7-d1d3-7ac3-a5ba-8b8abe299958`。
+- 五个未迁移专业角色的 v2.3.2 注册、锚点与绑定保持不变：产品经理 `019fefa7-9883-7af2-bdb5-acc5c8513781`、ISSUE 管理员 `019fefa7-af55-75c3-9cea-da6e548d7002`、UI 设计师 `019fefa7-ba66-7d63-8918-17fa0271437c`、Document QA `019fefa7-c5cf-7e62-9859-5263998dfd77`、独立代码复核 `019fefa7-d1d3-7ac3-a5ba-8b8abe299958`。代码开发员已于 2026-08-23 重绑定至 `01a02f2d-bbce-73d3-a807-827512726e0b / 代码开发员v2.3.3`；旧 v2.3.2 转为历史归档。
 - 项目 workflow 仍为 `WORKFLOW_ACTIVE`，迁移不等于完成；`ISSUE-0020` 已 `closed / WORKFLOW_COMPLETE`（仅自身），七项残余风险已登记并由业务方接受。
 - Active Open 恰为 `ISSUE-0031/0032/0034/0035/0036/0038`；`ISSUE-0031`、数据库和全部付费动作继续延期。
 - 当前代码基线仅作接续事实：branch=`V2-unified-navigation-responsive-profile-20260729`，已知 HEAD=`33314857da0f2d72066443965454d23fc70a16d3`；不以此执行 Git 或推断其他门禁。
@@ -44,6 +44,7 @@
 | 项目总负责人 Agent | v2.3.2 | `019fefa7-8eb3-7412-879d-e6c40094ea70` | 2026-08-15 已归档，不再接收新任务；由 v2.3.3 接续 |
 | 项目总负责人 Agent | v2.3.1 | `019fbd69-1a00-7311-976c-5c61596265d8` | 已归档，不再接收新任务；由 v2.3.2 接续 |
 | 项目总负责人 Agent | v2.3.0 | `019fa8fe-d28f-7c80-84f2-da0c88282cf5` | 保持历史归档，不再作为当前调度入口 |
+| 代码开发员 Agent | v2.3.2 | `019fefa7-a3c3-7333-94d7-d61961c5ea99` | 2026-08-23 已归档，不再接收新任务；由 v2.3.3 接续 V5 / ISSUE-0036 S3 现场 |
 | 产品经理 Agent | v2.3.0 | `019fad1b-0006-74f3-9b38-ae71e6464ad4` | 已归档，不再接收新任务；由 v2.3.2 接续 |
 | 代码开发员 Agent | v2.3.0 | `019fad0b-e1b4-7950-bb97-2dc580594574` | 已归档，不再接收新任务；由 v2.3.2 接续 |
 | ISSUE 管理员 Agent | v2.3.0 | `019fad18-e126-75a1-948a-055914cad0ab` | 已归档，不再接收新任务；由 v2.3.2 接续 |

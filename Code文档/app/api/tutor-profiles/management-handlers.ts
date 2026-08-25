@@ -18,6 +18,8 @@ import {
   updateServerTutorProfile,
   type TutorProfileLifecycleTransactionRunner
 } from "@/server/tutor-profiles";
+import type { ContactReviewRuntimeGate } from "@/server/security/contact-review-cloudbase";
+import type { ContactReviewManagementIntegration } from "@/server/security/contact-review-integration";
 
 type TutorProfileCollection = Parameters<typeof saveServerTutorProfile>[0]["collection"];
 type RouteContext = { params: Promise<{ id: string }> };
@@ -65,11 +67,15 @@ function transactionUnavailableResponse() {
 
 export function createTutorProfileManagementHandlers({
   collection,
+  contactReview,
+  contactReviewGate = { enabled: false, ok: true },
   env = process.env,
   sessionRevocationGuard,
   runTransaction
 }: {
   collection: TutorProfileCollection;
+  contactReview?: ContactReviewManagementIntegration;
+  contactReviewGate?: ContactReviewRuntimeGate;
   env?: RuntimeEnv;
   sessionRevocationGuard?: RuntimeEnv["sessionRevocationGuard"];
   runTransaction?: TutorProfileLifecycleTransactionRunner;
@@ -78,6 +84,14 @@ export function createTutorProfileManagementHandlers({
     ...env,
     sessionRevocationGuard: sessionRevocationGuard ?? env.sessionRevocationGuard
   });
+  const unavailableReviewResponse = () => jsonResponse({
+    code: "CONTACT_REVIEW_CONFIGURATION_UNAVAILABLE",
+    errors: { request: "联系方式审核服务暂不可用" },
+    ok: false,
+    value: null
+  }, 503);
+  const readRequestId = (request: Request) =>
+    request.headers.get("x-correlation-id") ?? request.headers.get("x-request-id") ?? crypto.randomUUID();
   return {
     async POST_COLLECTION(request: Request) {
       const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
@@ -86,6 +100,16 @@ export function createTutorProfileManagementHandlers({
       if (securityResponse) return securityResponse;
       const body = await readJsonBody<TutorProfileInput>(request, tutorProfileBodyLimits);
       if (!body.ok) return body.response;
+      if (!contactReviewGate.ok) return unavailableReviewResponse();
+      if (contactReviewGate.enabled && contactReview) {
+        return responseForResult(await contactReview.create({
+          authenticatedUserId: auth.authenticatedUserId,
+          idempotencyKey: request.headers.get("idempotency-key") ?? "",
+          input: body.value,
+          now: new Date().toISOString(),
+          requestId: readRequestId(request)
+        }));
+      }
       return responseForResult(
         await saveServerTutorProfile({
           authenticatedUserId: auth.authenticatedUserId,
@@ -101,6 +125,10 @@ export function createTutorProfileManagementHandlers({
       if (new URL(request.url).searchParams.get("scope") === "mine") {
         const auth = await readAuthenticatedUserIdWithRevocation(request, securedEnv);
         if (!auth.ok) return auth.response;
+        if (!contactReviewGate.ok) return unavailableReviewResponse();
+        if (contactReviewGate.enabled && contactReview) {
+          return responseForResult(await contactReview.readOwner(auth.authenticatedUserId, id));
+        }
         return responseForResult(
           await readServerTutorProfileForOwner({
             authenticatedUserId: auth.authenticatedUserId,
@@ -108,6 +136,15 @@ export function createTutorProfileManagementHandlers({
             id
           })
         );
+      }
+
+      if (!contactReviewGate.ok) return unavailableReviewResponse();
+      if (contactReviewGate.enabled) {
+        if (!contactReview) return unavailableReviewResponse();
+        const authority = await contactReview.readPublic(id);
+        if (!authority.ok) return responseForResult(authority);
+        if (!authority.value) return apiError(404, TUTOR_PROFILE_NOT_FOUND_MESSAGE);
+        return jsonResponse(authority);
       }
 
       const result = await findPublicServerTutorProfileById({ collection, id });
@@ -127,6 +164,18 @@ export function createTutorProfileManagementHandlers({
       if (!expectedVersion) return apiError(400, "缺少有效的 version");
 
       const { id } = await context.params;
+      if (!contactReviewGate.ok) return unavailableReviewResponse();
+      if (contactReviewGate.enabled && contactReview) {
+        return responseForResult(await contactReview.edit({
+          authenticatedUserId: auth.authenticatedUserId,
+          entityId: id,
+          expectedEntityRevision: expectedVersion,
+          idempotencyKey: request.headers.get("idempotency-key") ?? "",
+          input: body.value,
+          now: new Date().toISOString(),
+          requestId: readRequestId(request)
+        }));
+      }
       return responseForResult(
         await updateServerTutorProfile({
           authenticatedUserId: auth.authenticatedUserId,
@@ -147,9 +196,20 @@ export function createTutorProfileManagementHandlers({
       if (!body.ok) return body.response;
       const expectedVersion = readVersion(body.value);
       if (!expectedVersion) return apiError(400, "缺少有效的 version");
-      if (!runTransaction) return transactionUnavailableResponse();
 
       const { id } = await context.params;
+      if (!contactReviewGate.ok) return unavailableReviewResponse();
+      if (contactReviewGate.enabled && contactReview) {
+        return responseForResult(await contactReview.delete({
+          authenticatedUserId: auth.authenticatedUserId,
+          entityId: id,
+          expectedEntityRevision: expectedVersion,
+          idempotencyKey: request.headers.get("idempotency-key") ?? "",
+          now: new Date().toISOString(),
+          requestId: readRequestId(request)
+        }));
+      }
+      if (!runTransaction) return transactionUnavailableResponse();
       return responseForResult(
         await deleteServerTutorProfile({
           authenticatedUserId: auth.authenticatedUserId,
@@ -171,9 +231,20 @@ export function createTutorProfileManagementHandlers({
       if (body.value.action !== "restore") return apiError(400, "不支持的管理操作");
       const expectedVersion = readVersion(body.value);
       if (!expectedVersion) return apiError(400, "缺少有效的 version");
-      if (!runTransaction) return transactionUnavailableResponse();
 
       const { id } = await context.params;
+      if (!contactReviewGate.ok) return unavailableReviewResponse();
+      if (contactReviewGate.enabled && contactReview) {
+        return responseForResult(await contactReview.restore({
+          authenticatedUserId: auth.authenticatedUserId,
+          entityId: id,
+          expectedEntityRevision: expectedVersion,
+          idempotencyKey: request.headers.get("idempotency-key") ?? "",
+          now: new Date().toISOString(),
+          requestId: readRequestId(request)
+        }));
+      }
+      if (!runTransaction) return transactionUnavailableResponse();
       return responseForResult(
         await restoreServerTutorProfile({
           authenticatedUserId: auth.authenticatedUserId,

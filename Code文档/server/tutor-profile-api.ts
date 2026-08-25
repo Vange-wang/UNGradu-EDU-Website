@@ -10,11 +10,15 @@ import {
 } from "@/server/api-utils";
 import {
   findPublicServerTutorProfileById,
+  filterServerTutorProfiles,
   listPublicServerTutorProfiles,
   listServerTutorProfilesForOwner,
   saveServerTutorProfile,
   updateServerTutorProfile
 } from "@/server/tutor-profiles";
+import type { PublicServerTutorProfile } from "@/server/tutor-profiles";
+import type { ContactReviewRuntimeGate } from "@/server/security/contact-review-cloudbase";
+import type { ContactReviewManagementIntegration } from "@/server/security/contact-review-integration";
 
 type TutorProfileCollection = Parameters<typeof saveServerTutorProfile>[0]["collection"];
 
@@ -24,10 +28,14 @@ type RouteContext = {
 
 export function createTutorProfileApiHandlers({
   collection,
+  contactReview,
+  contactReviewGate = { enabled: false, ok: true },
   env = process.env,
   sessionRevocationGuard
 }: {
   collection: TutorProfileCollection;
+  contactReview?: ContactReviewManagementIntegration;
+  contactReviewGate?: ContactReviewRuntimeGate;
   env?: RuntimeEnv;
   sessionRevocationGuard?: RuntimeEnv["sessionRevocationGuard"];
 }) {
@@ -46,6 +54,12 @@ export function createTutorProfileApiHandlers({
           return auth.response;
         }
 
+        if (!contactReviewGate.ok) return jsonResponse(contactReviewGate, 503);
+        if (contactReviewGate.enabled && contactReview) {
+          const result = await contactReview.listOwner(auth.authenticatedUserId);
+          return jsonResponse(result, result.ok ? 200 : result.status);
+        }
+
         const result = await listServerTutorProfilesForOwner({
           authenticatedUserId: auth.authenticatedUserId,
           collection
@@ -54,17 +68,26 @@ export function createTutorProfileApiHandlers({
         return jsonResponse(result, statusForResult(result, 400));
       }
 
-      const result = await listPublicServerTutorProfiles({
-        collection,
-        filters: {
-          feeMax: url.searchParams.get("feeMax") ?? undefined,
-          feeMin: url.searchParams.get("feeMin") ?? undefined,
-          gender: url.searchParams.get("gender") ?? undefined,
-          grade: url.searchParams.get("grade") ?? undefined,
-          subject: url.searchParams.get("subject") ?? undefined
-        }
-      });
+      const filters = {
+        feeMax: url.searchParams.get("feeMax") ?? undefined,
+        feeMin: url.searchParams.get("feeMin") ?? undefined,
+        gender: url.searchParams.get("gender") ?? undefined,
+        grade: url.searchParams.get("grade") ?? undefined,
+        subject: url.searchParams.get("subject") ?? undefined
+      };
 
+      if (!contactReviewGate.ok) return jsonResponse(contactReviewGate, 503);
+      if (contactReviewGate.enabled) {
+        if (!contactReview) return jsonResponse(contactReviewGate, 503);
+        const authority = await contactReview.listPublic();
+        if (!authority.ok) return jsonResponse(authority, authority.status);
+        return jsonResponse({
+          ...authority,
+          value: filterServerTutorProfiles(authority.value as PublicServerTutorProfile[], filters)
+        });
+      }
+
+      const result = await listPublicServerTutorProfiles({ collection, filters });
       return jsonResponse(result);
     },
 
@@ -107,6 +130,14 @@ export function createTutorProfileApiHandlers({
     async GET_ITEM(_request: Request, context: RouteContext) {
       const { id } = await context.params;
       const result = await findPublicServerTutorProfileById({ collection, id });
+
+      if (!contactReviewGate.ok) return jsonResponse(contactReviewGate, 503);
+      if (contactReviewGate.enabled) {
+        if (!contactReview) return jsonResponse(contactReviewGate, 503);
+        const authority = await contactReview.readPublic(id);
+        if (!authority.ok) return jsonResponse(authority, authority.status);
+        return jsonResponse(authority);
+      }
 
       return jsonResponse(result);
     },

@@ -324,3 +324,5 @@ FILES = [
 for style_key, file_name, painter in FILES:
     painter(style_key, file_name)
     print(OUT / file_name)
+
+

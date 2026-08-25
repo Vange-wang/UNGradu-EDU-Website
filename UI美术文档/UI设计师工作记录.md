@@ -2040,3 +2040,28 @@ workflow 与门禁：
 唯一下一步：
 
 - 等待来源总负责人在新绑定下发送下一项受限 UI 任务；在此之前不扩展读取或工作范围，不代做 Issue、部署、生产或业务验收。
+## 2026-08-24
+
+### V5 / ISSUE-0036 S3 冻结候选独立 UI 复核
+
+类型：独立 UI/交互验收 / `UI_REVIEW_PASS`
+
+涉及文档：
+
+- `UI美术文档/2026-08-24-v5-issue-0036-s3-ui-review.md`
+- `Code文档/app/profile/parent-needs/page.tsx`
+- `Code文档/app/profile/tutor-profiles/page.tsx`
+- `Code文档/features/contact-review/contact-review-owner-ui.ts`
+- `Code文档/tests/issue-0036-owner-ui.test.ts`
+
+内容摘要：
+
+- 沿用 UI设计师v2.3.2，在冻结候选 `03da0015be0d2ee403d848f149814039759cfcd1` 上完成只读独立验收；候选 branch/tree 与委托固定点一致，staged 为 0。
+- 使用本地合成会话和六类审核/生命周期状态，核对需求与家教信息两条管理路径；桌面 1280×720、移动 390×844 均无横向溢出，三分类路径、状态文案、按钮名称、焦点/`aria-pressed` 和删除恢复提示通过。
+- 定向 UI 测试 1 个文件、7 项通过；P0/P1/P2 为 `0/0/0`，无需要返工的 UI 问题。
+- 本轮仅写入白名单 UI 复核报告并追加本记录；未修改候选实现、Spec、Issue、代码复核报告，未执行 Git mutation、部署或平台操作。
+
+影响：
+
+- UI 门禁结论为 `UI_REVIEW_PASS`；该结论仅覆盖本地合成数据下的 UI/交互呈现，不替代 API、部署、生产或业务方验收。
+- 唯一下一步：项目总负责人接收本轮 UI 通过结论，继续既定产品、Issue、部署/生产和业务方门禁。

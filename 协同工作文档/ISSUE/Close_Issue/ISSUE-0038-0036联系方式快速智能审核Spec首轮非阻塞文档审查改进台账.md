@@ -1,5 +1,62 @@
 # ISSUE-0038：0036 联系方式快速智能审核 Spec 首轮非阻塞文档审查改进台账
 
+## 当前关闭状态（2026-08-25；历史段落保留）
+
+- Issue ID：`ISSUE-0038`
+- 类型：`documentation / non-blocking review improvement`
+- 状态：`closed`
+- 工作流状态：`WORKFLOW_COMPLETE`（仅 ISSUE-0038 自身；项目总 workflow 仍为 `WORKFLOW_ACTIVE`）
+- 关闭语义：按 2026-08-25 范围调整附录，关闭当前批准范围内的文档债务；这是文档-only、暂缓需求/范围调整后的适用关闭，不代表 ISSUE-0036 的 AI/人工审核、provider、flag-on、生产观察、部署或回滚完成。
+- 用户确认门：`USER_CONFIRMATION_PASSED`。用户已在明确知悉“0038 只解决文档欠账，不开发 AI/人工审核、不改数据库、不部署、不启用 flag；0036 是功能本身、0038 是整理说明书和审查记录”后回复：“行，现在做，是不是很快解决”。
+- 当前责任：ISSUE 管理员维护本关闭记录；ISSUE-0044 继续承载本次附录的 NON_SERIOUS 追踪。未来恢复功能需求时，必须重开 ISSUE-0036 或建立明确继任 Issue，重新通过 Spec、实现、独立复核、部署/生产与业务验收门禁。
+
+### 关闭证据与独立复读
+
+- 旧 V6 关闭 Spec：`规划文档/Spec文档/Release_version_Spec/2026-08-15-issue-0038-联系方式审核文档债务关闭-spec.md`，SHA-256=`7248241D9EBE78FC0E6D9491CBAE5BC87C8C3423AA1BC65E6E81DC6AE72AFD46`；旧 Hermes R1/R2/R3 SHA 分别为 `2151DC34C2E6757DF65266E1568CC1DFD9CB438D1DCBEA540877B95D51371C1E`、`72A02E04B29DCB2724231E4DD29915F7C706F9408B1333DF9244CA5340F6862A`、`5721D48B8BE4E54AC4FC477737398CA825C3CA1AB38B5737579D09C22A04D6B4`。这些是历史关闭链，不能替代本次范围调整。
+- 新 material scope addendum：`规划文档/Spec文档/Release_version_Spec/2026-08-25-issue-0038-0036延期关闭后的文档债务关单范围调整-spec-addendum.md`，SHA-256=`563219A51BE647CD72081ABBAC9E06C5CF7D46DA448D504A5E47AE9DEC46A9FE`。
+- 新 Hermes R1/R2/R3 SHA 分别为 `10DC4847E8B3E90EF13E01E91036DA565B7397671A0EFA37132BC09D34528635`、`4918393B2C0D441304DD812D083479D0301BE07ED72C400BFC64693ED6089F63`、`5842A3B843A5B27E79A7D2B67CE4F249C4416D679B6C692AA0A746ED41A39901`；metadata SHA 分别为 `AFA4ED6F2A90D1D209296690B8378DA571CB52C33741D4CFF90AE6A45BC73775`、`9116A5B54A69053B64A9A49E9374D523F172A7BD53766906AD8A26FB841B2357`、`EA5CEF263A36033F18642F0FDBB703248E8FA3A74440D5943217DAE65466159A`。R3 为 `deepseek-v4-pro`、3/3、`canonical_source_unchanged=true`、`PASS_WITH_NONBLOCKING_OPEN_ISSUES`、`SERIOUS=0`；不启动第四轮。
+- Document QA ledger：`协同工作文档/文档QA/DocumentQA工作记录.md`，SHA-256=`9759259E0BCA2FF55BFF0FFC39EE3E8AA31C9FA2F7D19E2CE447F8A7AF5E2027`。R1/R2 SERIOUS 已按职责路由并由 R3 复读为零；NON_SERIOUS 由 ISSUE-0044 追加追踪。
+- ISSUE-0036 Close canonical：`协同工作文档/ISSUE/Close_Issue/ISSUE-0036-家长需求与老师资料的联系方式快速智能审核.md`，其关闭口径仅为“人工审核延期、暂缓需求/范围调整后关闭”，不代表生产审核完成；本 Issue 不改变该口径。
+
+### 13 项处置结论
+
+1. B=7：`N-001/N-005/N-007/NS-001/NS-002/NS-004/NS-005`，按附录 §3.1 的 `B-E01`～`B-E07` 纯文档采纳链完成本次管理员 receipt；不附加业务签字，不把该 receipt 写成业务/生产验收。
+2. `N-002`：判定为 `V5_BOUNDED_SUFFICIENT`，仅覆盖 bounded local/synthetic/flag-off 范围；不得外推为生产证据。
+3. `N-003/N-004/N-006/NS-006` 与 `D/NS-003`：判定为 `N/A_FOR_CURRENT_CLOSURE + TRANSFER_EXISTING_TRACKER`。N/A 不代表完成；owner、未来触发和转移关系保留在 ISSUE-0044 或适用既有台账，不静默删除。
+4. 附录 §3.1 与旧 Spec 锚点行号存在轻微差异，按 R3 OI-2 以附录 §3.1 为当前权威并保留审计说明；不构成当前关闭阻塞。
+5. R3 OI-1 要求的源文件 receipt 已独立完成：旧 0036 Spec 实际 SHA-256=`005EA5F2490DC2E43A134BA0421EFBD357179C90E29A6F2AB560F6F61A97B437`、39996 bytes；B-E01～B-E07 映射与锚点已复读。
+
+| 项目 | 当前处置 | 绑定/未来触发 |
+| --- | --- | --- |
+| `N-001` | `B_DOC_ADMIN_ADOPTED` | `B-E01` 纯文档采纳链；不附加业务签字。 |
+| `N-005` | `B_DOC_ADMIN_ADOPTED` | `B-E02` 纯文档采纳链；不外推实现或生产。 |
+| `N-007` | `B_DOC_ADMIN_ADOPTED` | `B-E03` 纯文档采纳链；不外推实现或生产。 |
+| `NS-001` | `B_DOC_ADMIN_ADOPTED` | `B-E04` 纯文档采纳链；不外推实现或生产。 |
+| `NS-002` | `B_DOC_ADMIN_ADOPTED` | `B-E05` 纯文档采纳链；不外推实现或生产。 |
+| `NS-004` | `B_DOC_ADMIN_ADOPTED` | `B-E06` 纯文档采纳链；不外推实现或生产。 |
+| `NS-005` | `B_DOC_ADMIN_ADOPTED` | `B-E07` 纯文档采纳链；不外推实现或生产。 |
+| `N-002` | `V5_BOUNDED_SUFFICIENT` | 仅 bounded local/synthetic/flag-off；未来不得外推生产，若范围恢复须重新建立生产门禁。 |
+| `N-003` | `N/A_FOR_CURRENT_CLOSURE + TRANSFER_EXISTING_TRACKER` | N/A 不代表完成；保留 owner/future trigger，由 ISSUE-0044 或适用既有台账继续追踪。 |
+| `N-004` | `N/A_FOR_CURRENT_CLOSURE + TRANSFER_EXISTING_TRACKER` | N/A 不代表完成；保留 owner/future trigger，由 ISSUE-0044 或适用既有台账继续追踪。 |
+| `N-006` | `N/A_FOR_CURRENT_CLOSURE + TRANSFER_EXISTING_TRACKER` | N/A 不代表完成；保留 owner/future trigger，由 ISSUE-0044 或适用既有台账继续追踪。 |
+| `NS-006` | `N/A_FOR_CURRENT_CLOSURE + TRANSFER_EXISTING_TRACKER` | N/A 不代表完成；保留 owner/future trigger，由 ISSUE-0044 或适用既有台账继续追踪。 |
+| `NS-003` / D | `N/A_FOR_CURRENT_CLOSURE + TRANSFER_EXISTING_TRACKER` | 留待生产观察/后续版本复评；不因本次文档-only 关闭视为完成。 |
+
+### V6 branch/base/deploy gate 判定
+
+- 本次是批准范围内的纯文档-only 关闭；V6 分支、base receipt、部署和生产证据对当前关闭判定为 `N/A_FOR_CURRENT_CLOSURE`。
+- 当前未创建 V6 分支/base receipt；候选 commit `f8ad5d009c5483d6791699d2c2394765a23fb2f2` 仅作为历史 bounded local/synthetic/flag-off 证据，明确不是 `BASE_ACCEPTED`，不冒充 V6 revision、部署或生产证据。
+- 因此不执行 Git、部署或平台动作，也不因缺少 V6 base receipt 虚构失败；未来若恢复功能范围，须由 ISSUE-0036 或继任 Issue 重新建立对应 branch/base/实现/部署/生产门禁。
+
+### 关闭后边界与恢复条件
+
+- ISSUE-0044 仍保持 `open / NON_BLOCKING_DOCUMENT_REVIEW`，承接新附录 R1/R2/R3 的去重 NON_SERIOUS；其存在不阻断本次文档-only 关闭。
+- 本关闭不代表 ISSUE-0036 的 AI/人工审核、provider、Secret、数据库、flag-on、生产观察、部署、回滚演练或项目总 workflow 完成。
+- 项目 workflow 必须保持 `WORKFLOW_ACTIVE`；Active Open 由总表维护，其他 Issue 不因本次关闭改变。
+- 唯一下一步：项目总负责人独立核对本次目录与状态变更，并在后续统一 GitHub 推送；功能恢复时先重开 ISSUE-0036 或建立继任 Issue，再重新走完整门禁。
+
+## 历史记录（原 Open canonical，保留原文）
+
 ## 基本信息
 
 - Issue ID：`ISSUE-0038`
@@ -76,7 +133,7 @@ Round 3/3 报告结论为 `PASS_WITH_NONBLOCKING_OPEN_ISSUES`，0 项 `SERIOUS`�
 
 ## 2026-08-10 非关键文档维护批次独立复核登记（历史快照；已由当前补充复核更新）
 
-- 只读维护批次：`规划文档/产品迭代/2026-08-10-0035-0038-0039-非关键文档维护批次.md`，SHA-256=`2ADD34D2E2E659253F23419E484D9F29A9D7FA94F55B6E9AD97CB4904FF6E74D`；产品经理工作记录 SHA-256=`0B169780758A5B82B4D033106C3F74F0AC110846D0E14105657D523D40BC977A`。
+- 只读维护批次：`规划文档/产品迭代/2026-08-10-0035-0037-0039-非关键文档维护批次.md`，SHA-256=`2ADD34D2E2E659253F23419E484D9F29A9D7FA94F55B6E9AD97CB4904FF6E74D`；产品经理记录 SHA-256=`0B169780758A5B82B4D033106C3F74F0AC110846D0E14105657D523D40BC977A`。
 - ISSUE 管理员完整复读维护批次、处置矩阵 SHA=`85FFBA55B8F269745F0E577CB86347D59669225AF512633803D4330398E45D94`、勘误补充 SHA=`F9172407A41182C2C84920DA9638D2ACCC8EAA9C7D69F3176865BDE27CCF43C3`，并逐项对照 K/G 等只读锚点；未接受产品经理自证替代来源核对。
 - 逐项映射：A=0；B=7（`N-001/N-005/N-007/NS-001/NS-002/NS-004/NS-005`）由补充文件第 5 节形成 binding；C=5（`N-002/N-003/N-004/N-006/NS-006`）仍需实现、跨账号负测、独立复核、生产观察或业务确认；D=1（`NS-003`）留待生产观察/后续版本复评。
 

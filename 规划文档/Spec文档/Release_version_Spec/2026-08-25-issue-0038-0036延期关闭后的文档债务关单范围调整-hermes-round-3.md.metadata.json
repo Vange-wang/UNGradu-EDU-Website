@@ -1,0 +1,16 @@
+{
+  "source": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-25-issue-0038-0036延期关闭后的文档债务关单范围调整-spec-addendum.md",
+  "source_sha256": "563219A51BE647CD72081ABBAC9E06C5CF7D46DA448D504A5E47AE9DEC46A9FE",
+  "report": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-25-issue-0038-0036延期关闭后的文档债务关单范围调整-hermes-round-3.md",
+  "report_sha256": "5842A3B843A5B27E79A7D2B67CE4F249C4416D679B6C692AA0A746ED41A39901",
+  "round": "3/3",
+  "model": "deepseek-v4-pro",
+  "hermes_path": "D:\\miniconda\\Scripts\\hermes.exe",
+  "hermes_version": "Hermes Agent v0.18.2 (2026.7.7.2)",
+  "default_model": "deepseek-v4-flash",
+  "default_model_changed": false,
+  "exit_code": 0,
+  "started_at": "2026-08-25T23:28:29.5875150+08:00",
+  "completed_at": "2026-08-25T23:34:18.0270452+08:00",
+  "canonical_source_unchanged": true
+}

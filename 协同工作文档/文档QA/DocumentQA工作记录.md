@@ -193,3 +193,29 @@
 - 非范围：Hermes R1 N1～N5 未处理、未宣称关闭；未修改 report/metadata、旧 Spec、旧产品裁决、产品经理/总负责人记录、Issue canonical/总表、代码、UI、平台、中央/角色文件。
 - 权限边界：未运行 Hermes/npm/测试/build，未执行 Git mutation、部署或平台操作；未创建任务/subagent；本次 QA 不自我批准，不宣布 `DOCUMENT_GATE_PASSED` 或 Issue 关闭。
 - 当前状态：`QA_DOCUMENT_REWORK_COMPLETE / HERMES_ROUND_2_PENDING`。本段即本批 QA ledger；唯一下一步：项目总负责人路由产品经理执行 focused Hermes Round 2/3，仅复核 S1 与受影响回归。
+
+## 2026-08-25｜V6 / ISSUE-0038 新附录 Hermes Round 1 S-1/S-2 整改
+
+- 执行角色：`019fefa7-c5cf-7e62-9859-5263998dfd77 / DocumentQAv2.3.2 / gpt-5.6-sol / high`；workflow=`WORKFLOW_ACTIVE`；本附录新周期共享计数保持 Round 1/3。
+- 写前输入：canonical `444291F7FFF586BFF076312037F79F57F168690909A5FD1F163FE3BD3CDA18CC`（11,964 bytes / 118 lines）；R1 report `10DC4847E8B3E90EF13E01E91036DA565B7397671A0EFA37132BC09D34528635`；metadata `AFA4ED6F2A90D1D209296690B8378DA571CB52C33741D4CFF90AE6A45BC73775`；正文 verdict=`REWORK_REQUIRED`，SERIOUS=2。
+- S-1 原位置/问题：原 §1 依赖表没有绑定 7 个 B 项实际引用的原 ISSUE-0036 Spec；§3 仅出现裸 SHA `005EA5…A97B437`。新位置：§1 依赖表新增原 0036 Spec 完整路径、精确 SHA 与 §3.1 锚点入口，明确其仅是文档事实来源。
+- S-2 原位置/问题：原 §3 七个 B 行只有主题描述，§4.1 要求的精确路径/hash/段落与“证据索引完整”不可测试。新位置：新增 §3.1 `B_EVIDENCE_INDEX`，逐项给出 `B-E01`～`B-E07` 的 source path、完整 SHA、section/line anchor、可复读事实与确定性 pass/fail 合同；§3.2 七行及 §4.1 逐项回链索引。
+- B=7 索引摘要：N-001=`§5.1–§5.3/§10.1`；N-005=`§5.2/§8.2/§13`；N-007=`§6.1–§6.2.1/§10.1–§10.2`；NS-001=`§6.1/§6.2.1/§10.1`；NS-002=`§6.1/§6.2.1/§10.1–§10.2`；NS-004=`§7/§7.1/§10.2`；NS-005=`§4.2/§10.1`。七项均绑定 `规划文档/Spec文档/Release_version_Spec/2026-08-10-issue-0036-联系方式快速智能审核-spec.md` 与 SHA-256 `005EA5F2490DC2E43A134BA0421EFBD357179C90E29A6F2AB560F6F61A97B437`。
+- 冻结裁决保持：B=7 仍为纯文档 `B_DOC_ADMIN_CANDIDATE`，业务确认/业务证据/新业务确认/生产证据前置项为 0；N-002 保持 `V5_BOUNDED_SUFFICIENT`；N-003/N-004/N-006/NS-006 与 D/NS-003 保持 `N/A_FOR_CURRENT_CLOSURE + TRANSFER_EXISTING_TRACKER`，N/A 不等于完成或生产通过。
+- 输出 canonical：`4EB2B6A4E4E369C77DB6695F4875837950D77144E1B33156EB0F4270504312F6`；17,066 bytes / 137 lines。
+- 非范围：Hermes R1 N-1～N-5 未处理、未宣称关闭；旧 V6 Spec 与旧 R1/R2/R3 历史保持不变，本附录仍是新实质范围周期，不是旧周期 Round 4。
+- 权限边界：未运行 Hermes/npm/测试/build，未执行 Git mutation、部署或平台操作；未创建任务/subagent；未修改 report/metadata、0036/0038/0044 canonical、Issue 总表、PM worklog、代码/UI/CONTEXT、中央或角色文件；不自我批准。
+- 当前状态：`QA_DOCUMENT_REWORK_COMPLETE / HERMES_ROUND_2_PENDING`。本段即本批 QA ledger；唯一下一步：回项目总负责人组织 focused Hermes Round 2/3，仅复核 S-1、S-2 与受影响回归。
+
+## 2026-08-25｜V6 / ISSUE-0038 新附录 Hermes Round 2 SERIOUS 整改
+
+- 执行角色：`019fefa7-c5cf-7e62-9859-5263998dfd77 / DocumentQAv2.3.2 / gpt-5.6-sol / high`；workflow=`WORKFLOW_ACTIVE`；本附录新周期共享计数保持 Round 2/3，下一轮为最终 Round 3/3。
+- 写前输入：canonical `4EB2B6A4E4E369C77DB6695F4875837950D77144E1B33156EB0F4270504312F6`（17,066 bytes / 137 lines）；R2 report `4918393B2C0D441304DD812D083479D0301BE07ED72C400BFC64693ED6089F63`（8,452 bytes / 104 lines）；metadata `9116A5B54A69053B64A9A49E9374D523F172A7BD53766906AD8A26FB841B2357`；正文 verdict=`REWORK_REQUIRED`，SERIOUS=2。
+- SERIOUS-1 原位置/问题：原 §7 第137行引用未定义的 `S-1`、`S-2` 与“受影响回归”，focused 门禁不可执行。新位置：§7.1 绑定新附录 R1 report 完整路径/hash，明确 `R1 S-1`=依赖表原 0036 Spec 路径/hash，`R1 S-2`=7 个 B 项逐项索引，并枚举五项受影响回归检查范围。
+- SERIOUS-2 原位置/问题：原第5行 `CURRENT_REVIEW_ROUND=1/3`、§7“从 Round 1 开始”、下一步 Round 2 与实际已完成 Round 2/3 冲突。新位置：文档头与 §7 统一为 Round 2/3 已完成、共享计数 2/3、Round 3/3 待执行；R1/R2 verdict 均如实保留为 `REWORK_REQUIRED`，未宣称通过或重置轮次。
+- 受影响回归：仅检查 §1 原 0036 依赖、§3.1 七个定义/§3.2 七个回链、§4.1 文档关单门、13 项 B/C/D 实质处置不漂移、旧 V6 与新附录 R1/R2 历史只读及轮次/下一步一致性。
+- 输出 canonical：`563219A51BE647CD72081ABBAC9E06C5CF7D46DA448D504A5E47AE9DEC46A9FE`；19,183 bytes / 152 lines。
+- 冻结保持：13 项矩阵、R1 已形成的 §1 依赖与 `B-E01`～`B-E07` 索引未改；B 不要求业务确认；C/D 的 N/A/TRANSFER 不等于完成或生产通过；旧 V6 Spec/R1–R3 与新附录 R1/R2 report/metadata 未修改。
+- 非范围：Round 2 NON_SERIOUS 未处理、未宣称关闭，继续由 ISSUE 管理员登记 ISSUE-0044；未做措辞性返工。
+- 权限边界：未运行 Hermes/npm/测试/build，未执行 Git mutation、部署或平台操作；未创建任务/subagent；未修改 Issue canonical/总表、PM worklog、代码/UI/CONTEXT、中央/角色文件；不自我批准、不宣布 `DOCUMENT_GATE_PASSED`。
+- 当前状态：`QA_DOCUMENT_REWORK_COMPLETE / HERMES_ROUND_3_PENDING`。本段即本批 QA ledger；唯一下一步：回项目总负责人组织 focused Hermes Round 3/3。

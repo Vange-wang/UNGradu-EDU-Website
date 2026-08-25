@@ -60,3 +60,32 @@
 - 当前保持 open / NON_BLOCKING_DOCUMENT_REVIEW；不因 V5 evidence 到位、0036 进入下一阶段或原 ISSUE-0038 的既有 N/NS 台账完成而自动关闭。
 - 明确口径：本 Issue 不阻断当前文档 SERIOUS 项整改，但须在未来触发条件满足后关闭；不等于 ISSUE-0038、ISSUE-0036、Spec、实现、生产或业务门禁通过。
 - 唯一下一步：项目总负责人等待 Document QA 完成 SERIOUS 整改后，安排 V6 Hermes Round 3 复核 N-08 及 S-03 受影响段落。
+
+## 2026-08-25 V6 范围调整附录 Round 1/2/3 非阻塞追加批次
+
+本批次复用本 ISSUE，不新建 ISSUE-0047。来源与绑定如下：
+
+- 范围调整附录：`规划文档/Spec文档/Release_version_Spec/2026-08-25-issue-0038-0036延期关闭后的文档债务关单范围调整-spec-addendum.md`，SHA-256=`563219A51BE647CD72081ABBAC9E06C5CF7D46DA448D504A5E47AE9DEC46A9FE`。
+- Hermes Round 1：`...2026-08-25-issue-0038-0036延期关闭后的文档债务关单范围调整-hermes-round-1.md`，SHA-256=`10DC4847E8B3E90EF13E01E91036DA565B7397671A0EFA37132BC09D34528635`；metadata SHA-256=`AFA4ED6F2A90D1D209296690B8378DA571CB52C33741D4CFF90AE6A45BC73775`。
+- Hermes Round 2：`...2026-08-25-issue-0038-0036延期关闭后的文档债务关单范围调整-hermes-round-2.md`，SHA-256=`4918393B2C0D441304DD812D083479D0301BE07ED72C400BFC64693ED6089F63`；metadata SHA-256=`9116A5B54A69053B64A9A49E9374D523F172A7BD53766906AD8A26FB841B2357`。
+- Hermes Round 3：`...2026-08-25-issue-0038-0036延期关闭后的文档债务关单范围调整-hermes-round-3.md`，SHA-256=`5842A3B843A5B27E79A7D2B67CE4F249C4416D679B6C692AA0A746ED41A39901`；metadata SHA-256=`EA5CEF263A36033F18642F0FDBB703248E8FA3A74440D5943217DAE65466159A`。
+- 三轮模型均为 `deepseek-v4-pro`；Round 3/3 结论为 `PASS_WITH_NONBLOCKING_OPEN_ISSUES`，`SERIOUS=0`。Document QA ledger 绑定：`协同工作文档/文档QA/DocumentQA工作记录.md`，SHA-256=`9759259E0BCA2FF55BFF0FFC39EE3E8AA31C9FA2F7D19E2CE447F8A7AF5E2027`。
+
+以下为 R1/R2/R3 全部 NON_SERIOUS 与操作性观察项的去重登记。每项均为 `open / non-blocking`，不阻断当前 0038 文档-only 关单；未来关闭须满足对应 canonical 修订、独立复读或下一适用文档审查，并由 owner 提供可追溯证据。登记不改变 ISSUE-0036 或项目 workflow。
+
+| Canonical 台账项 | 来源 finding（去重映射） | 事实/影响 | owner | future closure trigger |
+| --- | --- | --- | --- | --- |
+| `V6-SCOPE-ADJ-R1-N-001` | R1 N-1 | B 批次与总体用户确认的措辞边界未完全清楚，可能误读为需要额外业务签字。 | 0038 范围调整附录 owner/产品经理 | 明确 B 纯文档采纳链与总体用户确认的先后关系，并经独立回读。 |
+| `V6-SCOPE-ADJ-R1-R2-N-002` | R1 N-2 + R2 NON-2 | 复合 disposition token 的组成与判定未定义，影响台账状态可机器/人工复读。 | 0038 范围调整附录 owner | 定义复合 token 或拆分为具名字段，并经适用 Hermes/独立复核。 |
+| `V6-SCOPE-ADJ-R1-N-003` | R1 N-3 | C/D 项枚举与处置分类存在对照不一致。 | 0038 范围调整附录 owner | 统一 §4.1 及映射表枚举，保留 N/A 与 transfer 的边界。 |
+| `V6-SCOPE-ADJ-R1-R2-N-004` | R1 N-4 + R2 NON-3 | “0038/V5 owner”等标签未映射到稳定具名责任身份。 | 项目总负责人/0038 owner | 建立稳定 owner 映射并完成独立回读。 |
+| `V6-SCOPE-ADJ-R1-R2-N-005` | R1 N-5 + R2 NON-1 | N-08 交叉引用/命名口径不统一，影响跨报告追踪。 | 0038 owner/ISSUE-0044 owner | 统一 N-08 的 canonical 名称、来源和映射后复核。 |
+| `V6-SCOPE-ADJ-R2-N-006` | R2 NON-4 | “本线程不得运行 Hermes”的适用线程/权限边界措辞不够明确。 | 项目总负责人/流程 owner | 明确受限线程、执行角色和 Hermes 调度边界，不扩大权限。 |
+| `V6-SCOPE-ADJ-R2-N-007` | R2 NON-5 | 文档对最终附录 hash 的前向自引用可能造成冻结前绑定不完整。 | 0038 范围调整附录 owner | 下一冻结版本补齐最终 hash/来源绑定并完成复读。 |
+| `V6-SCOPE-ADJ-R3-N-008` | R3 N-1 | 旧 V6 Spec 与新附录的锚点行号范围有轻微差异；不影响当前结论，但需保留审计解释。 | ISSUE 管理员/0038 附录 owner | 未来修订保留新附录 §3.1 权威锚点，并对变更重新核对。 |
+| `V6-SCOPE-ADJ-R3-OI-001` | R3 OI-1 | Hermes 未在会话内执行源文件字节 SHA 复核，要求管理员独立完成 receipt。当前已独立复读源文件并核得 SHA=`005EA5F2490DC2E43A134BA0421EFBD357179C90E29A6F2AB560F6F61A97B437`、39996 bytes，B-E01～B-E07 映射存在。 | ISSUE 管理员 | 若源文件或 hash 发生变化，重新执行同等 receipt；本次完成不提前关闭 ISSUE-0044。 |
+| `V6-SCOPE-ADJ-R3-OI-002` | R3 OI-2 | 需协调旧 Spec 与附录行号/锚点差异；本次以附录 §3.1 为当前权威，不将行号差异虚构为内容冲突。 | ISSUE 管理员/0038 附录 owner | 后续 canonical 修订时保留差异说明并完成来源锚点复读。 |
+
+去重说明：R1 N-2 与 R2 NON-2、R1 N-4 与 R2 NON-3、R1 N-5 与 R2 NON-1 已合并为同一 canonical 台账项；其余来源 finding 均保留独立映射。R3 OI-1 的 receipt 动作已在本次关单审查中完成，但作为非阻塞审计债务保留至 ISSUE-0044 后续关闭。R1/R2 的 SERIOUS 项仍由 Document QA 路由，本批次不降级、不关闭、不触发新的 QA 结论。
+
+当前 ISSUE-0044 仍为 `open / NON_BLOCKING_DOCUMENT_REVIEW`；本批次不表示 ISSUE-0038、ISSUE-0036、实现、部署、生产或项目 workflow 已完成。唯一下一步：项目总负责人在保留本批次追踪的前提下，统一核对 V6 文档-only 目录并执行后续 GitHub 推送。

@@ -49,3 +49,24 @@
 - 明确口径：本 Issue 不阻断当前文档 SERIOUS 项整改，但须在未来触发条件满足后关闭；不等于 ISSUE-0035/0038/0031 关闭、数据库实施、付费动作、Spec 冻结或项目 workflow 完成。
 - 唯一下一步：项目总负责人等待 Document QA 后，安排 Hermes Round 2 复核本 Issue 的非阻塞修订及受影响回归。
 
+## 2026-08-26 V7 ISSUE-0035 范围调整附录 NON_SERIOUS 追加批次
+
+来源：`规划文档/Spec文档/Release_version_Spec/2026-08-26-issue-0035-现有证据与数据库延期后的文档债务关单范围调整-spec-addendum.md`，SHA-256=`54A331358C55C204E8B17A6C8311014882A2D8B54C13490F04D85CB40D0E2CCB`；Hermes R1 SHA=`80ECCD19464464660840E34F687B70A2C1A561FC6A2AE5DC0E428A629DAD6A9E`，R2 SHA=`E926D2A28DAFE171167CD092F4D54CAFB4AEC8139142A1C9FD9765CE66B6033B`，R2 metadata SHA=`AC054351A7E8163934861388DB65FBE030545776674BEB2D8EE17A90E519EE29`；模型=`deepseek-v4-pro`，Round 1/3→2/3，R2=`PASS_WITH_NONBLOCKING_OPEN_ISSUES`、`SERIOUS=0`。本批次复用 ISSUE-0045，不新建 Issue；所有条目均为 `open / non-blocking`，不阻断 ISSUE-0035 当前 doc-only 关单；未来关闭须满足 owner/future trigger 与适用独立复读。
+
+| Canonical 台账项 | 来源 finding（去重映射） | 事实与边界 | owner | future closure trigger |
+| --- | --- | --- | --- | --- |
+| `V7-0035-R1-N-001` | R1 N1 | N-005 对 ISSUE-0032 的引用与当前 Active Open/角色定义不一致，未来门禁指向可能悬空；当前不改变文档 binding。 | 0035 附录 owner/项目总负责人 | 澄清 0032 历史状态或改指有效 tracker，并完成来源复读。 |
+| `V7-0035-R1-N-002` | R1 N2 | §7 验收表缺 N-006 专项行，虽可测试标准有覆盖，表格结构仍不对称。 | 0035 附录 owner | 补 N-006 延期、无迁移/双写/采购口径及独立复读。 |
+| `V7-0035-R1-N-003` | R1 N3 + M1 | A/B/C/D 历史分类语义和 A/B 映射核验门未在附录中完全自包含，N-008 的“待确认值”需保持边界。 | 0035 附录 owner/项目总负责人 | 明确分类定义、逐项映射与原台账来源，完成独立 receipt。 |
+| `V7-0035-R1-O-001` | R1 O1 | ISSUE-0034 的 Deploy 066/安全断言依赖外部 canonical receipt；这是追溯过程项，不是新安全缺陷。 | ISSUE-0041/0034 安全 owner | 完成 0034 canonical 路径/hash/锚点复读，不将其扩写为 0035 专属全部安全证据。 |
+| `V7-0035-R1-O-002` | R1 O2 | ISSUE-0017 的 feedback 入口/集合/POST 断言依赖外部 canonical receipt；仅为来源核验项。 | 0035 owner/ISSUE 管理员 | 完成 0017 canonical receipt，并保留其自身范围边界。 |
+| `V7-0035-R1-O-003` | R1 O3 | N-003/N-006/N-010/N-013 的 N/A+transfer 是保守范围选择，不是遗漏；本次分别转入 0041、0031、0045/既有 tracker。 | 项目总负责人/对应 Issue owner | 各 transfer 目标保留 open 状态、owner/future trigger，并在目标 Issue 完成专属证据后复核。 |
+| `V7-0035-R1-O-004` | R1 O4 | 需检查旧 V7 R1 report、ISSUE-0045 与附录间是否存在循环引用；属于 receipt 流程说明，不伪造成内容缺陷。 | ISSUE 管理员 | 完成路径/hash/引用方向检查并记录无循环结论。 |
+| `V7-0035-R2-NS-001` | R2 NS-1 + OI-1 | `CURRENT_REVIEW_ROUND=1/3` 与已完成 Round 2/3 的读法存在元数据歧义；不改变 R2 无 SERIOUS 结论。 | 0035 附录 owner | 下一快照统一轮次标签或定义“共享计数”语义，并复核 metadata。 |
+| `V7-0035-R2-NS-002` | R2 NS-2 + OI-2 | N-005 悬空 ISSUE-0032 引用仍需状态/归属澄清；与 R1 N1 同根因，合并追踪。 | 0035 附录 owner/项目总负责人 | 明确定义 0032 历史引用或改为有效 tracker 后复核。 |
+| `V7-0035-R2-NS-003` | R2 NS-3 + OI-3 | “唯一写入 owner”与 Document QA SERIOUS 例外路径存在字面张力；仅为角色说明清晰度项。 | 0035 附录 owner/Document QA 流程 owner | 明确常态 owner 与 QA 例外整改边界，不改变职责隔离。 |
+| `V7-0035-R2-O-001` | R2 OI-4 | Round 2 未携带 R1 原文，采用整体复核而非逐条点验；属于审查过程透明度说明，不伪造成 finding。 | 项目总负责人/0035 附录 owner | 后续审查包附 R1 路径/hash 或形成可复读的逐条回溯索引。 |
+
+去重说明：R1 N3 与 M1 合并；R2 NS-1/OI-1、NS-2/OI-2、NS-3/OI-3 分别合并；R2 NS-2/OI-2 与 R1 N1 的同类 0032 悬空引用保留为新周期再确认，不覆盖历史 finding。R1 O1-O4、R2 OI-4 均按过程/receipt 事项登记，不升级为 SERIOUS 或产品缺陷。ISSUE-0035 关闭不使本 Issue 成为 N-010/N-013 的唯一活动 tracker；N-010/N-013 已在 ISSUE-0035 关闭记录中转入本 Issue继续追踪。
+
+当前 ISSUE-0045 仍为 `open / NON_BLOCKING_DOCUMENT_REVIEW`；本批次不修改 ISSUE-0035、ISSUE-0031、ISSUE-0034、Spec/Hermes/QA 或项目 workflow。

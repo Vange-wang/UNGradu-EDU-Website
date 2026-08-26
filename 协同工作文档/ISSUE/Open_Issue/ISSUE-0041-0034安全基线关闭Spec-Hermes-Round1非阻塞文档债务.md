@@ -51,3 +51,9 @@
 - 明确口径：本 Issue 不阻断当前文档 SERIOUS 项整改，但须在未来触发条件满足后关闭；不等于 0034 生产验收、部署、业务验收或项目 workflow 完成。
 - 唯一下一步：项目总负责人等待 Document QA 完成 SERIOUS 整改后，安排 Hermes Round 2 仅复核受影响段落。
 
+## 2026-08-26 V7 ISSUE-0035 N-003 transfer 追加
+
+- 来源：`规划文档/Spec文档/Release_version_Spec/2026-08-26-issue-0035-现有证据与数据库延期后的文档债务关单范围调整-spec-addendum.md`，SHA-256=`54A331358C55C204E8B17A6C8311014882A2D8B54C13490F04D85CB40D0E2CCB`，矩阵 N-003。
+- `V7-0035-N-003`：N-003 在 ISSUE-0035 当前关闭范围中判定为 `N/A_FOR_CURRENT_CLOSURE + TRANSFER_EXISTING_TRACKER`，现转入本仍 open 的 ISSUE-0041 继续追踪；该转移只保留安全负例/告警/停止/回滚与独立复核的未来责任，不等于安全负测完成，也不改变 ISSUE-0035 本身的文档-only 关闭语义。
+- owner：0034 安全 owner / 项目总负责人；future closure trigger：形成与 N-003 对象和接口直接对应的安全负测、跨账号/越权边界、告警停止条件、回滚证据和独立安全复核，并由 ISSUE 管理员复读确认。
+- 当前状态：本项 `open / non-blocking`。本追加不降级 SF-1/SF-2/MAC-1/MAC-2/MAC-6，不修改 ISSUE-0034、ISSUE-0035 或项目 workflow。

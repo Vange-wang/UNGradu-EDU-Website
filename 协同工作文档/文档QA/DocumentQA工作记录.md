@@ -219,3 +219,18 @@
 - 非范围：Round 2 NON_SERIOUS 未处理、未宣称关闭，继续由 ISSUE 管理员登记 ISSUE-0044；未做措辞性返工。
 - 权限边界：未运行 Hermes/npm/测试/build，未执行 Git mutation、部署或平台操作；未创建任务/subagent；未修改 Issue canonical/总表、PM worklog、代码/UI/CONTEXT、中央/角色文件；不自我批准、不宣布 `DOCUMENT_GATE_PASSED`。
 - 当前状态：`QA_DOCUMENT_REWORK_COMPLETE / HERMES_ROUND_3_PENDING`。本段即本批 QA ledger；唯一下一步：回项目总负责人组织 focused Hermes Round 3/3。
+
+## 2026-08-26｜V7 / ISSUE-0035 新附录 Hermes Round 1 S1/S2 严重批次整改
+
+- 执行角色：`019fefa7-c5cf-7e62-9859-5263998dfd77 / DocumentQAv2.3.2 / gpt-5.6-sol / high`；workflow=`WORKFLOW_ACTIVE`；新附录共享计数保持 Round 1/3。
+- 写前输入：canonical `F308B1327427957A08A9E94CF4E95661DA5C4D5687284A1709CED01BECEA8248`（17,887 bytes / 128 lines）；R1 report `80ECCD19464464660840E34F687B70A2C1A561FC6A2AE5DC0E428A629DAD6A9E`（9,858 bytes / 125 lines）；metadata `315CA389CEC68A02490BA349D23363598E696E364820C16CBCE6FBBC2D5A2EB3`；正文 verdict=`REWORK_REQUIRED`，SERIOUS=2，model=`deepseek-v4-pro`，canonical_source_unchanged=true。
+- S1 原位置/问题：原 §3 N-011 仅出现旧 V7 R1 report SHA `578B2ACB…AD4F580`，§1.1 没有完整路径，无法独立回读。新位置/语义：§1.1 `SRC-03` 登记 `规划文档/Spec文档/Release_version_Spec/2026-08-15-issue-0035-联合Spec文档债务关闭-hermes-round-1.md` 及完整 SHA，§3 N-011 明确以 `SRC-02` reviewed source + `SRC-03` 历史 report provenance 共同支撑，且不改写旧周期。
+- S1 选择理由/验证：保留必要 provenance，不删除报告引用；旧报告现场 SHA 与冻结值一致，路径存在且可回读。N-011 仍为 B / `CURRENT_CLOSURE_SUFFICIENT`，仅补足证据链，不升格为实现、生产或 Issue 通过。
+- S2 原位置/问题：原 §7 仅列 0035/0038/0034/0033/0017 五类，遗漏原 V7 Spec、ISSUE-0045、Issue 总表，且管理员 receipt 覆盖范围未定义。新位置/语义：§1.1 全部来源编号为 `SRC-01`～`SRC-09`，§7 固定同一 `SOURCE_RECEIPT_SET`，要求逐项核验 ID、完整路径、SHA、用途锚点、可回读性和无循环引用；任一失败进入 §6 `REVIEW_BLOCKED`。
+- S2 直接受影响回归：§1.1 原 0038 来源文件名按字面不存在；只读定位到同 SHA 的真实 canonical 路径 `协同工作文档/ISSUE/Close_Issue/ISSUE-0038-0036联系方式快速智能审核Spec首轮非阻塞文档审查改进台账.md`，已同步为 `SRC-06`，使管理员 receipt 可执行。该修订是 S2/§6 路径核验的直接必需项，不处理或关闭任何 NON_SERIOUS。
+- 定向验证：九个 `SRC-01`～`SRC-09` 当前均存在且 SHA 与 §1.1 一致；§7 与 §1.1 一一对应，`SRC-02`/`SRC-03`/`SRC-04`/`SRC-05` 的用途边界不可互替；15 项矩阵仍为 11 项 current（A=5、B=6）/4 项 transfer（C=4、D=0），N-003/N-006/N-010/N-013 处置不变，§6 `REVIEW_BLOCKED`/hash/path/循环引用规则保持有效。
+- 输出 canonical：`54A331358C55C204E8B17A6C8311014882A2D8B54C13490F04D85CB40D0E2CCB`；19,107 bytes / 131 lines。
+- 非范围：Hermes R1 N1～N3、M1 与 O1～O4 未整改、未宣称关闭；尤其未改 0032 owner、未为 N-006 新增独立表行、未补 A/B/C 语义。未修改任何 Hermes report/metadata、Issue canonical/总表、产品工作记录、其他 Spec、代码/UI/平台、中央/角色文件。
+- 权限边界：未运行 Hermes/npm/测试/build，未执行 Git mutation、部署或平台操作；未创建任务/subagent；本次 QA 不自我批准，不宣布 `DOCUMENT_GATE_PASSED` 或 ISSUE-0035 关闭。
+- 工作记录采用 prefix-preserving append；追加前 SHA-256=`9759259E0BCA2FF55BFF0FFC39EE3E8AA31C9FA2F7D19E2CE447F8A7AF5E2027`，38,603 bytes / 221 lines。
+- 当前状态：`QA_DOCUMENT_REWORK_COMPLETE / HERMES_ROUND_2_PENDING`。唯一下一步：项目总负责人路由产品经理执行 focused Hermes Round 2/3，仅复核 S1、S2 与受影响回归。

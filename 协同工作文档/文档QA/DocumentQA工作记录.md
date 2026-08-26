@@ -234,3 +234,33 @@
 - 权限边界：未运行 Hermes/npm/测试/build，未执行 Git mutation、部署或平台操作；未创建任务/subagent；本次 QA 不自我批准，不宣布 `DOCUMENT_GATE_PASSED` 或 ISSUE-0035 关闭。
 - 工作记录采用 prefix-preserving append；追加前 SHA-256=`9759259E0BCA2FF55BFF0FFC39EE3E8AA31C9FA2F7D19E2CE447F8A7AF5E2027`，38,603 bytes / 221 lines。
 - 当前状态：`QA_DOCUMENT_REWORK_COMPLETE / HERMES_ROUND_2_PENDING`。唯一下一步：项目总负责人路由产品经理执行 focused Hermes Round 2/3，仅复核 S1、S2 与受影响回归。
+
+## 2026-08-26｜ISSUE-0040 关单附录 Hermes Round 1 S1 严重整改
+
+- 任务/角色：`ISSUE-0040-ADDENDUM-QA-R1-20260826 / DocumentQAv2.3.2 / 019fefa7-c5cf-7e62-9859-5263998dfd77`；workflow=`WORKFLOW_ACTIVE`；共享计数保持 Round 1/3。
+- 写前输入：canonical `6C155F50C7222A716BC55510A1286CD33840EA1069624F2E738B7DE345A8B1C6`（17,083 bytes / 124 lines）；R1 report `E4D50137E607DA5CABD8C79FA24556D42C41B5EF02894EB1B7504AB0A2295C57`（7,374 bytes / 88 lines）；metadata `6FBD2D307245E09C2F64123429C5E311050F4D89B3C7A21B16D4DEB7A8433712`；正文 verdict=`REWORK_REQUIRED`，SERIOUS=1，model=`deepseek-v4-pro`，canonical_source_unchanged=true。
+- S1 原位置/问题：原 §5.2 只写 V7 A=5/B=6 数量并仅枚举 C 四项，§4 N5 却声称 §5 已列出 V7 A/B/C，导致 11 项文档采纳候选与 §7 checklist 无法逐项独立验证。
+- S1 新位置/语义：§5.2 绑定 V7 来源附录完整 path、SHA `54A331358C55C204E8B17A6C8311014882A2D8B54C13490F04D85CB40D0E2CCB` 与 §3 第55–73行；逐项枚举 A={N-001,N-007,N-008,N-009,N-014}、B={N-002,N-004,N-005,N-011,N-012,N-015}、C={N-003,N-006,N-010,N-013}、D=0。§4 N5 同步为 §5.1/§5.2 均逐项列举并绑定来源，§7 第5项形成可执行的逐项复读合同。
+- 选择理由：采用“完整枚举 + 精确冻结来源锚点”双重绑定，避免只依赖数量断言；不引入新分类、不转换 V6/V7 字母语义、不把 C 项或 N/A 写成完成。
+- 定向验证：V7 仍为 A=5/B=6/C=4/D=0，11 current/4 transfer；C 仍仅 N-003/N-006/N-010/N-013，N-006 仍指向 ISSUE-0031。§5.3 源分类隔离全文未变；§2 六份来源/hash bindings 全文未变；§7 仅同步第5项的 S1 可执行核验。
+- 审查状态同步：Round 1/3 已完成且共享计数保持 1/3，正文 `REWORK_REQUIRED / SERIOUS=1` 如实保留；唯一下一步更新为原产品经理执行 focused Hermes Round 2/3。本次 QA 不运行 Hermes、不自我批准、不宣布文档门通过。
+- 输出 canonical：`F7FA5335DAEB097A60C766B915EFA7F760334D1306AF7FF2826024D1DC33E971`；17,885 bytes / 124 lines。
+- 非范围：R1 NON_SERIOUS N1～N4 未处理、未宣称关闭；§6 表头、V5 addendum、N-xxx 命名空间和用户确认门均未整改。未修改其他 Spec、report/metadata、Issue canonical/总表、PM worklog、代码/UI/平台、中央/角色文件。
+- 权限边界：未运行 npm/测试/build/Hermes，未执行 Git mutation、部署、数据库/付费或平台操作；未创建任务/subagent。
+- 工作记录采用 prefix-preserving append；追加前 SHA-256=`3CBECA9DB0124BA97A9815A04EF334E6941E0754D9A99813CACB88ADB8888C18`，42,161 bytes / 236 lines。
+- 当前状态：`QA_DOCUMENT_REWORK_COMPLETE / HERMES_ROUND_2_PENDING`。唯一下一步：项目总负责人路由原产品经理执行 focused Hermes Round 2/3，仅复核 S1 与受影响回归。
+
+## 2026-08-26｜ISSUE-0040 关单附录 Hermes Round 2 S-01 最小整改
+
+- 执行角色：`DocumentQAv2.3.2 / 019fefa7-c5cf-7e62-9859-5263998dfd77`；workflow=`WORKFLOW_ACTIVE`；共享计数保持 Round 2/3，下一轮为最终 Round 3/3。
+- 写前输入：canonical `F7FA5335DAEB097A60C766B915EFA7F760334D1306AF7FF2826024D1DC33E971`（17,885 bytes / 124 lines）；R2 report `51E45869821D20B9595A9180554C0C20ABB38A4F6BA131CAB12C5A0CD9D8F6F1`（8,862 bytes / 103 lines）；metadata `73DCD0DF395956DC98E71D085E7FCB72F0A3ECE75AD2291F2ADF59DB4146A696`；`deepseek-v4-pro / 2/3 / canonical_source_unchanged=true / exit=0`，正文 verdict=`REWORK_REQUIRED`，SERIOUS=1。
+- S-01 原位置/问题：§2 D-04 仅保留 V5 范围调整附录 SHA，缺完整 path/filename/date；§6 V5 行只列 close receipt，导致 §4 N6 所称“关闭 Spec/后续 addendum 来源索引”与实际内容不一致，M1 checklist #2/#6 无法对 V5 独立执行。
+- S-01 新位置/语义：§2 D-04 新增 `规划文档/Spec文档/Release_version_Spec/2026-08-25-issue-0036-人工审核延期与暂缓关闭范围调整-spec-addendum.md`、完整 SHA `CC7C520B549D2F8449119A533C455D725331957B2F4EA5AE321F2F317110DA2A`，并使用真实章节锚点 §1.1、§2.1–§2.2、§3–§5.3，不虚构行号；§6 V5 行同步加入同一 addendum path+SHA，与 ISSUE-0036 close receipt 一一对应。
+- 选择理由：S-01 与 R1 NON_SERIOUS N2 有重叠，但本轮仅因 R2 将缺口绑定到 canonical 自设 M1/N6 可复读关闭条件而作最小补链；不借此升级或处理其他 NON_SERIOUS。
+- 定向验证：M1 #2 现可从 D-04 逐项复读 V5 addendum→ISSUE-0036 close receipt 链，M1 #6 可从 §6 V5 行取得 addendum 来源入口；V5 addendum 现场 SHA/bytes/lines=`CC7C520B…110DA2A / 13,260 / 121`。§2 D-01/D-02/D-03/D-05/D-06 行未变。
+- 受影响回归：V7 A=5/B=6/C=4/D=0、11 current/4 transfer、N-006→ISSUE-0031 未漂移；§5 全段（含 §5.3 分类隔离）和 §7 checklist 全段未修改。
+- 输出 canonical：`8AC485F414EF502FBC77E7B56DA867A1E4109A87C0BF5740BBFB5B90525501CF`；18,341 bytes / 124 lines。
+- 非范围：R2 NS-01～NS-06 均未处理、未宣称关闭；未修 M4 指针、V6 anchor、V7 owner、标签、§9 状态或命名空间。未修改其他 Spec、R1/R2 report/metadata、Issue canonical/总表、PM 记录、代码/UI/平台/中央/角色文件。
+- 权限边界：未运行 Hermes/npm/测试/build，未执行 Git mutation、部署、数据库/付费或平台操作；未创建任务/subagent；本次 QA 不自我批准，不宣布文档门通过。
+- 工作记录采用 prefix-preserving append；追加前 SHA-256=`40A29FCE5AA7B6AA3D88C2898A554662906103C1AE6E58A5120206FB6E5FF6FA`，45,059 bytes / 251 lines。
+- 当前状态：`QA_DOCUMENT_REWORK_COMPLETE / HERMES_ROUND_3_PENDING`。唯一下一步：项目总负责人路由原产品经理执行最后 focused Hermes Round 3/3，仅复核 S-01 与受影响回归。

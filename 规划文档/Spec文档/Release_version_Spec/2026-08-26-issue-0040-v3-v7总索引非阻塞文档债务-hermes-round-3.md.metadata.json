@@ -1,0 +1,16 @@
+{
+  "source": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-26-issue-0040-v3-v7总索引非阻塞文档债务关单-spec-addendum.md",
+  "source_sha256": "8AC485F414EF502FBC77E7B56DA867A1E4109A87C0BF5740BBFB5B90525501CF",
+  "report": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-26-issue-0040-v3-v7总索引非阻塞文档债务-hermes-round-3.md",
+  "report_sha256": "C30503EBCC7CA19A82C540B796AFE8A672CE7E32B38EBE76599650981D16A757",
+  "round": "3/3",
+  "model": "deepseek-v4-pro",
+  "hermes_path": "D:\\miniconda\\Scripts\\hermes.exe",
+  "hermes_version": "Hermes Agent v0.18.2 (2026.7.7.2)",
+  "default_model": "deepseek-v4-flash",
+  "default_model_changed": false,
+  "exit_code": 0,
+  "started_at": "2026-08-26T21:53:45.0189884+08:00",
+  "completed_at": "2026-08-26T22:01:12.8380096+08:00",
+  "canonical_source_unchanged": true
+}

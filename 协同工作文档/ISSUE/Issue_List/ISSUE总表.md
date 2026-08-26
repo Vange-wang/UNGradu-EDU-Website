@@ -1,6 +1,6 @@
 # ISSUE 总表
 
-更新日期：2026-08-25
+更新日期：2026-08-26
 
 维护负责人：ISSUE 管理员 Agent
 
@@ -8,12 +8,11 @@
 
 ## Open Issue
 
-当前 Active Open 精确为 8 项；已关闭与已撤销 canonical 不计入本区。
+当前 Active Open 精确为 7 项；已关闭与已撤销 canonical 不计入本区。
 
 | id | title | type | status | priority | source | owner_agent | related_files | 关闭条件摘要 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `ISSUE-0031` | SQL 数据库迁移选型与实施 | future improvement / data persistence planning | open / USER_CONFIRMATION_PENDING | P2 | 阶段变更 Spec Hermes R3/3 `PASS_WITH_NONBLOCKING_OPEN_ISSUES`（0 SERIOUS/5 NON_SERIOUS）；业务方明确数据库延期、预算0、不采购/迁移/双写；未来独立数据库周期 | 产品经理 / 业务方；无当前开发实现角色 | `Open_Issue/ISSUE-0031-SQL数据库迁移选型与实施.md`；最终 Spec snapshot `DBB40E25...8D5F14A`；QA ledger `4119E877...480CC51`；R3 `E62B4CBC...3FA9F5D` | 保持 `open / USER_CONFIRMATION_PENDING`；0033 已关闭、上游门禁解除；本轮不实施，未来独立周期重新确认 D4 选型/量化与授权。 |
-| ISSUE-0040 | V3-V7 索引与分支契约 Hermes Round 1 非阻塞文档债务 | documentation / non-blocking review improvement | open / NON_BLOCKING_DOCUMENT_REVIEW | P3 | V3-V7 总索引 Hermes Round 1；6 项 NON_SERIOUS、M1/M4 及非严重口径项登记；SERIOUS S1/S2 交 Document QA | 项目总负责人 / 对应 V3-V7 Spec owner；ISSUE 管理员维护台账 | Open_Issue/ISSUE-0040-V3-V7索引与分支契约Hermes-Round1非阻塞文档债务.md；report SHA FC01EAA2480D85A167F18970047F7D63E48CD937F138A2CA84E464C0F41FF766 | 保持 open；N1-N6、M1、M4、C2、C3 未来授权修订/保守决策并完成适用复核后关闭；不改变 0031/0032/0034/0035/0036/0038 或项目 workflow。 |
 | ISSUE-0041 | 0034 安全基线关闭 Spec Hermes Round 1 非阻塞文档债务 | documentation / non-blocking review improvement | open / NON_BLOCKING_DOCUMENT_REVIEW | P3 | ISSUE-0034 关闭 Spec Hermes Round 1；NF1-NF7 与直接缺失验收项登记；SF1/SF2 交 Document QA | ISSUE-0034 原安全实现 owner / 项目总负责人；ISSUE 管理员维护台账 | Open_Issue/ISSUE-0041-0034安全基线关闭Spec-Hermes-Round1非阻塞文档债务.md；report SHA F90F690E52C149918A8CBABEDE1888AAA456EDF87D9A2C24E6A1F0ECC6748EB1 | 保持 open；NF1-NF7、MAC3-MAC5 未来形成可复读文档/证据并经适用复核后关闭；不等于 0034 生产验收或部署通过。 |
 | ISSUE-0042 | 0032 邮箱人机验证关闭 Spec Hermes Round 1/2 非阻塞文档债务 | documentation / non-blocking review improvement | open / NON_BLOCKING_DOCUMENT_REVIEW | P3 | ISSUE-0032 关闭 Spec Hermes Round 1；N1-N4、C2 与 MAC1/MAC3/MAC4/MAC5 登记；2026-08-19 参数回执 Hermes Round 2 `PASS_WITH_NONBLOCKING_OPEN_ISSUES`，N1-N9 追加，SERIOUS=0，S1/S2/S3 closed | ISSUE-0032 原实现 owner / 项目总负责人、产品与业务 owner；ISSUE 管理员维护台账 | Open_Issue/ISSUE-0042-0032邮箱人机验证关闭Spec-Hermes-Round1非阻塞文档债务.md；Round 2 report SHA `7F9D66B2027658797FC118596082EBFFB867665CF5FC5C6EC7D09FD21C63A768`；metadata SHA `AA029D71F8F9C9EBF5C7E4EAD24574023153B41F304526D68A9EEAB7018AFAFB`；candidate SHA `52358D5F7BC7BE75819CA6CBBFDA9D8AAD64C98CF8863D91A4A197E75F557ECF`；QA ledger SHA `C136D9B413E1DA12D13AF84DD6B408565A8FE92F5E469EB4E7DCF24C8C6F9185` | 保持 `open / NON_BLOCKING_DOCUMENT_REVIEW`；Round 1 原台账不变，Round 2 N1-N9 未来完成参数、语义、窗口、cleanup、method、metadata 或独立 hash/receipt 验收后关闭；不授权实现、真实 widget/Secret/provider-specific 集成、生产部署或项目完成。 |
 | ISSUE-0043 | 0036 联系方式审核关闭 Spec Hermes Round 1 非阻塞文档债务 | documentation / non-blocking review improvement | open / NON_BLOCKING_DOCUMENT_REVIEW | P3 | ISSUE-0036 关闭 Spec Hermes Round 1；N1-N5 与 MAC1/MAC2/MAC5 登记；S1-S3 保持 Document QA | ISSUE-0036 原实现 owner / 产品与业务 owner / 项目总负责人；ISSUE 管理员维护台账 | Open_Issue/ISSUE-0043-0036联系方式审核关闭Spec-Hermes-Round1非阻塞文档债务.md；report SHA 26DB77C8D9EBEB7B5BE0DFDE62F8950184E7EA7566E7BBF82493633CDD82C536 | 保持 open；N1-N5、MAC1/MAC2/MAC5 未来完成文档修订/保守决策与适用复核后关闭；V7 无 SERIOUS 不等于 0036 可关闭。 |
@@ -47,7 +46,13 @@
 - 15 项中 11 项为 `CURRENT_CLOSURE_SUFFICIENT` 的文档 binding；N-003→ISSUE-0041、N-006→ISSUE-0031、N-010/N-013→ISSUE-0045 均为 `N/A_FOR_CURRENT_CLOSURE + TRANSFER_EXISTING_TRACKER`，不写成完成。ISSUE-0045 已追加新附录周期 NON_SERIOUS。
 - 关单后 Active Open 精确为 8 项：`ISSUE-0031/0040/0041/0042/0043/0044/0045/0046`；项目总 workflow 仍为 `WORKFLOW_ACTIVE`。
 
-### 2026-08-10 非金钱持续推进授权边界
+  ### 2026-08-26 ISSUE-0040 保守 doc-only 关单登记
+  - `ISSUE-0040` 已从 `Open_Issue` 迁移至 `Close_Issue`，状态为 `closed / WORKFLOW_COMPLETE`（仅 ISSUE-0040 自身）。
+  - 关闭依据为最终附录 SHA `8AC485F414EF502FBC77E7B56DA867A1E4109A87C0BF5740BBFB5B90525501CF`、Hermes R3 SHA `C30503EBCC7CA19A82C540B796AFE8A672CE7E32B38EBE76599650981D16A757` / metadata `081378F43C06107B183739DD91F29AFD240401E26AB43B6DD16ACEBFE7BB9B88`、QA ledger SHA `B003A837868615A76ACD2551803A7B18E3F78E8EF26C76DA3FEAAD188AE14A9F`，以及用户 doc-only 确认与管理员独立复读。
+  - N1-N6、M1、M4、C2、C3 已逐项绑定；R1/R2/R3 NON_SERIOUS/OI 去重记录在 ISSUE-0040 Close canonical 中，均为未来索引实质修订时复核的非阻塞残余。V6/V7 的实现、部署、生产、branch/base 对本次文档范围为 N/A，不写成通过。
+  - 关单后 Active Open 精确为 7 项：`ISSUE-0031/0041/0042/0043/0044/0045/0046`；项目总 workflow 仍为 `WORKFLOW_ACTIVE`。ISSUE-0031、数据库、支付和全部付费动作继续延期。
+
+  ### 2026-08-10 非金钱持续推进授权边界
 
 - 用户授权不影响 sandbox/System OS 的非金钱 Issue、代码、测试、Git、免费配置、部署与受控验收持续推进；付费采购、付费服务及 ISSUE-0031 数据库迁移继续延期。
 - `ISSUE-0032` provider-neutral 本地/集成、`ISSUE-0034` 非数据库安全切片可按既有门禁推进；`ISSUE-0036` 已按人工审核延期、暂缓需求/范围调整口径关闭，未来若恢复必须重开或建立继任 Issue；不因此改写生产证据或项目 workflow。
@@ -67,6 +72,7 @@
 | id | title | type | status | priority | source | owner_agent | related_files | 关闭依据 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `ISSUE-0036` | 家长需求与老师资料的联系方式快速智能审核 | future feature / content safety review planning | closed / WORKFLOW_COMPLETE | P1 | 2026-08-25 人工审核延期、暂缓需求/范围调整后适用关单；addendum Hermes R2 `PASS_WITH_NONBLOCKING_OPEN_ISSUES` / SERIOUS=0；bounded 产品验收 `PRODUCT_ACCEPTANCE_PASS`，生产 flag-on 仍 blocked | ISSUE 管理员维护关闭 canonical；原实现 owner仅保留未来恢复责任；生产人工 owner/供应商/DPA/production key 未具备 | `Close_Issue/ISSUE-0036-家长需求与老师资料的联系方式快速智能审核.md`；addendum `CC7C520B...110DA2A`；R2 `61AC1D36...5A8AE6` / metadata `2DDEE947...47547`；产品验收 `FA56F5D1...392789`；V5 commit `f8ad5d00...23fb2f2` | 仅按范围调整关闭暂缓需求，不表示生产智能/人工审核或 flag-on 完成；未来恢复须重开 ISSUE-0036 或建立继任 Issue，重新完成 Spec、实现、复核、部署/生产和业务验收。 |
+| `ISSUE-0040` | V3-V7 索引与分支契约 Hermes Round 1 非阻塞文档债务 | documentation / non-blocking review improvement | closed / WORKFLOW_COMPLETE | P3 | 2026-08-26 保守 doc-only 关单；最终附录 Hermes R3 `PASS_WITH_NONBLOCKING_OPEN_ISSUES` / SERIOUS=0；R1/R2 SERIOUS 已由 Document QA 整改 | ISSUE 管理员维护关闭 canonical；项目总负责人/对应 V3-V7 Spec owner 负责未来索引实质修订 | `Close_Issue/ISSUE-0040-V3-V7索引与分支契约Hermes-Round1非阻塞文档债务.md`；附录 `8AC485F4...5501CF`；R3 `C30503EB...16A757` / metadata `081378F4...B9B88`；QA `B003A837...14A9F` | 仅关闭当前批准的索引/契约文档 binding；R1-R3 NON_SERIOUS/OI 为非阻塞残余，不表示 V3-V7 功能、生产、数据库、部署、Git provenance 或项目 workflow 完成；未来实质修订重新复核。 |
 | `ISSUE-0035` | 联合 Spec 非阻塞文档审查改进台账 | documentation / non-blocking review improvement | closed / WORKFLOW_COMPLETE | P3 | 2026-08-26 V7 现有证据与数据库延期后的 doc-only 范围调整；用户确认已通过；SOURCE_RECEIPT_SET=9/9；Hermes R2 `PASS_WITH_NONBLOCKING_OPEN_ISSUES` / SERIOUS=0 | ISSUE 管理员维护关闭 canonical；N-003/006/010/013 转入 ISSUE-0041/0031/0045 继续追踪 | `Close_Issue/ISSUE-0035-联合Spec首轮非阻塞文档审查改进台账.md`；addendum `54A33135...0E2CCB`；R2 `E926D2A2...B6033B` / metadata `AC054351...19EE29`；SRC receipt 与工作记录 | 仅关闭当前批准的文档 binding 范围；不表示四项转移完成、数据库/安全生产/补偿事务/risk_feedback 合同、代码、部署或项目 workflow 完成；未来由目标 Issue/继任 Issue 重新门禁。 |
 | `ISSUE-0038` | 0036 联系方式快速智能审核 Spec 首轮非阻塞文档审查改进台账 | documentation / non-blocking review improvement | closed / WORKFLOW_COMPLETE | P3 | 2026-08-25 V6 文档-only 范围调整后适用关单；用户确认已通过；addendum Hermes R3 `PASS_WITH_NONBLOCKING_OPEN_ISSUES` / SERIOUS=0；V6 branch/base/deploy 对当前纯文档范围 N/A | ISSUE 管理员维护关闭 canonical；ISSUE-0044 继续维护后续 NON_SERIOUS | `Close_Issue/ISSUE-0038-0036联系方式快速智能审核Spec首轮非阻塞文档审查改进台账.md`；addendum `563219A5...46A9FE`；R3 `5842A3B8...39901` / metadata `EA5CEF26...6159A`；QA ledger `9759259E...5E2027` | 仅关闭当前批准范围的文档债务，不表示 ISSUE-0036 AI/人工审核、provider、flag-on、生产观察、部署或回滚完成；未来恢复须随 ISSUE-0036 重开/继任 Issue 重新门禁。 |
 | `ISSUE-0032` | 邮箱验证码发送前人机验证服务端强制校验 | security / abuse prevention / authentication hardening | closed / WORKFLOW_COMPLETE | P1 | 2026-08-23 ISSUE 管理员独立关单复核；exact commit `3c69840c6d1722c0438c5d9342c4d68efcecd6d0`、独立技术复核 `TECH_REVIEW_PASS`、Deploy 069、生产独立复核 `PRODUCTION_TECH_ACCEPTANCE_BLOCKED_WITH_ACCEPTED_BUSINESS_RISK`、产品/业务 `PRODUCT_BUSINESS_ACCEPTANCE_PASS_WITH_ACCEPTED_RESIDUAL_RISKS` | 原实现 owner / 独立技术复核 / 生产执行侧 / 产品与业务 / 项目总负责人 / ISSUE 管理员 | `协同工作文档/ISSUE/Close_Issue/ISSUE-0032-邮箱验证码发送前人机验证服务端强制校验.md`；产品验收 SHA `48BF86BD97A8CD37D86DC7DF84A3BC7EF75350D9DE0C77DE2DD631578DE64105`；生产独立复核 SHA `4026E98D17AF2FBF0D020A96E802E2531D6085828E76684A026C65BE91FA4732`；package SHA `56D8C7060A10F996A58DC9F30CCE767F07537B9EF90AB6F69DDB59D098E30EFC`；Hermes R2 SHA `B83E042B9032498812A1A5FBB04CD735EA88B58437FEA51A4A1630685AA937A0`；QA SHA `F77141594E9B420E6CD8C436C0D30804B1063664EC132D91480B8BEB10A4290C` | ISSUE-0032 自身关闭；生产技术 verdict 保持 `PRODUCTION_TECH_ACCEPTANCE_BLOCKED`，P0/P1/P2=`0/2/0`；严格连续 24 小时 Scheme A 与 Deploy 069 source-binding/rollback receipt 缺口已由业务方接受并登记为残余风险，绝不改写为技术 PASS 或真实回滚已演练；522 另列为独立源站可用性风险；ISSUE-0042/0046 保持 open；项目总 workflow 仍 `WORKFLOW_ACTIVE`。 |

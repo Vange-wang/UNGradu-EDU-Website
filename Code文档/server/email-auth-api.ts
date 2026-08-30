@@ -26,7 +26,8 @@ import {
 } from "@/server/security/email-challenge";
 import {
   createEmailSendRateLimitKeys,
-  createLayeredRateLimiter
+  createLayeredRateLimiter,
+  normalizeTrustedProxyIp
 } from "@/server/security/rate-limit";
 import { resolveTrustedRequestKeys } from "@/server/security/request-guard";
 import { normalizeOriginVerificationMode } from "@/server/origin-request-verification";
@@ -143,30 +144,39 @@ export function createEmailAuthApiHandlers({
           503
         );
       }
-      const serverDeviceKey = [
-        request.headers.get("user-agent")?.trim().slice(0, 256),
-        request.headers.get("accept-language")?.trim().slice(0, 128)
-      ].filter(Boolean).join("|") || "unknown-device";
       let limited: Awaited<ReturnType<typeof rateLimiter.check>>;
       try {
         const production = env.APP_ENV === "production" || env.NODE_ENV === "production";
-        const trustedProxyIp = actionKey === "email-send-code"
-          ? resolveTrustedClientIp?.(request)?.trim().slice(0, 64)
-          : request.headers.get("cf-connecting-ip")?.trim().slice(0, 64) ||
-            env.TRUSTED_PROXY_IP;
+        const serverDeviceKey = [
+          request.headers.get("user-agent")?.trim().slice(0, 256),
+          request.headers.get("accept-language")?.trim().slice(0, 128)
+        ].filter(Boolean).join("|") || "unknown-device";
+        let trustedProxyIp: string | undefined;
+        if (actionKey === "email-send-code") {
+          try {
+            trustedProxyIp = normalizeTrustedProxyIp(resolveTrustedClientIp?.(request));
+          } catch {
+            trustedProxyIp = undefined;
+          }
+        } else {
+          trustedProxyIp = normalizeTrustedProxyIp(
+            request.headers.get("cf-connecting-ip") ?? env.TRUSTED_PROXY_IP
+          );
+        }
         const trustedKeys = resolveTrustedRequestKeys({
           serverProxyIp: trustedProxyIp,
           sessionUserId
         });
         const keys = actionKey === "email-send-code"
           ? createEmailSendRateLimitKeys({
+              acceptLanguage: request.headers.get("accept-language") ?? "",
               email,
               environmentRef: env.APP_ENV ?? env.NODE_ENV ?? "local",
               keySecret: env.AUTH_RATE_LIMIT_KEY_SECRET?.trim() ||
                 (production ? "" : "local-synthetic-rate-limit-key"),
               keyVersion: "v1",
               trustedProxyIp,
-              userAgent: serverDeviceKey
+              userAgent: request.headers.get("user-agent") ?? ""
             })
           : {
               accountKey: hashEmail(email.trim().toLowerCase()),
@@ -292,6 +302,22 @@ export function createEmailAuthApiHandlers({
 
   return {
     async POST_SEND_CODE(request: Request) {
+      if (request.method.toUpperCase() !== "POST") {
+        return Response.json(
+          {
+            errors: { request: "请求方法不受支持" },
+            ok: false,
+            value: null
+          },
+          {
+            headers: {
+              Allow: "POST",
+              "Cache-Control": "no-store"
+            },
+            status: 405
+          }
+        );
+      }
       const production = env.APP_ENV === "production" || env.NODE_ENV === "production";
       const originVerificationMode = normalizeOriginVerificationMode(env.ORIGIN_VERIFY_MODE, {
         appEnv: env.APP_ENV,

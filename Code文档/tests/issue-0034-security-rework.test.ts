@@ -948,7 +948,7 @@ describe("ISSUE-0034 S1 independent rework contract", () => {
     expect([...documents.keys()].every((id) => /^[A-Za-z0-9_-]{43}$/.test(id))).toBe(true);
     expect(JSON.stringify([...documents.entries()])).not.toContain("student@example.com");
     expect(JSON.stringify([...documents.entries()])).not.toContain("challenge");
-    expect(writes.every(({ value }) => value.expiresAt instanceof Date)).toBe(true);
+    expect(writes.every(({ value }) => value.expires_at instanceof Date)).toBe(true);
 
     nowMs += 60_001;
     await expect(limiter.check(input)).resolves.toEqual({ ok: true });
@@ -1029,7 +1029,7 @@ describe("ISSUE-0034 S1 independent rework contract", () => {
     expect(JSON.stringify([...documents.entries()])).not.toContain(
       "synthetic-provider-token"
     );
-    expect(writes[0]?.value.expiresAt).toBeInstanceOf(Date);
+    expect(writes[0]?.value.expires_at).toBeInstanceOf(Date);
 
     nowMs += 300_001;
     await expect(createGuard().consume({

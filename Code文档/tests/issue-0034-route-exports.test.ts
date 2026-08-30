@@ -438,7 +438,7 @@ describe("ISSUE-0034 actual Next route exports", () => {
     const replayDocument = state.documents.get(
       `auth_challenge_replays:${replayWrites[0]?.id}`
     );
-    expect(replayDocument?.expiresAt).toBeInstanceOf(Date);
+    expect(replayDocument?.expires_at).toBeInstanceOf(Date);
     expect(JSON.stringify(replayDocument)).not.toContain("XXXX.DUMMY.TOKEN.XXXX");
 
     const { GET: GET_SESSION } = await import("@/app/api/auth/session/route");

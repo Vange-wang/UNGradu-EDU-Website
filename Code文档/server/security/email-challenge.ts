@@ -40,18 +40,19 @@ export type EmailChallengeVerifier = {
 
 type PersistentChallengeReplayDocument = {
   action: string;
-  cleanupAfter: Date;
-  consumedAt: Date;
-  environmentRef: string;
-  expiresAt: Date;
-  keyVersion: string;
-  schemaVersion: 1;
+  cleanup_after: Date;
+  consumed_at: Date;
+  environment_ref: string;
+  expires_at: Date;
+  key_version: string;
+  schema_version: 1;
 };
 
 type PersistentChallengeReplayTransaction = {
   collection: (name: string) => {
     doc: (id: string) => {
       get: () => Promise<{ data?: unknown[] | Record<string, unknown> }>;
+      remove?: () => Promise<unknown>;
       set: (value: PersistentChallengeReplayDocument) => Promise<unknown>;
     };
   };
@@ -64,6 +65,13 @@ export type PersistentChallengeReplayDatabase = {
 };
 
 export type EmailChallengeReplayGuard = {
+  cleanup?: (input: {
+    action: "email_send_code" | "password_login";
+    token: string;
+  }) => Promise<
+    { ok: true; removed: boolean } |
+    { ok: false; reason: "unavailable" }
+  >;
   consume: (input: {
     action: "email_send_code" | "password_login";
     expiresAt: Date;
@@ -108,6 +116,27 @@ function readReplayDocument(data: unknown[] | Record<string, unknown> | undefine
     : undefined;
 }
 
+function readReplayDate(
+  document: Record<string, unknown> | undefined,
+  snakeCaseKey: string,
+  legacyKey: string
+) {
+  const value = document?.[snakeCaseKey] ?? document?.[legacyKey];
+  const timestamp = value instanceof Date
+    ? value.getTime()
+    : new Date(String(value ?? "")).getTime();
+  return Number.isFinite(timestamp) ? timestamp : undefined;
+}
+
+function unwrapTransactionResult<T>(transactionResult: T | { result?: T }) {
+  return transactionResult &&
+    typeof transactionResult === "object" &&
+    "result" in transactionResult &&
+    transactionResult.result
+      ? transactionResult.result
+      : transactionResult as T;
+}
+
 export function createCloudBasePersistentEmailChallengeReplayGuard({
   collectionName,
   database,
@@ -134,8 +163,63 @@ export function createCloudBasePersistentEmailChallengeReplayGuard({
     /^[A-Za-z0-9_-]{1,16}$/.test(normalizedKeyVersion) &&
     /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(normalizedCollectionName)
   );
+  const createDocumentId = (
+    action: "email_send_code" | "password_login",
+    token: string
+  ) => createHmac("sha256", normalizedKeySecret)
+    .update(`challenge\0${normalizedKeyVersion}\0${normalizedEnvironmentRef}\0${action}\0${token}`)
+    .digest("base64url");
 
   return {
+    async cleanup({ action, token }) {
+      const normalizedToken = token.trim();
+      if (!configured || !database || !normalizedToken) {
+        return { ok: false as const, reason: "unavailable" as const };
+      }
+      const documentId = createDocumentId(action, normalizedToken);
+      try {
+        const transactionResult = await database.runTransaction(async (transaction) => {
+          const doc = transaction.collection(normalizedCollectionName).doc(documentId);
+          const stored = readReplayDocument((await doc.get()).data);
+          if (!stored) return { ok: true as const, removed: false };
+          const cleanupAfterMs = readReplayDate(stored, "cleanup_after", "cleanupAfter");
+          const consumedAtMs = readReplayDate(stored, "consumed_at", "consumedAt");
+          const expiresAtMs = readReplayDate(stored, "expires_at", "expiresAt");
+          const storedEnvironmentRef = stored.environment_ref ?? stored.environmentRef;
+          const storedKeyVersion = stored.key_version ?? stored.keyVersion;
+          const storedSchemaVersion = stored.schema_version ?? stored.schemaVersion;
+          if (
+            stored.action !== action ||
+            storedEnvironmentRef !== normalizedEnvironmentRef ||
+            storedKeyVersion !== normalizedKeyVersion ||
+            Number(storedSchemaVersion) !== 1 ||
+            cleanupAfterMs === undefined ||
+            consumedAtMs === undefined ||
+            expiresAtMs === undefined ||
+            consumedAtMs > expiresAtMs ||
+            cleanupAfterMs !== expiresAtMs + 60 * 60_000
+          ) {
+            return { ok: false as const, reason: "unavailable" as const };
+          }
+          if (now() < cleanupAfterMs) {
+            return { ok: true as const, removed: false };
+          }
+          if (!doc.remove) {
+            return { ok: false as const, reason: "unavailable" as const };
+          }
+          await doc.remove();
+          return { ok: true as const, removed: true };
+        });
+        const result = unwrapTransactionResult(transactionResult);
+        return result && typeof result === "object" && "ok" in result
+          ? result as
+              | { ok: true; removed: boolean }
+              | { ok: false; reason: "unavailable" }
+          : { ok: false as const, reason: "unavailable" as const };
+      } catch {
+        return { ok: false as const, reason: "unavailable" as const };
+      }
+    },
     async consume({ action, expiresAt, token }) {
       const normalizedToken = token.trim();
       const expiresAtMs = expiresAt.getTime();
@@ -150,41 +234,31 @@ export function createCloudBasePersistentEmailChallengeReplayGuard({
         return { ok: false, reason: "unavailable" };
       }
 
-      const documentId = createHmac("sha256", normalizedKeySecret)
-        .update(`challenge\0${normalizedKeyVersion}\0${normalizedEnvironmentRef}\0${action}\0${normalizedToken}`)
-        .digest("base64url");
+      const documentId = createDocumentId(action, normalizedToken);
       try {
         const transactionResult = await database.runTransaction(async (transaction) => {
           const doc = transaction.collection(normalizedCollectionName).doc(documentId);
           const stored = readReplayDocument((await doc.get()).data);
-          const storedExpiresAt = stored?.expiresAt instanceof Date
-            ? stored.expiresAt.getTime()
-            : new Date(String(stored?.expiresAt ?? "")).getTime();
+          const storedExpiresAt = readReplayDate(stored, "expires_at", "expiresAt");
           if (
             stored &&
             (action === "email_send_code" ||
-              (Number.isFinite(storedExpiresAt) && storedExpiresAt > current))
+              (storedExpiresAt !== undefined && storedExpiresAt > current))
           ) {
             return { ok: false as const, reason: "replay" as const };
           }
           await doc.set({
             action,
-            cleanupAfter: new Date(expiresAtMs + 60 * 60_000),
-            consumedAt: new Date(current),
-            environmentRef: normalizedEnvironmentRef,
-            expiresAt,
-            keyVersion: normalizedKeyVersion,
-            schemaVersion: 1
+            cleanup_after: new Date(expiresAtMs + 60 * 60_000),
+            consumed_at: new Date(current),
+            environment_ref: normalizedEnvironmentRef,
+            expires_at: expiresAt,
+            key_version: normalizedKeyVersion,
+            schema_version: 1
           });
           return { ok: true as const };
         });
-        const result =
-          transactionResult &&
-          typeof transactionResult === "object" &&
-          "result" in transactionResult &&
-          transactionResult.result
-            ? transactionResult.result
-            : transactionResult;
+        const result = unwrapTransactionResult(transactionResult);
         return result && typeof result === "object" && "ok" in result
           ? result as { ok: true } | { ok: false; reason: "replay" | "unavailable" }
           : { ok: false as const, reason: "unavailable" as const };

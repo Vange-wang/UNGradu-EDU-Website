@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto";
+import { isIP } from "node:net";
 
 export type RateLimitWindow = {
   limit: number;
@@ -22,12 +23,12 @@ export type ExternalRateLimiter = {
 export type RateLimitResult = { ok: true } | { ok: false; reason: string };
 
 type PersistentRateLimitDocument = {
-  cleanupAfter: Date;
+  cleanup_after: Date;
   count: number;
-  expiresAt: Date;
+  expires_at: Date;
   layer: string;
-  updatedAt: Date;
-  windowStartedAtMs: number;
+  updated_at: Date;
+  window_started_at_ms: number;
 };
 
 type PersistentRateLimitTransaction = {
@@ -53,7 +54,7 @@ const DEFAULT_CONFIG: LayeredRateLimitConfig = {
   session: { limit: 5, windowMs: 15 * 60_000 }
 };
 
-type RateLimitInput = {
+export type RateLimitInput = {
   accountKey: string;
   actionKey: string;
   deviceKey: string;
@@ -62,6 +63,7 @@ type RateLimitInput = {
 };
 
 export function createEmailSendRateLimitKeys({
+  acceptLanguage,
   email,
   environmentRef,
   keySecret,
@@ -69,6 +71,7 @@ export function createEmailSendRateLimitKeys({
   trustedProxyIp,
   userAgent
 }: {
+  acceptLanguage?: string;
   email: string;
   environmentRef: string;
   keySecret: string;
@@ -92,11 +95,37 @@ export function createEmailSendRateLimitKeys({
       .update(`${scope}\0${normalizedKeyVersion}\0${normalizedEnvironmentRef}\0${value}`)
       .digest("base64url")}`;
   const accountKey = pseudonym("account", email.trim().toLowerCase());
-  const ipKey = pseudonym("ip", trustedProxyIp?.trim() || "unknown-proxy");
-  const deviceKey = pseudonym("device", userAgent?.trim() || "unknown-device");
+  const ipKey = pseudonym("ip", normalizeTrustedProxyIp(trustedProxyIp) || "unknown-proxy");
+  const userAgentInput = truncateUtf8(userAgent ?? "", 256);
+  const languageInput = truncateUtf8(acceptLanguage ?? "", 128);
+  const deviceMessage =
+    `${userAgentInput.byteLength}|${userAgentInput.value}|` +
+    `${languageInput.byteLength}|${languageInput.value}`;
+  const deviceKey =
+    `device:${normalizedKeyVersion}:${normalizedEnvironmentRef}:` +
+    createHmac("sha256", normalizedKeySecret)
+      .update(deviceMessage)
+      .digest("base64url");
   const actionKey = pseudonym("action", `email_send_code\0${ipKey}`);
 
   return { accountKey, actionKey, deviceKey, ipKey };
+}
+
+export function normalizeTrustedProxyIp(value?: string) {
+  const normalized = value?.trim();
+  return normalized && isIP(normalized) !== 0 ? normalized : undefined;
+}
+
+function truncateUtf8(value: string, maximumBytes: number) {
+  let byteLength = 0;
+  let truncated = "";
+  for (const character of value) {
+    const characterBytes = Buffer.byteLength(character, "utf8");
+    if (byteLength + characterBytes > maximumBytes) break;
+    truncated += character;
+    byteLength += characterBytes;
+  }
+  return { byteLength, value: truncated };
 }
 
 function readStoredDocument(data: unknown[] | Record<string, unknown> | undefined) {
@@ -182,7 +211,9 @@ export function createCloudBasePersistentRateLimiter({
             const doc = transaction.collection(normalizedCollectionName).doc(documentId);
             const stored = readStoredDocument((await doc.get()).data);
             const storedCount = Number(stored?.count);
-            const storedWindowStartedAtMs = Number(stored?.windowStartedAtMs);
+            const storedWindowStartedAtMs = Number(
+              stored?.window_started_at_ms ?? stored?.windowStartedAtMs
+            );
             const inCurrentWindow =
               Number.isFinite(storedCount) &&
               Number.isFinite(storedWindowStartedAtMs) &&
@@ -203,12 +234,12 @@ export function createCloudBasePersistentRateLimiter({
             const rule = resolved[entry.layer];
             if (!rule) throw new Error("RATE_LIMIT_RULE_UNAVAILABLE");
             await entry.doc.set({
-              cleanupAfter: new Date(entry.windowStartedAtMs + rule.windowMs + 60 * 60_000),
+              cleanup_after: new Date(entry.windowStartedAtMs + rule.windowMs + 60 * 60_000),
               count: entry.count,
-              expiresAt: new Date(entry.windowStartedAtMs + rule.windowMs),
+              expires_at: new Date(entry.windowStartedAtMs + rule.windowMs),
               layer: entry.layer,
-              updatedAt: new Date(current),
-              windowStartedAtMs: entry.windowStartedAtMs
+              updated_at: new Date(current),
+              window_started_at_ms: entry.windowStartedAtMs
             });
           }
           return { ok: true as const };
@@ -248,35 +279,14 @@ export function createLayeredRateLimiter({
     ...DEFAULT_CONFIG,
     ...config
   };
-  const counters = new Map<string, number[]>();
-
-  function checkLayer(layer: keyof LayeredRateLimitConfig, key: string) {
-    if (!key && layer === "session") return { ok: true as const };
-    if (!key) return { ok: false as const, reason: layer };
-    const rule = resolved[layer];
-    if (!rule) return { ok: true as const };
-
-    const current = now();
-    const counterKey = `${layer}:${key}`;
-    const retained = (counters.get(counterKey) ?? []).filter(
-      (timestamp) => current - timestamp < rule.windowMs
-    );
-
-    if (retained.length >= rule.limit) {
-      counters.set(counterKey, retained);
-      return { ok: false as const, reason: layer };
-    }
-
-    retained.push(current);
-    counters.set(counterKey, retained);
-    return { ok: true as const };
-  }
+  const counters = new Map<string, { count: number; windowStartedAtMs: number }>();
 
   return {
     mode,
     external: Boolean(external),
     check(input: RateLimitInput) {
       if (external) return external.check(input);
+      const current = now();
       const layers: Array<[keyof LayeredRateLimitConfig, string | undefined]> = [
         ["account", input.accountKey],
         ["ip", input.ipKey],
@@ -284,10 +294,39 @@ export function createLayeredRateLimiter({
         ["action", input.actionKey],
         ["session", input.sessionKey]
       ];
+      const pending: Array<{
+        counterKey: string;
+        count: number;
+        windowStartedAtMs: number;
+      }> = [];
 
       for (const [layer, key] of layers) {
-        const result = checkLayer(layer, key ?? "");
-        if (!result.ok) return result;
+        if (!key && layer === "session") continue;
+        if (!key) return { ok: false as const, reason: layer };
+        const rule = resolved[layer];
+        if (!rule) continue;
+        const counterKey = `${layer}:${key}`;
+        const stored = counters.get(counterKey);
+        const inCurrentWindow = Boolean(
+          stored &&
+          current >= stored.windowStartedAtMs &&
+          current - stored.windowStartedAtMs < rule.windowMs
+        );
+        const count = inCurrentWindow ? stored?.count ?? 0 : 0;
+        const windowStartedAtMs = inCurrentWindow
+          ? stored?.windowStartedAtMs ?? current
+          : current;
+        if (count >= rule.limit) {
+          return { ok: false as const, reason: layer };
+        }
+        pending.push({ counterKey, count: count + 1, windowStartedAtMs });
+      }
+
+      for (const entry of pending) {
+        counters.set(entry.counterKey, {
+          count: entry.count,
+          windowStartedAtMs: entry.windowStartedAtMs
+        });
       }
 
       return { ok: true as const };

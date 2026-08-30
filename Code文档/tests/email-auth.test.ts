@@ -8,6 +8,7 @@ import {
   EMAIL_LOGIN_CODES_COLLECTION,
   EMAIL_LOGIN_USERS_COLLECTION,
   hashEmail,
+  sendEmailLoginCode,
   verifyEmailLoginCode
 } from "@/server/email-auth";
 import { createLayeredRateLimiter } from "@/server/security/rate-limit";
@@ -770,6 +771,121 @@ describe("email auth API handlers", () => {
       ok: false,
       errors: { request: "验证码已过期，请重新获取" }
     });
+  });
+
+  it("preserves the exact 60-second send, 5-minute code, and fifth wrong-code boundaries", async () => {
+    const issuedAt = new Date("2026-08-31T00:00:00.000Z");
+    const email = "student@example.com";
+    const env = {
+      APP_ENV: "test",
+      EMAIL_CODE_SECRET: "synthetic-email-code-secret",
+      NODE_ENV: "test"
+    };
+    const cooldownCodes = createFakeCollection();
+    const deliveries: string[] = [];
+    const sendAt = (ageMs: number) => sendEmailLoginCode({
+      codeGenerator: () => "123456",
+      email,
+      emailCodeCollection: cooldownCodes,
+      emailDelivery: {
+        async send({ code }) {
+          deliveries.push(code);
+          return { ok: true as const };
+        }
+      },
+      env,
+      now: new Date(issuedAt.getTime() + ageMs)
+    });
+
+    await expect(sendAt(0)).resolves.toMatchObject({ ok: true });
+    await expect(sendAt(59_999)).resolves.toMatchObject({
+      errors: { request: "验证码发送过于频繁，请稍后再试" },
+      ok: false
+    });
+    await expect(sendAt(60_000)).resolves.toMatchObject({ ok: true });
+    await expect(sendAt(60_001)).resolves.toMatchObject({
+      errors: { request: "验证码发送过于频繁，请稍后再试" },
+      ok: false
+    });
+    expect(deliveries).toEqual(["123456", "123456"]);
+
+    const verifyAt = async (ageMs: number, code = "123456") => {
+      const emailCodeCollection = createFakeCollection();
+      const userCollection = createFakeCollection();
+      await sendEmailLoginCode({
+        codeGenerator: () => "123456",
+        email,
+        emailCodeCollection,
+        emailDelivery: { async send() { return { ok: true as const }; } },
+        env,
+        now: issuedAt
+      });
+      return {
+        collection: emailCodeCollection,
+        result: await verifyEmailLoginCode({
+          code,
+          email,
+          emailCodeCollection,
+          env,
+          now: new Date(issuedAt.getTime() + ageMs),
+          userCollection
+        })
+      };
+    };
+
+    expect((await verifyAt(299_999)).result).toMatchObject({ ok: true });
+    expect((await verifyAt(300_000)).result).toMatchObject({
+      errors: { request: "验证码已过期，请重新获取" },
+      ok: false
+    });
+    expect((await verifyAt(300_001)).result).toMatchObject({
+      errors: { request: "验证码已过期，请重新获取" },
+      ok: false
+    });
+
+    const emailCodeCollection = createFakeCollection();
+    const userCollection = createFakeCollection();
+    await sendEmailLoginCode({
+      codeGenerator: () => "123456",
+      email,
+      emailCodeCollection,
+      emailDelivery: { async send() { return { ok: true as const }; } },
+      env,
+      now: issuedAt
+    });
+    for (let attempt = 1; attempt <= 4; attempt += 1) {
+      await expect(verifyEmailLoginCode({
+        code: "654321",
+        email,
+        emailCodeCollection,
+        env,
+        now: issuedAt,
+        userCollection
+      })).resolves.toMatchObject({ errors: { code: "验证码不正确" }, ok: false });
+    }
+    await expect(verifyEmailLoginCode({
+      code: "654321",
+      email,
+      emailCodeCollection,
+      env,
+      now: issuedAt,
+      userCollection
+    })).resolves.toMatchObject({
+      errors: { request: "验证码错误次数过多，请重新获取" },
+      ok: false
+    });
+    await expect(verifyEmailLoginCode({
+      code: "654321",
+      email,
+      emailCodeCollection,
+      env,
+      now: issuedAt,
+      userCollection
+    })).resolves.toMatchObject({
+      errors: { request: "验证码错误次数过多，请重新获取" },
+      ok: false
+    });
+    expect(emailCodeCollection.documents.get(hashEmail(email))?.attempts).toBe(5);
   });
 
   it("creates a new account on first login, reuses it on later login, and prevents code reuse", async () => {

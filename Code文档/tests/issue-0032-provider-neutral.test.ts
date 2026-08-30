@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -9,11 +10,13 @@ import { createEmailAuthApiHandlers } from "@/server/email-auth-api";
 import {
   createCloudBasePersistentEmailChallengeReplayGuard,
   createTurnstileEmailChallengeVerifier,
-  verifyEmailChallenge
+  verifyEmailChallenge,
+  type EmailChallengeVerificationResult
 } from "@/server/security/email-challenge";
 import {
   createCloudBasePersistentRateLimiter,
-  createEmailSendRateLimitKeys
+  createEmailSendRateLimitKeys,
+  createLayeredRateLimiter
 } from "@/server/security/rate-limit";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -34,12 +37,14 @@ function createNoopCollection() {
 function createTransactionalDocumentDatabase() {
   const documents = new Map<string, Record<string, unknown>>();
   let transactionQueue: Promise<void> = Promise.resolve();
+  let failAtRemove = false;
   let failAtSet: number | undefined;
   const database = {
     runTransaction<T>(operation: (transaction: {
       collection(name: string): {
         doc(id: string): {
           get(): Promise<{ data?: Record<string, unknown> }>;
+          remove(): Promise<unknown>;
           set(value: Record<string, unknown>): Promise<unknown>;
         };
       };
@@ -58,6 +63,14 @@ function createTransactionalDocumentDatabase() {
                 return {
                   async get() {
                     return { data: staged.get(id) };
+                  },
+                  async remove() {
+                    if (failAtRemove) {
+                      failAtRemove = false;
+                      throw new Error("synthetic transaction remove failure");
+                    }
+                    staged.delete(id);
+                    return { deleted: 1 };
                   },
                   async set(value) {
                     setCount += 1;
@@ -84,6 +97,9 @@ function createTransactionalDocumentDatabase() {
   return {
     database,
     documents,
+    failNextTransactionAtRemove() {
+      failAtRemove = true;
+    },
     failNextTransactionAtSet(setNumber: number) {
       failAtSet = setNumber;
     }
@@ -825,12 +841,12 @@ describe("ISSUE-0032 provider-neutral email challenge", () => {
       id: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/),
       value: {
         action: "email_send_code",
-        cleanupAfter: new Date(current + 3_900_000),
-        consumedAt: new Date(current),
-        environmentRef: "LOCAL_SYNTHETIC_HOST_REF",
-        expiresAt: new Date(current + 300_000),
-        keyVersion: "kv2",
-        schemaVersion: 1
+        cleanup_after: new Date(current + 3_900_000),
+        consumed_at: new Date(current),
+        environment_ref: "LOCAL_SYNTHETIC_HOST_REF",
+        expires_at: new Date(current + 300_000),
+        key_version: "kv2",
+        schema_version: 1
       }
     });
     expect(JSON.stringify(writes)).not.toContain("synthetic-challenge-token");
@@ -848,7 +864,7 @@ describe("ISSUE-0032 provider-neutral email challenge", () => {
     expect(writes).toHaveLength(2);
     expect(writes[1]?.id).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(writes[1]?.id).not.toBe(firstDocumentId);
-    expect(writes[1]?.value.keyVersion).toBe("kv3");
+    expect(writes[1]?.value.key_version).toBe("kv3");
 
     current += 3_900_001;
     await expect(guard.consume({
@@ -886,6 +902,7 @@ describe("ISSUE-0032 provider-neutral email challenge", () => {
       environmentRef: "LOCAL_SYNTHETIC_HOST_REF",
       keySecret: "synthetic-rate-limit-key",
       keyVersion: "kv3",
+      acceptLanguage: "zh-CN",
       userAgent: "SyntheticBrowser/1.0"
     };
     const networkA = createEmailSendRateLimitKeys({
@@ -901,7 +918,9 @@ describe("ISSUE-0032 provider-neutral email challenge", () => {
     expect(networkA).toEqual({
       accountKey: expect.stringMatching(/^kv3_[A-Za-z0-9_-]{43}$/),
       actionKey: expect.stringMatching(/^kv3_[A-Za-z0-9_-]{43}$/),
-      deviceKey: expect.stringMatching(/^kv3_[A-Za-z0-9_-]{43}$/),
+      deviceKey: expect.stringMatching(
+        /^device:kv3:LOCAL_SYNTHETIC_HOST_REF:[A-Za-z0-9_-]{43}$/
+      ),
       ipKey: expect.stringMatching(/^kv3_[A-Za-z0-9_-]{43}$/)
     });
     expect(networkB.actionKey).not.toBe(networkA.actionKey);
@@ -978,7 +997,7 @@ describe("ISSUE-0032 provider-neutral email challenge", () => {
     expect(writes).toHaveLength(4);
     expect(writes).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        cleanupAfter: new Date(nowMs + 4_500_000),
+        cleanup_after: new Date(nowMs + 4_500_000),
         count: 1,
         layer: "action"
       })
@@ -1087,5 +1106,751 @@ describe("ISSUE-0032 provider-neutral email challenge", () => {
       .map((document) => document.count)
       .sort((left, right) => Number(left) - Number(right));
     expect(actionCounts).toEqual([1, 5]);
+  });
+
+  it("derives the frozen byte-bounded device pseudonym before rate-limit persistence", () => {
+    const keySecret = "synthetic-device-pseudonym-key";
+    const environmentRef = "LOCAL_SYNTHETIC_HOST_REF";
+    const derive = (userAgent: string, acceptLanguage: string, keyVersion = "v1") =>
+      createEmailSendRateLimitKeys({
+        acceptLanguage,
+        email: "synthetic@example.test",
+        environmentRef,
+        keySecret,
+        keyVersion,
+        userAgent
+      }).deviceKey;
+    const expectedDigest = createHmac("sha256", keySecret)
+      .update("3|abc|2|zh")
+      .digest("base64url");
+
+    expect(derive("abc", "zh")).toBe(
+      `device:v1:${environmentRef}:${expectedDigest}`
+    );
+    expect(derive("a".repeat(255), "l".repeat(127))).not.toBe(
+      derive("a".repeat(256), "l".repeat(127))
+    );
+    expect(derive("a".repeat(256), "l".repeat(127))).toBe(
+      derive("a".repeat(257), "l".repeat(127))
+    );
+    expect(derive("a".repeat(256), "l".repeat(127))).not.toBe(
+      derive("a".repeat(256), "l".repeat(128))
+    );
+    expect(derive("a".repeat(256), "l".repeat(128))).toBe(
+      derive("a".repeat(256), "l".repeat(129))
+    );
+    expect(derive("", "")).toMatch(
+      /^device:v1:LOCAL_SYNTHETIC_HOST_REF:[A-Za-z0-9_-]{43}$/
+    );
+    expect(derive("\u00e9", "zh")).not.toBe(derive("e\u0301", "zh"));
+    expect(derive("abc", "zh", "v2")).not.toBe(derive("abc", "zh", "v1"));
+    expect(createEmailSendRateLimitKeys({
+      acceptLanguage: "zh",
+      email: "synthetic@example.test",
+      environmentRef: "OTHER_ENV",
+      keySecret,
+      keyVersion: "v1",
+      userAgent: "abc"
+    }).deviceKey).not.toBe(derive("abc", "zh"));
+
+    const serialized = JSON.stringify({
+      empty: derive("", ""),
+      unicode: derive("\u00e9", "zh"),
+      vector: derive("abc", "zh")
+    });
+    expect(serialized).not.toMatch(/synthetic@example|abc|\u00e9|e\u0301|\|zh/);
+  });
+
+  it("uses one unknown-proxy bucket for absent, invalid, conflicting, or failed trusted resolution", async () => {
+    const captured: Array<Record<string, string>> = [];
+    const now = new Date("2026-08-31T00:00:00.000Z");
+    const createHandler = (resolver?: (request: Request) => string | undefined) =>
+      createEmailAuthApiHandlers({
+        challengeReplayGuard: { async consume() { return { ok: true as const }; } },
+        challengeVerifier: {
+          expectedHostnames: ["synthetic-host.example.test"],
+          async verify() {
+            return {
+              action: "email_send_code",
+              hostname: "synthetic-host.example.test",
+              issuedAt: new Date(now.getTime() - 1_000).toISOString(),
+              ok: true as const
+            };
+          }
+        },
+        emailCodeCollection: createNoopCollection(),
+        emailDelivery: { async send() { return { ok: true as const }; } },
+        env: {
+          ALLOWED_ORIGINS: "https://synthetic-origin.example.test",
+          APP_ENV: "production",
+          AUTH_RATE_LIMIT_KEY_SECRET: "synthetic-rate-key",
+          CSRF_SECRET: "synthetic-csrf-secret",
+          EMAIL_CODE_SECRET: "synthetic-code-secret",
+          NODE_ENV: "production",
+          ORIGIN_VERIFY_MODE: "enforce",
+          ORIGIN_VERIFY_SECRET: "synthetic-origin-proof",
+          securityAlertSink: { available: true, emit() {} }
+        },
+        now: () => now,
+        rateLimiter: {
+          async check(input) {
+            captured.push(input);
+            return { ok: true as const };
+          },
+          external: true,
+          mode: "production",
+          reset() {}
+        },
+        requireChallenge: true,
+        resolveTrustedClientIp: resolver,
+        userCollection: createNoopCollection()
+      });
+    const request = (token: string) => new Request(
+      "https://synthetic-origin.example.test/api/auth/email/send-code",
+      {
+        body: JSON.stringify({ challengeToken: token, email: `${token}@example.test` }),
+        headers: {
+          "accept-language": "zh-CN",
+          "cf-connecting-ip": "198.51.100.88",
+          "content-type": "application/json",
+          origin: "https://synthetic-origin.example.test",
+          "user-agent": `SyntheticBrowser/${token}`
+        },
+        method: "POST"
+      }
+    );
+    const resolvers: Array<((request: Request) => string | undefined) | undefined> = [
+      undefined,
+      () => "",
+      () => "not-an-ip",
+      () => "192.0.2.10, 192.0.2.11",
+      () => { throw new Error("synthetic trusted resolver failure"); }
+    ];
+
+    for (const [index, resolver] of resolvers.entries()) {
+      const response = await createHandler(resolver).POST_SEND_CODE(
+        request(`synthetic-${index}`)
+      );
+      expect(response.status).toBe(200);
+    }
+    expect(captured).toHaveLength(resolvers.length);
+    expect(new Set(captured.map(({ ipKey }) => ipKey))).toHaveProperty("size", 1);
+    expect(JSON.stringify(captured)).not.toMatch(/198\.51\.100|192\.0\.2|SyntheticBrowser|zh-CN/);
+  });
+
+  it("uses atomic fixed windows with exact L and W boundaries", async () => {
+    let nowMs = 0;
+    const keys = {
+      accountKey: "account",
+      actionKey: "action",
+      deviceKey: "device",
+      ipKey: "unknown-proxy"
+    };
+    const fixed = createLayeredRateLimiter({
+      config: {
+        account: { limit: 100, windowMs: 900_000 },
+        action: { limit: 2, windowMs: 900_000 },
+        device: { limit: 100, windowMs: 900_000 },
+        ip: { limit: 100, windowMs: 900_000 },
+        session: undefined
+      },
+      now: () => nowMs
+    });
+    expect(await fixed.check(keys)).toEqual({ ok: true });
+    nowMs = 899_999;
+    expect(await fixed.check(keys)).toEqual({ ok: true });
+    nowMs = 900_000;
+    expect(await fixed.check(keys)).toEqual({ ok: true });
+    nowMs = 900_001;
+    expect(await fixed.check(keys)).toEqual({ ok: true });
+    expect(await fixed.check(keys)).toEqual({ ok: false, reason: "action" });
+
+    for (const target of ["account", "ip", "device", "action"] as const) {
+      const limiter = createLayeredRateLimiter({
+        config: {
+          account: { limit: target === "account" ? 2 : 100, windowMs: 900_000 },
+          action: { limit: target === "action" ? 2 : 100, windowMs: 900_000 },
+          device: { limit: target === "device" ? 2 : 100, windowMs: 900_000 },
+          ip: { limit: target === "ip" ? 2 : 100, windowMs: 900_000 },
+          session: undefined
+        },
+        now: () => 1_000
+      });
+      expect(await limiter.check(keys)).toEqual({ ok: true });
+      expect(await limiter.check(keys)).toEqual({ ok: true });
+      expect(await limiter.check(keys)).toEqual({ ok: false, reason: target });
+    }
+
+    const atomic = createLayeredRateLimiter({
+      config: {
+        account: { limit: 2, windowMs: 900_000 },
+        action: { limit: 100, windowMs: 900_000 },
+        device: { limit: 100, windowMs: 900_000 },
+        ip: { limit: 1, windowMs: 900_000 },
+        session: undefined
+      },
+      now: () => 1_000
+    });
+    expect(await atomic.check(keys)).toEqual({ ok: true });
+    expect(await atomic.check({ ...keys, actionKey: "action-2", deviceKey: "device-2" }))
+      .toEqual({ ok: false, reason: "ip" });
+    expect(await atomic.check({ ...keys, actionKey: "action-3", deviceKey: "device-3", ipKey: "ip-2" }))
+      .toEqual({ ok: true });
+
+    const unknown = createLayeredRateLimiter({
+      config: {
+        account: { limit: 100, windowMs: 900_000 },
+        action: { limit: 100, windowMs: 900_000 },
+        device: { limit: 100, windowMs: 900_000 },
+        ip: { limit: 10, windowMs: 900_000 },
+        session: undefined
+      },
+      now: () => 1_000
+    });
+    const unknownKeys = (index: number) => createEmailSendRateLimitKeys({
+      acceptLanguage: `zh-CN-${index}`,
+      email: `synthetic-${index}@example.test`,
+      environmentRef: "LOCAL_SYNTHETIC_HOST_REF",
+      keySecret: "synthetic-rate-limit-key",
+      keyVersion: "v1",
+      userAgent: `SyntheticBrowser/${index}`
+    });
+    for (let index = 0; index < 10; index += 1) {
+      expect(await unknown.check(unknownKeys(index))).toEqual({ ok: true });
+    }
+    expect(await unknown.check(unknownKeys(10))).toEqual({ ok: false, reason: "ip" });
+  });
+
+  it("keeps replay markers through cleanup failures and makes successful cleanup idempotent", async () => {
+    let nowMs = Date.parse("2026-08-31T00:00:00.000Z");
+    const fixture = createTransactionalDocumentDatabase();
+    const guard = createCloudBasePersistentEmailChallengeReplayGuard({
+      collectionName: "synthetic_challenge_replays",
+      database: fixture.database,
+      environmentRef: "LOCAL_SYNTHETIC_HOST_REF",
+      keySecret: "synthetic-replay-key",
+      keyVersion: "v1",
+      now: () => nowMs
+    });
+    const input = {
+      action: "email_send_code" as const,
+      expiresAt: new Date(nowMs + 300_000),
+      token: "synthetic-cleanup-token"
+    };
+    const cleanup = (guard as typeof guard & {
+      cleanup(input: { action: "email_send_code"; token: string }): Promise<
+        { ok: true; removed: boolean } | { ok: false; reason: "unavailable" }
+      >;
+    }).cleanup;
+
+    await expect(guard.consume(input)).resolves.toEqual({ ok: true });
+    const stored = [...fixture.documents.values()][0];
+    expect(stored).toMatchObject({
+      action: "email_send_code",
+      cleanup_after: new Date(nowMs + 3_900_000),
+      consumed_at: new Date(nowMs),
+      environment_ref: "LOCAL_SYNTHETIC_HOST_REF",
+      expires_at: input.expiresAt,
+      key_version: "v1",
+      schema_version: 1
+    });
+    expect(JSON.stringify(stored)).not.toContain(input.token);
+
+    nowMs += 3_899_999;
+    await expect(cleanup.call(guard, { action: input.action, token: input.token }))
+      .resolves.toEqual({ ok: true, removed: false });
+    await expect(guard.consume({ ...input, expiresAt: new Date(nowMs + 300_000) }))
+      .resolves.toEqual({ ok: false, reason: "replay" });
+
+    nowMs += 1;
+    fixture.failNextTransactionAtRemove();
+    await expect(cleanup.call(guard, { action: input.action, token: input.token }))
+      .resolves.toEqual({ ok: false, reason: "unavailable" });
+    expect(fixture.documents.size).toBe(1);
+    await expect(guard.consume({ ...input, expiresAt: new Date(nowMs + 300_000) }))
+      .resolves.toEqual({ ok: false, reason: "replay" });
+
+    await expect(cleanup.call(guard, { action: input.action, token: input.token }))
+      .resolves.toEqual({ ok: true, removed: true });
+    await expect(cleanup.call(guard, { action: input.action, token: input.token }))
+      .resolves.toEqual({ ok: true, removed: false });
+    expect(fixture.documents.size).toBe(0);
+
+    const malformedInput = {
+      ...input,
+      expiresAt: new Date(nowMs + 300_000),
+      token: "synthetic-malformed-cleanup-token"
+    };
+    await expect(guard.consume(malformedInput)).resolves.toEqual({ ok: true });
+    const malformed = [...fixture.documents.values()][0];
+    if (!malformed) throw new Error("synthetic malformed replay fixture missing");
+    malformed.cleanup_after = new Date(malformedInput.expiresAt.getTime() + 3_599_999);
+    nowMs = malformedInput.expiresAt.getTime() + 3_600_000;
+    await expect(cleanup.call(guard, {
+      action: malformedInput.action,
+      token: malformedInput.token
+    })).resolves.toEqual({ ok: false, reason: "unavailable" });
+    expect(fixture.documents.size).toBe(1);
+  });
+
+  it("rejects every non-POST method before challenge verification, limiting, or delivery", async () => {
+    const verify = vi.fn();
+    const limit = vi.fn();
+    const send = vi.fn();
+    const handlers = createEmailAuthApiHandlers({
+      challengeReplayGuard: { consume: vi.fn() },
+      challengeVerifier: {
+        expectedHostnames: ["synthetic-host.example.test"],
+        verify
+      },
+      emailCodeCollection: createNoopCollection(),
+      emailDelivery: { send },
+      env: {
+        ALLOWED_ORIGINS: "https://synthetic-origin.example.test",
+        APP_ENV: "production",
+        AUTH_RATE_LIMIT_KEY_SECRET: "synthetic-rate-key",
+        CSRF_SECRET: "synthetic-csrf-secret",
+        EMAIL_CODE_SECRET: "synthetic-code-secret",
+        NODE_ENV: "production",
+        ORIGIN_VERIFY_MODE: "enforce",
+        ORIGIN_VERIFY_SECRET: "synthetic-origin-proof",
+        securityAlertSink: { available: true, emit() {} }
+      },
+      rateLimiter: {
+        check: limit,
+        external: true,
+        mode: "production",
+        reset() {}
+      },
+      requireChallenge: true,
+      userCollection: createNoopCollection()
+    });
+
+    for (const method of ["GET", "HEAD", "OPTIONS", "PUT", "PATCH", "DELETE"]) {
+      const request = new Request(
+        "https://synthetic-origin.example.test/api/auth/email/send-code",
+        {
+          ...(method === "HEAD" || method === "GET"
+            ? {}
+            : { body: JSON.stringify({ challengeToken: "token", email: "synthetic@example.test" }) }),
+          headers: {
+            "content-type": "application/json",
+            origin: "https://synthetic-origin.example.test"
+          },
+          method
+        }
+      );
+      const response = await handlers.POST_SEND_CODE(request);
+      expect(response.status).toBe(405);
+      expect(response.headers.get("allow")).toBe("POST");
+    }
+    expect({ limit: limit.mock.calls.length, send: send.mock.calls.length, verify: verify.mock.calls.length })
+      .toEqual({ limit: 0, send: 0, verify: 0 });
+  });
+
+  it("maps every frozen challenge, replay, and limiter precondition to fail-closed status with send zero", async () => {
+    const now = new Date("2026-08-31T00:05:00.000Z");
+    const missingVerify = vi.fn();
+    const missingLimit = vi.fn();
+    const missingSend = vi.fn();
+    const missingHandlers = createEmailAuthApiHandlers({
+      challengeReplayGuard: { consume: vi.fn() },
+      challengeVerifier: {
+        expectedHostnames: ["synthetic-host.example.test"],
+        verify: missingVerify
+      },
+      emailCodeCollection: createNoopCollection(),
+      emailDelivery: { send: missingSend },
+      env: {
+        ALLOWED_ORIGINS: "https://synthetic-origin.example.test",
+        APP_ENV: "production",
+        AUTH_RATE_LIMIT_KEY_SECRET: "synthetic-rate-key",
+        CSRF_SECRET: "synthetic-csrf-secret",
+        EMAIL_CODE_SECRET: "synthetic-code-secret",
+        NODE_ENV: "production",
+        ORIGIN_VERIFY_MODE: "enforce",
+        ORIGIN_VERIFY_SECRET: "synthetic-origin-proof",
+        securityAlertSink: { available: true, emit() {} }
+      },
+      now: () => now,
+      rateLimiter: {
+        check: missingLimit,
+        external: true,
+        mode: "production",
+        reset() {}
+      },
+      requireChallenge: true,
+      userCollection: createNoopCollection()
+    });
+    const missingResponse = await missingHandlers.POST_SEND_CODE(new Request(
+      "https://synthetic-origin.example.test/api/auth/email/send-code",
+      {
+        body: JSON.stringify({ email: "synthetic@example.test" }),
+        headers: { "content-type": "application/json", origin: "https://synthetic-origin.example.test" },
+        method: "POST"
+      }
+    ));
+    expect(missingResponse.status).toBe(403);
+    expect({
+      limit: missingLimit.mock.calls.length,
+      send: missingSend.mock.calls.length,
+      verify: missingVerify.mock.calls.length
+    }).toEqual({ limit: 0, send: 0, verify: 0 });
+
+    const challengeCases: Array<{
+      result: EmailChallengeVerificationResult;
+      status: number;
+      token?: string;
+    }> = [
+      { result: { ok: false, reason: "invalid" }, status: 403 },
+      { result: { ok: false, reason: "replay" }, status: 403 },
+      { result: { ok: false, reason: "config-missing" }, status: 503 },
+      { result: { ok: false, reason: "secret-missing" }, status: 503 },
+      { result: { ok: false, reason: "timeout" }, status: 503 },
+      { result: { ok: false, reason: "unreachable" }, status: 503 },
+      {
+        result: {
+          action: "email_send_code",
+          hostname: "synthetic-host.example.test",
+          issuedAt: new Date(now.getTime() - 300_000).toISOString(),
+          ok: true
+        },
+        status: 403
+      },
+      {
+        result: {
+          action: "password_login",
+          hostname: "synthetic-host.example.test",
+          issuedAt: new Date(now.getTime() - 1_000).toISOString(),
+          ok: true
+        },
+        status: 403
+      },
+      {
+        result: {
+          action: "email_send_code",
+          hostname: "wrong-host.example.test",
+          issuedAt: new Date(now.getTime() - 1_000).toISOString(),
+          ok: true
+        },
+        status: 403
+      }
+    ];
+
+    for (const [index, testCase] of challengeCases.entries()) {
+      const consume = vi.fn(async () => ({ ok: true as const }));
+      const limit = vi.fn(async () => ({ ok: true as const }));
+      const send = vi.fn(async () => ({ ok: true as const }));
+      const verify = vi.fn(async () => testCase.result);
+      const handlers = createEmailAuthApiHandlers({
+        challengeReplayGuard: { consume },
+        challengeVerifier: {
+          expectedHostnames: ["synthetic-host.example.test"],
+          verify
+        },
+        emailCodeCollection: createNoopCollection(),
+        emailDelivery: { send },
+        env: {
+          ALLOWED_ORIGINS: "https://synthetic-origin.example.test",
+          APP_ENV: "production",
+          AUTH_RATE_LIMIT_KEY_SECRET: "synthetic-rate-key",
+          CSRF_SECRET: "synthetic-csrf-secret",
+          EMAIL_CODE_SECRET: "synthetic-code-secret",
+          NODE_ENV: "production",
+          ORIGIN_VERIFY_MODE: "enforce",
+          ORIGIN_VERIFY_SECRET: "synthetic-origin-proof",
+          securityAlertSink: { available: true, emit() {} }
+        },
+        now: () => now,
+        rateLimiter: {
+          check: limit,
+          external: true,
+          mode: "production",
+          reset() {}
+        },
+        requireChallenge: true,
+        userCollection: createNoopCollection()
+      });
+      const response = await handlers.POST_SEND_CODE(new Request(
+        "https://synthetic-origin.example.test/api/auth/email/send-code",
+        {
+          body: JSON.stringify({
+            challengeToken: testCase.token ?? `synthetic-token-${index}`,
+            email: "synthetic@example.test"
+          }),
+          headers: {
+            "content-type": "application/json",
+            origin: "https://synthetic-origin.example.test"
+          },
+          method: "POST"
+        }
+      ));
+
+      expect(response.status).toBe(testCase.status);
+      expect(response.headers.get("content-type")).toContain("application/json");
+      expect({ consume: consume.mock.calls.length, limit: limit.mock.calls.length, send: send.mock.calls.length })
+        .toEqual({ consume: 0, limit: 0, send: 0 });
+      expect(verify).toHaveBeenCalledTimes(1);
+    }
+
+    for (const testCase of [
+      { consumeResult: { ok: false as const, reason: "replay" as const }, expected: 403 },
+      { consumeResult: { ok: false as const, reason: "unavailable" as const }, expected: 503 }
+    ]) {
+      const limit = vi.fn();
+      const send = vi.fn();
+      const handlers = createEmailAuthApiHandlers({
+        challengeReplayGuard: { async consume() { return testCase.consumeResult; } },
+        challengeVerifier: {
+          expectedHostnames: ["synthetic-host.example.test"],
+          async verify() {
+            return {
+              action: "email_send_code",
+              hostname: "synthetic-host.example.test",
+              issuedAt: new Date(now.getTime() - 1_000).toISOString(),
+              ok: true as const
+            };
+          }
+        },
+        emailCodeCollection: createNoopCollection(),
+        emailDelivery: { send },
+        env: {
+          ALLOWED_ORIGINS: "https://synthetic-origin.example.test",
+          APP_ENV: "production",
+          AUTH_RATE_LIMIT_KEY_SECRET: "synthetic-rate-key",
+          CSRF_SECRET: "synthetic-csrf-secret",
+          EMAIL_CODE_SECRET: "synthetic-code-secret",
+          NODE_ENV: "production",
+          ORIGIN_VERIFY_MODE: "enforce",
+          ORIGIN_VERIFY_SECRET: "synthetic-origin-proof",
+          securityAlertSink: { available: true, emit() {} }
+        },
+        now: () => now,
+        rateLimiter: { check: limit, external: true, mode: "production", reset() {} },
+        requireChallenge: true,
+        userCollection: createNoopCollection()
+      });
+      const response = await handlers.POST_SEND_CODE(new Request(
+        "https://synthetic-origin.example.test/api/auth/email/send-code",
+        {
+          body: JSON.stringify({ challengeToken: "synthetic-token", email: "synthetic@example.test" }),
+          headers: { "content-type": "application/json", origin: "https://synthetic-origin.example.test" },
+          method: "POST"
+        }
+      ));
+      expect(response.status).toBe(testCase.expected);
+      expect(limit).not.toHaveBeenCalled();
+      expect(send).not.toHaveBeenCalled();
+    }
+
+    for (const testCase of [
+      { expected: 429, result: { ok: false as const, reason: "action" } },
+      { expected: 503, result: { ok: false as const, reason: "unavailable" } }
+    ]) {
+      const order: string[] = [];
+      const send = vi.fn();
+      const handlers = createEmailAuthApiHandlers({
+        challengeReplayGuard: { async consume() { order.push("consume"); return { ok: true as const }; } },
+        challengeVerifier: {
+          expectedHostnames: ["synthetic-host.example.test"],
+          async verify() {
+            order.push("verify");
+            return {
+              action: "email_send_code",
+              hostname: "synthetic-host.example.test",
+              issuedAt: new Date(now.getTime() - 1_000).toISOString(),
+              ok: true as const
+            };
+          }
+        },
+        emailCodeCollection: createNoopCollection(),
+        emailDelivery: { send },
+        env: {
+          ALLOWED_ORIGINS: "https://synthetic-origin.example.test",
+          APP_ENV: "production",
+          AUTH_RATE_LIMIT_KEY_SECRET: "synthetic-rate-key",
+          CSRF_SECRET: "synthetic-csrf-secret",
+          EMAIL_CODE_SECRET: "synthetic-code-secret",
+          NODE_ENV: "production",
+          ORIGIN_VERIFY_MODE: "enforce",
+          ORIGIN_VERIFY_SECRET: "synthetic-origin-proof",
+          securityAlertSink: { available: true, emit() {} }
+        },
+        now: () => now,
+        rateLimiter: {
+          async check() { order.push("limit"); return testCase.result; },
+          external: true,
+          mode: "production",
+          reset() {}
+        },
+        requireChallenge: true,
+        userCollection: createNoopCollection()
+      });
+      const response = await handlers.POST_SEND_CODE(new Request(
+        "https://synthetic-origin.example.test/api/auth/email/send-code",
+        {
+          body: JSON.stringify({ challengeToken: "synthetic-token", email: "synthetic@example.test" }),
+          headers: { "content-type": "application/json", origin: "https://synthetic-origin.example.test" },
+          method: "POST"
+        }
+      ));
+      expect(response.status).toBe(testCase.expected);
+      expect(order).toEqual(["verify", "consume", "limit"]);
+      expect(send).not.toHaveBeenCalled();
+    }
+
+    const providerOrder: string[] = [];
+    const providerSend = vi.fn(async () => {
+      providerOrder.push("send");
+      return { error: "synthetic provider unavailable", ok: false as const };
+    });
+    const providerFailureHandlers = createEmailAuthApiHandlers({
+      challengeReplayGuard: {
+        async consume() { providerOrder.push("consume"); return { ok: true as const }; }
+      },
+      challengeVerifier: {
+        expectedHostnames: ["synthetic-host.example.test"],
+        async verify() {
+          providerOrder.push("verify");
+          return {
+            action: "email_send_code",
+            hostname: "synthetic-host.example.test",
+            issuedAt: new Date(now.getTime() - 1_000).toISOString(),
+            ok: true as const
+          };
+        }
+      },
+      codeGenerator: () => "123456",
+      emailCodeCollection: createNoopCollection(),
+      emailDelivery: { send: providerSend },
+      env: {
+        ALLOWED_ORIGINS: "https://synthetic-origin.example.test",
+        APP_ENV: "production",
+        AUTH_RATE_LIMIT_KEY_SECRET: "synthetic-rate-key",
+        CSRF_SECRET: "synthetic-csrf-secret",
+        EMAIL_CODE_SECRET: "synthetic-code-secret",
+        NODE_ENV: "production",
+        ORIGIN_VERIFY_MODE: "enforce",
+        ORIGIN_VERIFY_SECRET: "synthetic-origin-proof",
+        securityAlertSink: { available: true, emit() {} }
+      },
+      now: () => now,
+      rateLimiter: {
+        async check() { providerOrder.push("limit"); return { ok: true as const }; },
+        external: true,
+        mode: "production",
+        reset() {}
+      },
+      requireChallenge: true,
+      userCollection: createNoopCollection()
+    });
+    const providerFailure = await providerFailureHandlers.POST_SEND_CODE(new Request(
+      "https://synthetic-origin.example.test/api/auth/email/send-code",
+      {
+        body: JSON.stringify({ challengeToken: "synthetic-token", email: "synthetic@example.test" }),
+        headers: { "content-type": "application/json", origin: "https://synthetic-origin.example.test" },
+        method: "POST"
+      }
+    ));
+    expect(providerFailure.status).toBe(503);
+    expect(providerOrder).toEqual(["verify", "consume", "limit", "send"]);
+    expect(providerSend).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps raw PII, challenge, Cookie, proxy, device, language, Secret, and minor data out of evidence surfaces", async () => {
+    const now = new Date("2026-08-31T00:05:00.000Z");
+    const replay = createTransactionalDocumentDatabase();
+    const rateInputs: Array<Record<string, string>> = [];
+    const consoleCalls: unknown[][] = [];
+    for (const method of ["debug", "error", "info", "log", "warn"] as const) {
+      vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
+        consoleCalls.push(args);
+      });
+    }
+    const raw = {
+      cookie: "session=synthetic-cookie-secret",
+      email: "sensitive.minor@example.test",
+      ip: "192.0.2.77",
+      language: "zh-Hans-CN-sensitive",
+      minor: "synthetic-minor-profile-001",
+      secret: "synthetic-rate-secret-sensitive",
+      token: "synthetic-challenge-token-sensitive",
+      userAgent: "SyntheticSensitiveBrowser/9.9"
+    };
+    const handlers = createEmailAuthApiHandlers({
+      challengeReplayGuard: createCloudBasePersistentEmailChallengeReplayGuard({
+        collectionName: "synthetic_challenge_replays",
+        database: replay.database,
+        environmentRef: "LOCAL_SYNTHETIC_HOST_REF",
+        keySecret: "synthetic-replay-secret-sensitive",
+        keyVersion: "v1",
+        now: () => now.getTime()
+      }),
+      challengeVerifier: {
+        expectedHostnames: ["synthetic-host.example.test"],
+        async verify() {
+          return {
+            action: "email_send_code",
+            hostname: "synthetic-host.example.test",
+            issuedAt: new Date(now.getTime() - 1_000).toISOString(),
+            ok: true as const
+          };
+        }
+      },
+      codeGenerator: () => "123456",
+      emailCodeCollection: createNoopCollection(),
+      emailDelivery: { async send() { return { ok: true as const }; } },
+      env: {
+        ALLOWED_ORIGINS: "https://synthetic-origin.example.test",
+        APP_ENV: "production",
+        AUTH_RATE_LIMIT_KEY_SECRET: raw.secret,
+        CSRF_SECRET: "synthetic-csrf-secret",
+        EMAIL_CODE_SECRET: "synthetic-code-secret-sensitive",
+        NODE_ENV: "production",
+        ORIGIN_VERIFY_MODE: "enforce",
+        ORIGIN_VERIFY_SECRET: "synthetic-origin-proof",
+        securityAlertSink: { available: true, emit() {} }
+      },
+      now: () => now,
+      rateLimiter: {
+        async check(input) { rateInputs.push(input); return { ok: true as const }; },
+        external: true,
+        mode: "production",
+        reset() {}
+      },
+      requireChallenge: true,
+      resolveTrustedClientIp: () => raw.ip,
+      userCollection: createNoopCollection()
+    });
+    const response = await handlers.POST_SEND_CODE(new Request(
+      "https://synthetic-origin.example.test/api/auth/email/send-code",
+      {
+        body: JSON.stringify({ challengeToken: raw.token, email: raw.email }),
+        headers: {
+          "accept-language": raw.language,
+          "content-type": "application/json",
+          cookie: raw.cookie,
+          origin: "https://synthetic-origin.example.test",
+          "user-agent": raw.userAgent,
+          "x-minor-profile": raw.minor
+        },
+        method: "POST"
+      }
+    ));
+    const evidence = JSON.stringify({
+      consoleCalls,
+      rateInputs,
+      replay: [...replay.documents.values()],
+      response: await response.clone().json()
+    });
+
+    expect(response.status).toBe(200);
+    for (const sensitive of Object.values(raw)) {
+      expect(evidence).not.toContain(sensitive);
+    }
+    expect(evidence).not.toContain("123456");
+    expect(rateInputs[0]?.deviceKey).toMatch(
+      /^device:v1:production:[A-Za-z0-9_-]{43}$/
+    );
   });
 });

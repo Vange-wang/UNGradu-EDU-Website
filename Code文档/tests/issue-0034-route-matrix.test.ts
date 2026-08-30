@@ -119,15 +119,18 @@ function transactionRunner() {
 
 function seedSourceFixture({
   sourceId,
-  sourceType
+  sourceType,
+  fixtureSuffix = ""
 }: {
   sourceId: string;
   sourceType: "parent-need" | "tutor-profile";
+  fixtureSuffix?: string;
 }) {
   const ownerUserId = sourceType === "parent-need" ? "parent-owner" : "tutor-owner";
   const participantUserId = sourceType === "parent-need" ? "tutor-participant" : "parent-participant";
-  const conversationId = `${sourceType}-conversation`;
-  const requestId = `${sourceType}-request`;
+  const suffix = fixtureSuffix ? `-${fixtureSuffix}` : "";
+  const conversationId = `${sourceType}${suffix}-conversation`;
+  const requestId = `${sourceType}${suffix}-request`;
 
   const sourceDocument: Document = sourceType === "parent-need"
     ? {
@@ -204,7 +207,420 @@ function seedSourceFixture({
   return { conversationId, ownerUserId, participantUserId, requestId };
 }
 
+const stableEnumerationHeaders = [
+  "cache-control",
+  "content-length",
+  "content-type",
+  "cross-origin-resource-policy",
+  "location",
+  "set-cookie",
+  "vary",
+  "www-authenticate",
+  "x-content-type-options"
+] as const;
+
+const intentionallyIgnoredDynamicHeaders = [
+  "date",
+  "server",
+  "x-correlation-id"
+] as const;
+
+type RouteObservation = {
+  byteLength: number;
+  durationMs: number;
+  headers: Record<(typeof stableEnumerationHeaders)[number], string | null>;
+  rawBody: string;
+  rawBytes: number[];
+  status: number;
+};
+
+async function observeRoute(run: () => Promise<Response>): Promise<RouteObservation> {
+  const startedAt = performance.now();
+  const response = await run();
+  const durationMs = performance.now() - startedAt;
+  const rawBytes = Array.from(new Uint8Array(await response.arrayBuffer()));
+  const rawBody = new TextDecoder().decode(new Uint8Array(rawBytes));
+
+  return {
+    byteLength: rawBytes.length,
+    durationMs,
+    headers: Object.fromEntries(
+      stableEnumerationHeaders.map((name) => [name, response.headers.get(name)])
+    ) as RouteObservation["headers"],
+    rawBody,
+    rawBytes,
+    status: response.status
+  };
+}
+
+function median(values: number[]) {
+  const sorted = [...values].sort((left, right) => left - right);
+  return sorted[Math.floor(sorted.length / 2)] ?? 0;
+}
+
+function percentile90(values: number[]) {
+  const sorted = [...values].sort((left, right) => left - right);
+  return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.9) - 1)] ?? 0;
+}
+
 describe("ISSUE-0034 real route source-type and deletion matrix", () => {
+  it("keeps protected object enumeration indistinguishable across the complete route matrix", async () => {
+    process.env.APP_ENV = "test";
+    Object.assign(process.env, { NODE_ENV: "test" });
+    process.env.M5_ENABLE_HOSTED_TEST_LOGIN = "true";
+    process.env.NEXT_PUBLIC_ALLOW_TEST_LOGIN = "true";
+    process.env.AUTH_SESSION_SECRET = "synthetic-route-matrix-secret";
+    process.env.AUTH_SESSION_KEY_VERSION = "v1";
+    transactionRunner();
+
+    const requiredSeams = [
+      "conversation:get",
+      "messages:get",
+      "messages:post",
+      "contact-exchange:get-list",
+      "contact-exchange:get-authorized-profiles",
+      "contact-exchange:create",
+      "contact-exchange:approve",
+      "contact-exchange:reject",
+      "contact-exchange:withdraw",
+      "contact-profile:get-selector-isolation",
+      "contact-profile:put-selector-rejection",
+      "parent-needs:get-mine",
+      "parent-needs:patch",
+      "parent-needs:delete",
+      "parent-needs:restore",
+      "tutor-profiles:get-mine",
+      "tutor-profiles:patch",
+      "tutor-profiles:delete",
+      "tutor-profiles:restore"
+    ];
+    const conversationsRoute = await import("@/app/api/conversations/[id]/route");
+    const messagesRoute = await import("@/app/api/conversations/[id]/messages/route");
+    const contactExchangeRoute = await import("@/app/api/contact-exchange/route");
+    const contactProfileRoute = await import("@/app/api/contact-profile/route");
+    const parentNeedsRoute = await import("@/app/api/parent-needs/[id]/route");
+    const tutorProfilesRoute = await import("@/app/api/tutor-profiles/[id]/route");
+    const timings = new Map<string, { missing: number[]; unauthorized: number[] }>();
+    const implementedSeams = new Set<string>();
+    const sampleCount = 5;
+
+    const runPair = async ({
+      expectedStatus,
+      missing,
+      seam,
+      sensitiveTokens,
+      unauthorized
+    }: {
+      expectedStatus: number;
+      missing: () => Promise<Response>;
+      seam: string;
+      sensitiveTokens: string[];
+      unauthorized: () => Promise<Response>;
+    }) => {
+      const writesBefore = state.sets.length;
+      const unauthorizedObservation = await observeRoute(unauthorized);
+      expect(state.sets).toHaveLength(writesBefore);
+      const missingObservation = await observeRoute(missing);
+      expect(state.sets).toHaveLength(writesBefore);
+
+      expect(unauthorizedObservation.status).toBe(expectedStatus);
+      expect(missingObservation.status).toBe(expectedStatus);
+      expect(unauthorizedObservation.rawBytes).toEqual(missingObservation.rawBytes);
+      expect(unauthorizedObservation.rawBody).toBe(missingObservation.rawBody);
+      expect(unauthorizedObservation.byteLength).toBe(missingObservation.byteLength);
+      expect(unauthorizedObservation.byteLength).toBe(
+        new TextEncoder().encode(unauthorizedObservation.rawBody).byteLength
+      );
+      expect(unauthorizedObservation.headers).toEqual(missingObservation.headers);
+      for (const token of sensitiveTokens) {
+        expect(unauthorizedObservation.rawBody).not.toContain(token);
+        expect(missingObservation.rawBody).not.toContain(token);
+      }
+
+      const samples = timings.get(seam) ?? { missing: [], unauthorized: [] };
+      samples.unauthorized.push(unauthorizedObservation.durationMs);
+      samples.missing.push(missingObservation.durationMs);
+      timings.set(seam, samples);
+      implementedSeams.add(seam);
+    };
+
+    for (let sample = 0; sample < sampleCount; sample += 1) {
+      const sampleId = `enumeration-${sample}`;
+      const parentSourceId = `parent-need-${sampleId}`;
+      const parentFixture = seedSourceFixture({
+        fixtureSuffix: sampleId,
+        sourceId: parentSourceId,
+        sourceType: "parent-need"
+      });
+      const tutorSourceId = `tutor-profile-${sampleId}`;
+      const tutorFixture = seedSourceFixture({
+        fixtureSuffix: sampleId,
+        sourceId: tutorSourceId,
+        sourceType: "tutor-profile"
+      });
+      const strangerId = `stranger-${sampleId}`;
+      const missingConversationId = `missing-conversation-${sampleId}`;
+      const missingRequestId = `missing-request-${sampleId}`;
+      const commonSensitiveTokens = [
+        parentSourceId,
+        parentFixture.conversationId,
+        parentFixture.requestId,
+        parentFixture.ownerUserId,
+        parentFixture.participantUserId,
+        "13800000001",
+        "ownerUserId",
+        "participantUserIds",
+        "sourceVersion"
+      ];
+      const parentContext = { params: Promise.resolve({ id: parentFixture.conversationId }) };
+      const missingConversationContext = { params: Promise.resolve({ id: missingConversationId }) };
+
+      await runPair({
+        expectedStatus: 404,
+        missing: () => conversationsRoute.GET(
+          request(`/api/conversations/${missingConversationId}`, parentFixture.participantUserId, undefined, "GET"),
+          missingConversationContext
+        ),
+        seam: "conversation:get",
+        sensitiveTokens: commonSensitiveTokens,
+        unauthorized: () => conversationsRoute.GET(
+          request(`/api/conversations/${parentFixture.conversationId}`, strangerId, undefined, "GET"),
+          parentContext
+        )
+      });
+      await runPair({
+        expectedStatus: 404,
+        missing: () => messagesRoute.GET(
+          request(`/api/conversations/${missingConversationId}/messages`, parentFixture.participantUserId, undefined, "GET"),
+          missingConversationContext
+        ),
+        seam: "messages:get",
+        sensitiveTokens: commonSensitiveTokens,
+        unauthorized: () => messagesRoute.GET(
+          request(`/api/conversations/${parentFixture.conversationId}/messages`, strangerId, undefined, "GET"),
+          parentContext
+        )
+      });
+      await runPair({
+        expectedStatus: 404,
+        missing: () => messagesRoute.POST(
+          request(`/api/conversations/${missingConversationId}/messages`, parentFixture.participantUserId, { text: "synthetic-enumeration" }),
+          missingConversationContext
+        ),
+        seam: "messages:post",
+        sensitiveTokens: commonSensitiveTokens,
+        unauthorized: () => messagesRoute.POST(
+          request(`/api/conversations/${parentFixture.conversationId}/messages`, strangerId, { text: "synthetic-enumeration" }),
+          parentContext
+        )
+      });
+
+      for (const [seam, view] of [
+        ["contact-exchange:get-list", ""],
+        ["contact-exchange:get-authorized-profiles", "&view=authorized-profiles"]
+      ] as const) {
+        await runPair({
+          expectedStatus: 404,
+          missing: () => contactExchangeRoute.GET(
+            request(`/api/contact-exchange?conversationId=${missingConversationId}${view}`, parentFixture.participantUserId, undefined, "GET")
+          ),
+          seam,
+          sensitiveTokens: commonSensitiveTokens,
+          unauthorized: () => contactExchangeRoute.GET(
+            request(`/api/contact-exchange?conversationId=${parentFixture.conversationId}${view}`, strangerId, undefined, "GET")
+          )
+        });
+      }
+      await runPair({
+        expectedStatus: 404,
+        missing: () => contactExchangeRoute.POST(
+          request("/api/contact-exchange", parentFixture.participantUserId, {
+            action: "create",
+            conversationId: missingConversationId
+          })
+        ),
+        seam: "contact-exchange:create",
+        sensitiveTokens: commonSensitiveTokens,
+        unauthorized: () => contactExchangeRoute.POST(
+          request("/api/contact-exchange", strangerId, {
+            action: "create",
+            conversationId: parentFixture.conversationId
+          })
+        )
+      });
+      for (const action of ["approve", "reject", "withdraw"] as const) {
+        const authorizedUserId = action === "withdraw"
+          ? parentFixture.participantUserId
+          : parentFixture.ownerUserId;
+        await runPair({
+          expectedStatus: 404,
+          missing: () => contactExchangeRoute.POST(
+            request("/api/contact-exchange", authorizedUserId, {
+              action,
+              requestId: missingRequestId,
+              ...(action === "approve" ? { secondConfirmation: true } : {})
+            })
+          ),
+          seam: `contact-exchange:${action}`,
+          sensitiveTokens: commonSensitiveTokens,
+          unauthorized: () => contactExchangeRoute.POST(
+            request("/api/contact-exchange", strangerId, {
+              action,
+              requestId: parentFixture.requestId,
+              ...(action === "approve" ? { secondConfirmation: true } : {})
+            })
+          )
+        });
+      }
+
+      await runPair({
+        expectedStatus: 200,
+        missing: () => contactProfileRoute.GET(
+          request(`/api/contact-profile?userId=missing-profile-${sampleId}`, parentFixture.participantUserId, undefined, "GET")
+        ),
+        seam: "contact-profile:get-selector-isolation",
+        sensitiveTokens: [parentFixture.ownerUserId, "13800000001", `missing-profile-${sampleId}`],
+        unauthorized: () => contactProfileRoute.GET(
+          request(`/api/contact-profile?userId=${parentFixture.ownerUserId}`, parentFixture.participantUserId, undefined, "GET")
+        )
+      });
+      await runPair({
+        expectedStatus: 400,
+        missing: () => contactProfileRoute.PUT(
+          request("/api/contact-profile", parentFixture.participantUserId, {
+            ownerUserId: `missing-profile-${sampleId}`,
+            phone: "13800000002",
+            wechat: "synthetic-self-wechat"
+          }, "PUT")
+        ),
+        seam: "contact-profile:put-selector-rejection",
+        sensitiveTokens: [parentFixture.ownerUserId, "13800000001", `missing-profile-${sampleId}`],
+        unauthorized: () => contactProfileRoute.PUT(
+          request("/api/contact-profile", parentFixture.participantUserId, {
+            ownerUserId: parentFixture.ownerUserId,
+            phone: "13800000002",
+            wechat: "synthetic-self-wechat"
+          }, "PUT")
+        )
+      });
+
+      for (const source of [
+        {
+          fixture: parentFixture,
+          id: parentSourceId,
+          name: "parent-needs",
+          route: parentNeedsRoute,
+          updateBody: {
+            budgetMax: "125",
+            budgetMin: "85",
+            childIntro: "synthetic-enumeration-update",
+            community: "synthetic-community",
+            grade: "初一",
+            region: { city: "合成市", district: "合成区", province: "合成省" },
+            subjects: ["数学"],
+            teacherGenderPreference: "不限",
+            timeSlots: ["周六上午"],
+            version: 2
+          }
+        },
+        {
+          fixture: tutorFixture,
+          id: tutorSourceId,
+          name: "tutor-profiles",
+          route: tutorProfilesRoute,
+          updateBody: {
+            abilityDescription: "synthetic-enumeration-update",
+            feeRanges: [{ grade: "初一", max: "125", min: "85", subject: "数学" }],
+            gender: "不限",
+            grades: ["初一"],
+            major: "数学",
+            proofImages: [],
+            school: "合成学校",
+            subjects: ["数学"],
+            timeSlots: ["周六上午"],
+            version: 2
+          }
+        }
+      ] as const) {
+        const missingSourceId = `missing-${source.name}-${sampleId}`;
+        const sourceSensitiveTokens = [
+          source.id,
+          source.fixture.ownerUserId,
+          "ownerUserId",
+          "version",
+          missingSourceId
+        ];
+        await runPair({
+          expectedStatus: 404,
+          missing: () => source.route.GET(
+            request(`/api/${source.name}/${missingSourceId}?scope=mine`, strangerId, undefined, "GET"),
+            { params: Promise.resolve({ id: missingSourceId }) }
+          ),
+          seam: `${source.name}:get-mine`,
+          sensitiveTokens: sourceSensitiveTokens,
+          unauthorized: () => source.route.GET(
+            request(`/api/${source.name}/${source.id}?scope=mine`, strangerId, undefined, "GET"),
+            { params: Promise.resolve({ id: source.id }) }
+          )
+        });
+        await runPair({
+          expectedStatus: 404,
+          missing: () => source.route.PATCH(
+            request(`/api/${source.name}/${missingSourceId}`, strangerId, source.updateBody, "PATCH"),
+            { params: Promise.resolve({ id: missingSourceId }) }
+          ),
+          seam: `${source.name}:patch`,
+          sensitiveTokens: sourceSensitiveTokens,
+          unauthorized: () => source.route.PATCH(
+            request(`/api/${source.name}/${source.id}`, strangerId, source.updateBody, "PATCH"),
+            { params: Promise.resolve({ id: source.id }) }
+          )
+        });
+        for (const [seamAction, method, body] of [
+          ["delete", "DELETE", { version: 2 }],
+          ["restore", "POST", { action: "restore", version: 2 }]
+        ] as const) {
+          const idempotencyKey = `enumeration-${source.name}-${seamAction}-${sample}`;
+          const requestWithIdempotency = (id: string) => new Request(
+            `https://ungraduedu.eu.cc/api/${source.name}/${id}`,
+            {
+              body: JSON.stringify(body),
+              headers: { ...headers(strangerId), "idempotency-key": idempotencyKey },
+              method
+            }
+          );
+          await runPair({
+            expectedStatus: 404,
+            missing: () => source.route[method](
+              requestWithIdempotency(missingSourceId),
+              { params: Promise.resolve({ id: missingSourceId }) }
+            ),
+            seam: `${source.name}:${seamAction}`,
+            sensitiveTokens: sourceSensitiveTokens,
+            unauthorized: () => source.route[method](
+              requestWithIdempotency(source.id),
+              { params: Promise.resolve({ id: source.id }) }
+            )
+          });
+        }
+      }
+    }
+
+    expect([...implementedSeams].sort()).toEqual([...requiredSeams].sort());
+    expect(intentionallyIgnoredDynamicHeaders).toEqual(["date", "server", "x-correlation-id"]);
+    for (const seam of requiredSeams) {
+      const samples = timings.get(seam);
+      expect(samples?.unauthorized).toHaveLength(sampleCount);
+      expect(samples?.missing).toHaveLength(sampleCount);
+      const unauthorizedMedian = median(samples?.unauthorized ?? []);
+      const missingMedian = median(samples?.missing ?? []);
+      const medianToleranceMs = Math.max(25, Math.min(unauthorizedMedian, missingMedian) * 4 + 5);
+      expect(Math.abs(unauthorizedMedian - missingMedian)).toBeLessThanOrEqual(medianToleranceMs);
+      expect(percentile90(samples?.unauthorized ?? [])).toBeLessThanOrEqual(250);
+      expect(percentile90(samples?.missing ?? [])).toBeLessThanOrEqual(250);
+    }
+  });
+
   it("normalizes missing and non-participant conversation reads to the same 404 contract", async () => {
     process.env.APP_ENV = "test";
     Object.assign(process.env, { NODE_ENV: "test" });

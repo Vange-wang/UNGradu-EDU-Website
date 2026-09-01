@@ -4,8 +4,8 @@
 
 - Issue ID：ISSUE-0045
 - 类型：documentation / non-blocking review improvement
-- 状态：open
-- 工作流状态：NON_BLOCKING_DOCUMENT_REVIEW
+- 状态：closed
+- 工作流状态：WORKFLOW_COMPLETE（仅 ISSUE-0045 自身；项目总 workflow 仍为 `WORKFLOW_ACTIVE`）
 - 优先级：P3
 - 来源报告：规划文档/Spec文档/Release_version_Spec/2026-08-15-issue-0035-联合Spec文档债务关闭-hermes-round-1.md
 - 来源报告 SHA-256：578B2ACBD243149F02C4A99FDE464AD742538E2311A53385A6065B9EDAD4F580
@@ -70,3 +70,26 @@
 去重说明：R1 N3 与 M1 合并；R2 NS-1/OI-1、NS-2/OI-2、NS-3/OI-3 分别合并；R2 NS-2/OI-2 与 R1 N1 的同类 0032 悬空引用保留为新周期再确认，不覆盖历史 finding。R1 O1-O4、R2 OI-4 均按过程/receipt 事项登记，不升级为 SERIOUS 或产品缺陷。ISSUE-0035 关闭不使本 Issue 成为 N-010/N-013 的唯一活动 tracker；N-010/N-013 已在 ISSUE-0035 关闭记录中转入本 Issue继续追踪。
 
 当前 ISSUE-0045 仍为 `open / NON_BLOCKING_DOCUMENT_REVIEW`；本批次不修改 ISSUE-0035、ISSUE-0031、ISSUE-0034、Spec/Hermes/QA 或项目 workflow。
+
+## 2026-08-31 集中清理附录独立 receipt 与关单审查
+
+- 集中清理附录：`规划文档/Spec文档/Release_version_Spec/2026-08-31-issue-0042-0044-0045产品文档债务集中清理附录.md`；SHA-256=`CEEE27D8AA6F73FA7DE1F13E8AC7C9F412627E985EB4C3C4A13AEA563C34411B`；19772 bytes / 142 lines。
+- Hermes Round 2：SHA-256=`AFDFEFD2CCB8A968E4CDB213E824D56932C761FE4ACB02D6DE6D68655A80787D`；metadata SHA-256=`BCD2466CB6B1C4BC39B4432DBE6D0258765A928A7444044E187B26791AE8923E`；`deepseek-v4-pro / 2/3 / PASS_WITH_NONBLOCKING_OPEN_ISSUES / SERIOUS=0 / canonical_source_unchanged=true`。
+
+本批独立复读四项本地 requires：
+
+- `MAC-3`：A45-V7 §5–§6 与集中清理附录 §5/§6 明确 cross-Issue carry、rollback point 仅作为文档边界，禁止用来源 Issue 关闭替代专项证据；该语义 receipt 已完成，但不把 N-003/N-006/N-010/N-013 写成完成。
+- `ISSUE-0045-LEDGER-V7-R1-O-001`：`协同工作文档/ISSUE/Close_Issue/ISSUE-0034-全站安全基线与加固计划.md` 存在，实际 SHA-256=`D5AB0E7D9C166F0E640B1130A4B4A9974624C1574CFD27BE80222C7EE5222DDE`，70942 bytes / 527 lines；§499–518 可回读。该 receipt 仅证明来源边界。
+- `ISSUE-0045-LEDGER-V7-R1-O-002`：`协同工作文档/ISSUE/Close_Issue/ISSUE-0017-风险反馈举报投诉最小记录能力缺口.md` 存在，实际 SHA-256=`1D9750D2CA5E6AD93D8A5EC23AE72B8CC26790DAC1BB267A5B72BAA7866B2275`，4492 bytes / 58 lines；`/feedback`、`risk_feedback_records`、目标环境 POST 与保留边界可回读。该 receipt 不替代 N-013 专项合同。
+- `ISSUE-0045-LEDGER-V7-R2-OI-001`：R1 report `规划文档/Spec文档/Release_version_Spec/2026-08-15-issue-0035-联合Spec文档债务关闭-hermes-round-1.md` 存在，实际 SHA-256=`578B2ACBD243149F02C4A99FDE464AD742538E2311A53385A6065B9EDAD4F580`，6247 bytes / 95 lines；R2 report 与集中清理附录的回溯路径可回读。
+
+独立判定：上述 4 项本地 receipt 已完成，但 `ISSUE-0045-LEDGER-V7-R1-O-003` 仍不能解除。A45-V7 §3/§4 明确：`V7-0035-N-003` 需由 `ISSUE-0041` 继续承载且其专属安全证据未完成；`V7-0035-N-006` 仍由 `ISSUE-0031` 延期承载；`V7-0035-N-010/N-013` 仍缺联合 Spec 专属补偿事务、用途/关联/保留/owner/审计合同。故“保持 N-003 在 0041”仅满足部分保守转移，不满足 0045 全部 external transfer 条件。
+
+`ISSUE-0045` 继续 `open / NON_BLOCKING_DOCUMENT_REVIEW`；本批 4 项 receipt 不改变任何转移项的未完成状态，不关闭 ISSUE-0035、ISSUE-0041 或 ISSUE-0031，不改变项目 workflow。唯一下一步：项目总负责人和对应安全/业务 owner 补齐四项 transfer 的合法承载与专项证据后，再由 ISSUE 管理员复核关单。
+## 2026-08-31 保守决策冻结与 transfer 合同复核、适用关单
+
+- 来源合同：`规划文档/Spec文档/Release_version_Spec/2026-08-31-issue-0042-0045保守决策冻结与transfer合同-spec-addendum.md`；实际 SHA-256=`9DCA8A2A852F582B636CDBB24A5FD9E6750086280F3BF63600957F3DD69BB48C`；21197 bytes / 142 lines。Hermes R1 SHA-256=`4227C8C21628470265C623B7BF0576789A1DD1E8385F158C61179246D31D469E`；metadata SHA-256=`525CFD520FE4E8FB674E145DEC601148A1F0E11493DD1209B40F3CB2A1639956`；`deepseek-v4-pro / 1/3 / PASS_WITH_NONBLOCKING_OPEN_ISSUES / SERIOUS=0 / canonical_source_unchanged=true`，无需 R2。
+- `N-010/N-013` transfer 合同独立复读：合同分别定义补偿事务/回滚与 risk_feedback 的对象、用途、关联、最小元数据、权限、保留/删除、审计、停止条件、适用验收和 future trigger；稳定 carrier 为现有 ISSUE-0045，不新建 Issue，不把 ISSUE-0035 或 ISSUE-0031 的关闭/延期写成完成。合同明确当前不建 collection、不查库、不双写、不写 runtime resolved，不授权实现、数据库、生产或付费动作。
+- `ISSUE-0045-LEDGER-V7-R1-O-003` 适用判定：合同 §5.1 明确“合同、carrier 和 future trigger 可回读”即可将 O-003 改判为 `RESOLVED_BY_DOC_TRANSFER_CONTRACT`，仅表示合法文档转移关系已补齐；§5.4 明确 N-003 仍由 ISSUE-0041 承载、N-006 仍由 ISSUE-0031 承载，二者均未完成，且 N-010/N-013 的未来运行能力仍未完成。故本次不把目标 Issue 已完成当作前置条件，也不把任一 transfer 项写成 runtime resolved。
+- 与既有 receipt 合并复核：此前登记的 `MAC-3`、0034 Close source receipt、0017 source receipt、V7 R1 report path/hash receipt 均保持；本批仅补齐 O-003 的合法 carrier/owner/future trigger/隔离合同。原 N1–N6、MAC1–MAC4 及 V7 NON_SERIOUS 历史映射保留，不覆盖、不重写。
+- 独立判定：本 Issue 自身要求的文档修订、跨 Issue/rollback/hash/D 分类/版本/上游 receipt、适用 Hermes 门及 transfer 合同均已可回读；`ISSUE-0045-LEDGER-V7-R1-O-003` 改判为 `RESOLVED_BY_DOC_TRANSFER_CONTRACT`。关闭仅覆盖 ISSUE-0045 文档台账，不表示 N-003/N-006/N-010/N-013 的安全、数据库、补偿、risk_feedback、实现、独立生产或业务能力完成；项目 workflow 仍为 `WORKFLOW_ACTIVE`。

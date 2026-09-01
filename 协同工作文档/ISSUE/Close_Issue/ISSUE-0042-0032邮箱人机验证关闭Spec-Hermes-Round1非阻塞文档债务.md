@@ -4,8 +4,8 @@
 
 - Issue ID：ISSUE-0042
 - 类型：documentation / non-blocking review improvement
-- 状态：open
-- 工作流状态：NON_BLOCKING_DOCUMENT_REVIEW
+- 状态：closed
+- 工作流状态：WORKFLOW_COMPLETE（仅 ISSUE-0042 自身；项目总 workflow 仍为 `WORKFLOW_ACTIVE`）
 - 优先级：P3
 - 来源报告：规划文档/Spec文档/Release_version_Spec/2026-08-15-issue-0032-邮箱人机验证关闭-hermes-round-1.md
 - 来源报告 SHA-256：B0EAF7A5B89A7FBF1478698FB35601F8F4087DEDC41F9143F9E67501C7218499
@@ -80,3 +80,35 @@
 - Active Open 保持精确为 11 项：`ISSUE-0031/0032/0035/0036/0038/0040/0041/0042/0043/0044/0045`。`ISSUE-0031`、数据库及全部付费动作继续延期；项目 workflow 保持 `WORKFLOW_ACTIVE`。
 - 本批不修改 Spec、candidate、Hermes report/metadata、Document QA、ISSUE-0032 canonical、代码、UI、CONTEXT、中央注册/总览、钦定 ISSUE 管理员或其他角色文件；不运行 npm，不执行 Git mutation，不部署、不操作 Cloudflare/CloudBase/provider，不创建任务/subagent，不进入实现、测试、提交或关单。
 - 唯一下一步 / 下一责任人：项目总负责人独立核对本次 ISSUE-0042 Round 2 N1–N9 登记；等待用户对下一步单独授权。
+
+## 2026-08-31 集中清理附录独立回读与关单审查
+
+- 集中清理附录：`规划文档/Spec文档/Release_version_Spec/2026-08-31-issue-0042-0044-0045产品文档债务集中清理附录.md`；SHA-256=`CEEE27D8AA6F73FA7DE1F13E8AC7C9F412627E985EB4C3C4A13AEA563C34411B`；19772 bytes / 142 lines。
+- Hermes Round 2：`规划文档/Spec文档/Release_version_Spec/2026-08-31-issue-0042-0044-0045产品文档债务集中清理附录-hermes-round-2.md`；SHA-256=`AFDFEFD2CCB8A968E4CDB213E824D56932C761FE4ACB02D6DE6D68655A80787D`；metadata SHA-256=`BCD2466CB6B1C4BC39B4432DBE6D0258765A928A7444044E187B26791AE8923E`；`deepseek-v4-pro / 2/3 / PASS_WITH_NONBLOCKING_OPEN_ISSUES / SERIOUS=0 / canonical_source_unchanged=true`，不启动 Round 3。
+- QA ledger：`协同工作文档/文档QA/DocumentQA工作记录.md`；SHA-256=`F0AA7D0E4C8BC609D263451A80F730A296C744B5F298513068A1A38813D3D195`。上述证据均已只读回读；本批不修改来源 Spec、Hermes、metadata 或 QA。
+
+本批按集中清理附录 §3 的 18 项矩阵登记，原 Round 1 与 Round 2 finding 的事实、严重度和历史映射不改写：
+
+- `RESOLVED_BY_DOC` 5 项：R1-N1、R1-N2、R1-C2、R2-N1、R2-N5；仅表示文档绑定完成，不表示 ISSUE-0032 或本台账关闭。
+- `REQUIRES_IMPLEMENTATION_OR_INDEPENDENT_REVIEW` 8 项：R1-N3、R1-MAC-1、R1-MAC-3、R1-MAC-5、R2-N4、R2-N6、R2-N8、R2-N9；仍需对应实现/安全/独立复核的负例、脱敏、cleanup、窗口、method、fresh receipt 或顺序证据。
+- `EXTERNAL_OR_USER_BLOCKED` 5 项：R1-N4、R1-MAC-4、R2-N2、R2-N3、R2-N7；分别涉及观察窗口、回滚/安全替代、device 派生输入、unknown-proxy 策略阈值及固定窗/滑动窗选择，不由本台账自行决定。
+
+独立判定：`ISSUE-0042` 继续 `open / NON_BLOCKING_DOCUMENT_REVIEW`。5 项文档处置已复读，8 项本地角色证据和 5 项外部/用户项尚未满足关闭触发；不得因集中清理附录或 Hermes `SERIOUS=0` 关闭本 Issue，也不得改写 ISSUE-0032、provider、Secret、生产或项目 workflow。
+
+唯一下一步：项目总负责人分别路由 8 项实现/独立复核证据，并取得 5 项外部/用户决定后，再由 ISSUE 管理员复核关单。
+## 2026-08-31 保守决策冻结与本地补证任务登记
+
+- 来源合同：`规划文档/Spec文档/Release_version_Spec/2026-08-31-issue-0042-0045保守决策冻结与transfer合同-spec-addendum.md`；实际 SHA-256=`9DCA8A2A852F582B636CDBB24A5FD9E6750086280F3BF63600957F3DD69BB48C`；21197 bytes / 142 lines。
+- 独立审查：同目录 `2026-08-31-issue-0042-0045保守决策冻结与transfer合同-spec-addendum-hermes-round-1.md`；SHA-256=`4227C8C21628470265C623B7BF0576789A1DD1E8385F158C61179246D31D469E`；7800 bytes / 104 lines；metadata SHA-256=`525CFD520FE4E8FB674E145DEC601148A1F0E11493DD1209B40F3CB2A1639956`；`deepseek-v4-pro / 1/3 / PASS_WITH_NONBLOCKING_OPEN_ISSUES / SERIOUS=0 / canonical_source_unchanged=true`，不启动 R2。报告中的 NON_SERIOUS/O-1～O-5 仍按非阻塞边界处理。
+- 五项产品/安全决策已冻结，但仅表示文档决策，不表示实现或生产通过：`R1-N4` 将 72 小时从当前关单硬门中排除并保留未来生产门；`R1-MAC-4` 仅接受安全替代方向，不冒充真实回滚演练；`R2-N2` 冻结服务端 keyed device pseudonym 的最小输入和失败 fail-closed；`R2-N3` 冻结 unknown-proxy 保守策略，未知值不得自动放行；`R2-N7` 冻结 fixed-window 语义，生产观察值仍待未来门禁。相关处置保留 `RESOLVED_BY_DOC`、`DECISION_FROZEN` 或 `PENDING_BY_GATE` 的原合同含义。
+- 八项本地/独立待证据任务保持未完成：`R1-N3`（verifyEmailChallenge/EmailChallengeReplayGuard 失败路径、并发 consume 与独立签名）；`R1-MAC-1`（POST_SEND_CODE 日志、截图、审计抽样脱敏）；`R1-MAC-3`（PersistentChallengeReplayDocument、expires/cleanup、幂等清理与权限/事务 receipt）；`R1-MAC-5`（guardWriteRequest → verifyChallengeForRequest → checkRateLimit → sendEmailLoginCode 顺序与 send=0）；`R2-N4`（300 秒边界、5 秒 retry、60 秒 cooldown、5 分钟 code TTL、错误码 5 次）；`R2-N6`（fresh source hash/HEAD/tree/package/test receipt）；`R2-N8`（cleanup_after、清理失败不复活、保留/权限/告警）；`R2-N9`（method/source guard 与错误方法 verify/send=0）。每项仍须 owner、路径/符号、测试、receipt 和停止条件的独立证据。
+- 共同边界：本附录与本登记不授权代码、provider、Secret、平台、部署、数据库、付费或生产动作；测试/本地合成不能替代生产证据，决策冻结不能替代独立复核或业务批准。`V7-0035-N-003` 继续由 ISSUE-0041 承载，`V7-0035-N-006` 继续由 ISSUE-0031 承载，均未写成完成。
+- 独立判定：ISSUE-0042 继续 `open / NON_BLOCKING_DOCUMENT_REVIEW`；五项决策已登记，八项本地/独立证据及原有五项 external 尚未满足关闭触发。唯一下一步：项目总负责人按任务包路由实现/独立复核，并取得 external/user 决策后再复核关单。
+## 2026-08-31 doc-only/local evidence 最终独立关单审查
+
+- 合同来源：`规划文档/Spec文档/Release_version_Spec/2026-08-31-issue-0042-0045保守决策冻结与transfer合同-spec-addendum.md`；实际 SHA-256=`9DCA8A2A852F582B636CDBB24A5FD9E6750086280F3BF63600957F3DD69BB48C`；Hermes R1 `SERIOUS=0`，其余文档门禁保持有效。
+- exact local commit receipt：branch=`V4-issue-0032-email-turnstile-closure`；commit=`f6ab78a6ccedb14ddf5dcb61d51513aeabeee55f`；parent=`3c69840c6d1722c0438c5d9342c4d68efcecd6d0`；tree=`2956069b07b7628eb1c80beafaeef4ed41d2533f`；7 files，`+1107/-87`；diff SHA-256=`EB1F54C424C4D71C6D2D0A16ADFFE7A4FC3940E0A7E40FDB2D7061C0D982183A`，61418 bytes。已独立复读 commit 对象、parent、tree、subject 及 7 个变更路径；该隔离回执声明 worktree `0/0/0`，不改写当前主工作树既有 dirty/index 状态。
+- 验证/独立回执：开发验证为 RED `9 failed/13 pass` 后 GREEN `22/22`，必要回归 `8 files/144`，typecheck/lint/diff-check/Secret scan 通过；独立技术/安全回执为 `TECH_SECURITY_REVIEW_PASS`、P0/P1/P2=`0/0/0`、`8 files/150 pass`，typecheck/lint/diff-check 通过；post-commit 回执为 `POST_COMMIT_ATTESTATION_PASS`，7 文件 blob/hash 与候选逐字节一致，八项最终矩阵均为 `PASS_LOCAL`/`PASS_LOCAL_DOCUMENT_ONLY`/`PASS_LOCAL_EXACT_COMMIT`，并明确 `0042_DOC_ONLY_CLOSE_ELIGIBILITY=ELIGIBLE`。
+- 八项本地/独立任务均已绑定上述 exact commit 与回执：`R1-N3`、`R1-MAC-1`、`R1-MAC-3`、`R1-MAC-5`、`R2-N4`、`R2-N6`、`R2-N8`、`R2-N9`。本次仅确认 local/doc-only closure eligibility，不把 post-push/live-remote、真实脱敏生产抽样、CloudBase 权限、cleanup owner/告警、provider/platform/production、真实回滚或观察写成通过。
+- 关闭语义与残余：ISSUE-0046 继续 `open / NON_BLOCKING_DOCUMENT_REVIEW`，承载 provider-specific、post-push/live-remote 与适用生产 residual；本 Issue 关闭不改变 ISSUE-0032 主 Issue、ISSUE-0046、ISSUE-0031、ISSUE-0041 或项目 workflow，不代表 push、部署、平台配置、Secret、数据库、付费、真实生产或项目完成。
+- 独立判定：`ISSUE-0042` 满足自身文档债务的 doc-only/local evidence 关单条件，已将状态更新为 `closed / WORKFLOW_COMPLETE`（仅 ISSUE-0042 自身）；历史 Open 记录保留供审计。唯一下一步：项目总负责人独立核对 Close canonical、总表与本工作记录，随后继续由 ISSUE-0046/适用生产门禁承载未通过项。

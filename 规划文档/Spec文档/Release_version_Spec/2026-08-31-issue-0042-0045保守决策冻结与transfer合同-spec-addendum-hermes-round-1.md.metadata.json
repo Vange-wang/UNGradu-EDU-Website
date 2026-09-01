@@ -1,0 +1,16 @@
+{
+  "source": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-31-issue-0042-0045保守决策冻结与transfer合同-spec-addendum.md",
+  "source_sha256": "9DCA8A2A852F582B636CDBB24A5FD9E6750086280F3BF63600957F3DD69BB48C",
+  "report": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-31-issue-0042-0045保守决策冻结与transfer合同-spec-addendum-hermes-round-1.md",
+  "report_sha256": "4227C8C21628470265C623B7BF0576789A1DD1E8385F158C61179246D31D469E",
+  "round": "1/3",
+  "model": "deepseek-v4-pro",
+  "hermes_path": "D:\\miniconda\\Scripts\\hermes.exe",
+  "hermes_version": "Hermes Agent v0.18.2 (2026.7.7.2)",
+  "default_model": "deepseek-v4-pro",
+  "default_model_changed": false,
+  "exit_code": 0,
+  "started_at": "2026-08-31T05:08:36.5074277+08:00",
+  "completed_at": "2026-08-31T05:13:07.8612372+08:00",
+  "canonical_source_unchanged": true
+}

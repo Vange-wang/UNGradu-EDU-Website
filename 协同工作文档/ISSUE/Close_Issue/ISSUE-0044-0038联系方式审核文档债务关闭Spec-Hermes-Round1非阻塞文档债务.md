@@ -4,8 +4,8 @@
 
 - Issue ID：ISSUE-0044
 - 类型：documentation / non-blocking review improvement
-- 状态：open
-- 工作流状态：NON_BLOCKING_DOCUMENT_REVIEW
+- 状态：closed
+- 工作流状态：WORKFLOW_COMPLETE（仅 ISSUE-0044 自身；项目总 workflow 仍为 `WORKFLOW_ACTIVE`）
 - 优先级：P3
 - 来源报告：规划文档/Spec文档/Release_version_Spec/2026-08-15-issue-0038-联系方式审核文档债务关闭-hermes-round-1.md
 - 来源报告 SHA-256：2151DC34C2E6757DF65266E1568CC1DFD9CB438D1DCBEA540877B95D51371C1E
@@ -89,3 +89,20 @@
 去重说明：R1 N-2 与 R2 NON-2、R1 N-4 与 R2 NON-3、R1 N-5 与 R2 NON-1 已合并为同一 canonical 台账项；其余来源 finding 均保留独立映射。R3 OI-1 的 receipt 动作已在本次关单审查中完成，但作为非阻塞审计债务保留至 ISSUE-0044 后续关闭。R1/R2 的 SERIOUS 项仍由 Document QA 路由，本批次不降级、不关闭、不触发新的 QA 结论。
 
 当前 ISSUE-0044 仍为 `open / NON_BLOCKING_DOCUMENT_REVIEW`；本批次不表示 ISSUE-0038、ISSUE-0036、实现、部署、生产或项目 workflow 已完成。唯一下一步：项目总负责人在保留本批次追踪的前提下，统一核对 V6 文档-only 目录并执行后续 GitHub 推送。
+
+## 2026-08-31 集中清理附录独立 receipt 与适用关单
+
+- 集中清理附录：`规划文档/Spec文档/Release_version_Spec/2026-08-31-issue-0042-0044-0045产品文档债务集中清理附录.md`；实际 SHA-256=`CEEE27D8AA6F73FA7DE1F13E8AC7C9F412627E985EB4C3C4A13AEA563C34411B`；19772 bytes / 142 lines。
+- Hermes Round 2：`规划文档/Spec文档/Release_version_Spec/2026-08-31-issue-0042-0044-0045产品文档债务集中清理附录-hermes-round-2.md`；SHA-256=`AFDFEFD2CCB8A968E4CDB213E824D56932C761FE4ACB02D6DE6D68655A80787D`；metadata SHA-256=`BCD2466CB6B1C4BC39B4432DBE6D0258765A928A7444044E187B26791AE8923E`；`deepseek-v4-pro / 2/3 / PASS_WITH_NONBLOCKING_OPEN_ISSUES / SERIOUS=0 / canonical_source_unchanged=true`。QA ledger SHA-256=`F0AA7D0E4C8BC609D263451A80F730A296C744B5F298513068A1A38813D3D195`。
+
+### 三项独立 receipt
+
+1. `MAC-2`：集中清理附录 §6 及本台账当前可回读内容仅保留路径、hash、字节数、行数和抽象状态；未写入真实 Secret、token、Cookie、邮箱、账号、未成年人原文或生产数据。该 receipt 的范围仅为本次文档-only台账，不扩展为生产证明。
+2. `V6-R2-N-007`：集中清理附录实际 hash 与其 metadata `source_sha256` 完全一致，路径存在且 142 行可回读；本关闭段落记录该外部计算 receipt，不形成附录自引用。相关 V6 addendum SHA=`563219A51BE647CD72081ABBAC9E06C5CF7D46DA448D504A5E47AE9DEC46A9FE`，其来源绑定可回读。
+3. `V6-R3-OI-001`：原 ISSUE-0036 Spec `规划文档/Spec文档/Release_version_Spec/2026-08-10-issue-0036-联系方式快速智能审核-spec.md` 存在，实际 SHA-256=`005EA5F2490DC2E43A134BA0421EFBD357179C90E29A6F2AB560F6F61A97B437`，39996 bytes / 575 lines；V6 addendum §3.1 的 `B-E01`～`B-E07` 各有一条定义，source path/hash 与 §3.2 回链可回读，且主题锚点存在。
+
+独立判定：原 N-01–N-08、MAC-1–MAC-4 及 V6 追加批次的 22 项均已按集中清理附录完成文档处置或本次 receipt；V6 R1/R2 的 SERIOUS 已由 QA 处理，集中清理 Hermes Round 2 为 `SERIOUS=0`。三项 requires receipt 均满足本台账的文档-only关闭触发。
+
+`ISSUE-0044` 正式关闭为 `closed / WORKFLOW_COMPLETE`（仅 ISSUE-0044 自身）。本关闭不表示 ISSUE-0038、ISSUE-0036 的功能/生产审核、AI/provider、flag-on、部署、生产观察、回滚或项目 workflow 完成；不改变 ISSUE-0041 的 N-003、ISSUE-0031、ISSUE-0042、ISSUE-0043、ISSUE-0045、ISSUE-0046 或数据库/支付延期边界。历史 `open` 记录保留为历史快照。
+
+唯一下一步：项目总负责人独立核对本次 ISSUE-0044 Close canonical、总表和工作记录，随后执行统一 doc-only GitHub snapshot publication。

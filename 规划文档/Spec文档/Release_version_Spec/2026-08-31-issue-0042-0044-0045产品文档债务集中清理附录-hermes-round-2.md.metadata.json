@@ -1,0 +1,16 @@
+{
+  "source": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-31-issue-0042-0044-0045产品文档债务集中清理附录.md",
+  "source_sha256": "CEEE27D8AA6F73FA7DE1F13E8AC7C9F412627E985EB4C3C4A13AEA563C34411B",
+  "report": "D:\\codex_project\\家教对接website\\规划文档\\Spec文档\\Release_version_Spec\\2026-08-31-issue-0042-0044-0045产品文档债务集中清理附录-hermes-round-2.md",
+  "report_sha256": "AFDFEFD2CCB8A968E4CDB213E824D56932C761FE4ACB02D6DE6D68655A80787D",
+  "round": "2/3",
+  "model": "deepseek-v4-pro",
+  "hermes_path": "D:\\miniconda\\Scripts\\hermes.exe",
+  "hermes_version": "Hermes Agent v0.18.2 (2026.7.7.2)",
+  "default_model": "deepseek-v4-pro",
+  "default_model_changed": false,
+  "exit_code": 0,
+  "started_at": "2026-08-31T04:49:34.3028499+08:00",
+  "completed_at": "2026-08-31T04:52:47.5115639+08:00",
+  "canonical_source_unchanged": true
+}

@@ -264,3 +264,18 @@
 - 权限边界：未运行 Hermes/npm/测试/build，未执行 Git mutation、部署、数据库/付费或平台操作；未创建任务/subagent；本次 QA 不自我批准，不宣布文档门通过。
 - 工作记录采用 prefix-preserving append；追加前 SHA-256=`40A29FCE5AA7B6AA3D88C2898A554662906103C1AE6E58A5120206FB6E5FF6FA`，45,059 bytes / 251 lines。
 - 当前状态：`QA_DOCUMENT_REWORK_COMPLETE / HERMES_ROUND_3_PENDING`。唯一下一步：项目总负责人路由原产品经理执行最后 focused Hermes Round 3/3，仅复核 S-01 与受影响回归。
+
+## 2026-08-31｜ISSUE-0042/0044/0045 集中清理附录 Hermes Round 1 S1/S2 严重批次整改
+
+- 执行角色：`DocumentQAv2.3.2 / 019fefa7-c5cf-7e62-9859-5263998dfd77 / gpt-5.6-sol / high`；项目 workflow=`WORKFLOW_ACTIVE`；共享审查计数保持 Round 1/3。
+- 写前输入：canonical `8FAA13ACBCCA97C68280E19AECFD0B5A72D8496BB5D0BA1C61B4B2E1C06B27B6`（18,703 bytes / 142 lines）；R1 report `E46ABE3F63C923C884471FF57C0D0D7E67F52EB8DEB39F21495BBAE65C39A070`（8,301 bytes / 99 lines）；metadata `464D99B5DB99F6B41E34DD24F31109DA2E232081C84E94609B07C676A6352E7D`；`deepseek-v4-pro / Round 1/3 / canonical_source_unchanged=true / REWORK_REQUIRED`，完整 SERIOUS=2。
+- S1 before：原 §5“0045 小结”写为 `16/3/1`，相加仅20，与表内21项及4个 `REQUIRES_IMPLEMENTATION_OR_INDEPENDENT_REVIEW` 行不一致。S1 after：§5 开头明确总计21项，§5 小结统一为 `RESOLVED_BY_DOC=16 / REQUIRES=4 / EXTERNAL=1 / 16+4+1=21`，§7 ISSUE-0045 摘要同步为 `16/4/1`。
+- S1 定向验证：ISSUE-0045 表仍为21行；4个 requires 行仍是 MAC-3、`ISSUE-0045-LEDGER-V7-R1-O-001`、`ISSUE-0045-LEDGER-V7-R1-O-002`、`ISSUE-0045-LEDGER-V7-R2-OI-001`；唯一 external 行仍为 `ISSUE-0045-LEDGER-V7-R1-O-003`，未改变任何行 disposition。
+- S2 before：原 `V7-R1-N-003=RESOLVED_BY_DOC` 与 V7 来源矩阵 `N-003=N/A+transfer` 共用 `N-003` token，可能把未完成安全 transfer 误读为已解决。S2 after：§5 固定两个命名空间——`ISSUE-0045-LEDGER-*` 仅指 ISSUE-0045 文档审查台账项，`V7-0035-N-*` 仅指 A45-V7 §3 来源矩阵项；11个追加台账行统一改为 `ISSUE-0045-LEDGER-*`。
+- S2 核心隔离：`ISSUE-0045-LEDGER-V7-R1-N-003` 仅表示历史 A/B/C/D 映射文档债务已补，不等于 `V7-0035-N-003`；后者继续为未完成 safety transfer，由 `ISSUE-0041`/安全 owner 承载，不得写成通过、完成或关闭。`V7-0035-N-006/N-010/N-013` 同样保持 transfer/延期边界。
+- 来源复核：A45-ISSUE SHA=`335CB48AE2FA965644BC95E852784039D062E5BE97DD8AF18C5571E5395AFFCB`，其 `V7-0035-R1-N-003` 是文档分类映射发现；A45-V7 SHA=`54A331358C55C204E8B17A6C8311014882A2D8B54C13490F04D85CB40D0E2CCB`，其 §3 `N-003` 明确为 `N/A_FOR_CURRENT_CLOSURE + TRANSFER_EXISTING_TRACKER` 并由 ISSUE-0041/安全 owner 继续追踪。
+- 输出 canonical：`CEEE27D8AA6F73FA7DE1F13E8AC7C9F412627E985EB4C3C4A13AEA563C34411B`；19,772 bytes / 142 lines。
+- 非范围：R1 NON_SERIOUS N1（§3 intro qualifier）、N2（证据列表头）、N3（证据引用格式）、N4（范围 framing）均未处理、未宣称关闭；Missing Acceptance Criteria 与 OI-1～OI-5 也未在本 QA 批次扩写。
+- 权限边界：未运行 Hermes/npm/测试/build，未执行 Git mutation、部署、平台、数据库或付费动作；未创建任务/subagent；未修改 Issue canonical/总表、产品经理记录、代码/UI、其他角色或中央文件；本次 QA 不自我批准、不宣布文档门通过或三项 Issue 关闭。
+- 工作记录采用 prefix-preserving append；追加前 SHA-256=`B003A837868615A76ACD2551803A7B18E3F78E8EF26C76DA3FEAAD188AE14A9F`，48,045 bytes / 266 lines。
+- 当前状态：`QA_SERIOUS_BATCH_REMEDIATED / HERMES_ROUND_2_PENDING`。唯一下一步：交回项目总负责人，由其组织 focused Hermes Round 2/3，仅复核 S1、S2 与受影响回归。
